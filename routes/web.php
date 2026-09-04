@@ -30,5 +30,10 @@ Route::get('/daftar-barang', [BarangController::class, 'tampil']);
 Route::get('/tambah-barang', [BarangController::class, 'create']);
 Route::post('/simpan-barang', [BarangController::class, 'simpan']);
 Route::delete('/hapus-kategori/{kategori}', [KategoriController::class, 'hapus'])->name('kategori.hapus');
+Route::get('/ubah-kategori/{kategori}', [KategoriController::class, 'ubah'])->name('kategori.ubah');
+Route::put('/update-kategori', [KategoriController::class, 'update']);
+
+
+
 //haloo
 //tes

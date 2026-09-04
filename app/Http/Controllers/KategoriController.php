@@ -36,4 +36,16 @@ class KategoriController extends Controller
         return redirect('daftar-kategori');
     }
     
+
+    public function ubah(Kategori $kategori){
+        return view('kategori.ubah', ['kategori' => $kategori]);
+    }
+
+    public function update(Request $request) {
+        $kategori = Kategori::find($request->get('id'));
+        $kategori->nama_kategori = $request->get('nama_kategori');
+        $kategori->deskripsi = $request->get('deskripsi');
+        $kategori->save();
+        return redirect('daftar-kategori');
+    }
 }

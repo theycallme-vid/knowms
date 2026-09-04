@@ -21,10 +21,10 @@
                         @method('DELETE')
                         @csrf 
                         <input type="hidden" name="id" value="{{$kategori->id}}">
-                        <input type="submit" value="hapus">
+                        <input type="submit" value="[HAPUS]">
                     </form>
+                    <a href="{{route('kategori.ubah', $kategori)}}">[UBAH]</a>
                 </td>
-
             </tr>
         @endforeach
     </table>
