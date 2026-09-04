@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call([KategoriSeeder::class]); // bisa menambahkan seeder baru
+        $this->call([BarangSeeder::class]); // bisa menambahkan seeder baru
 
 
     }

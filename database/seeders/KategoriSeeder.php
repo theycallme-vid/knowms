@@ -24,3 +24,4 @@ class KategoriSeeder extends Seeder
             
     }
 }
+
