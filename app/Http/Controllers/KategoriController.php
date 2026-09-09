@@ -19,21 +19,32 @@ class KategoriController extends Controller
     }
 
     public function simpan(Request $request){
-        // DB::table('kategoris')->insert([
-        //     'nama_kategori' => $request->get('nama_kategori'),
-        //     'deskripsi' => $request->get('deskripsi'),
-        // ]);
+        $request->validate([
+            'nama_kategori' => ['required', 'regex:/^[^0-9]+$/'],
+            'deskripsi'     => ['nullable'],
+        ], [
+            'nama_kategori.required' => 'Nama kategori wajib diisi.',
+            'nama_kategori.regex'    => 'Nama kategori tidak boleh mengandung angka.',
+        ]);
 
-        $kategori = new Kategori;
-        $kategori->nama_kategori = $request->get('nama_kategori');
-        $kategori->deskripsi = $request->get('deskripsi');
-        $kategori->save();
-        return redirect('daftar-kategori');
+        try {
+            $kategori = new Kategori;
+            $kategori->nama_kategori = $request->get('nama_kategori');
+            $kategori->deskripsi = $request->get('deskripsi');
+            $kategori->save();
+            return redirect('daftar-kategori')->with('sukses', 'Data Kategori berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            return redirect('daftar-kategori')->with('error', 'Gagal menambah data kategori: ' . $e->getMessage());
+        }
     }
 
     public function hapus(Kategori $kategori){
-        $kategori->delete();
-        return redirect('daftar-kategori');
+        try {
+            $kategori->delete();
+            return redirect('daftar-kategori')->with('sukses', 'Data Kategori berhasil dihapus!');
+        } catch (\Exception $e) {
+            return redirect('daftar-kategori')->with('error', 'Gagal menghapus data kategori: ' . $e->getMessage());
+        }
     }
     
 
@@ -42,10 +53,14 @@ class KategoriController extends Controller
     }
 
     public function update(Request $request) {
-        $kategori = Kategori::find($request->get('id'));
-        $kategori->nama_kategori = $request->get('nama_kategori');
-        $kategori->deskripsi = $request->get('deskripsi');
-        $kategori->save();
-        return redirect('daftar-kategori');
+        try {
+            $kategori = Kategori::find($request->get('id'));
+            $kategori->nama_kategori = $request->get('nama_kategori');
+            $kategori->deskripsi = $request->get('deskripsi');
+            $kategori->save();
+            return redirect('daftar-kategori')->with('sukses', 'Data Kategori berhasil diperbarui!');
+        } catch (\Exception $e) {
+            return redirect('daftar-kategori')->with('error', 'Gagal memperbarui data kategori: ' . $e->getMessage());
+        }
     }
 }

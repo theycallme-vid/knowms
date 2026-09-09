@@ -6,6 +6,18 @@
     <title>Document</title>
 </head>
 <body>
+    @if (session('sukses'))
+        <div style="background-color: #d4edda; color: #155724; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            {{ session('sukses') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div style="background-color: #f8d7da; color: #721c24; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <table border="1">
         <tr>
             <th>Nama</th>
@@ -17,12 +29,14 @@
                 <td>{{ $kategori->nama_kategori }}</td>
                 <td>{{ $kategori->deskripsi }}</td>
                 <td>
-                    <form action="{{route('kategori.hapus', $kategori)}}" method="POST">
+                    <form action="{{route('kategori.hapus', $kategori)}}" method="POST" onsubmit="return confirm('Apakah anda yakin ingin menhapus kategori {{ $kategori->nama_kategori }}?')">
                         @method('DELETE')
                         @csrf 
                         <input type="hidden" name="id" value="{{$kategori->id}}">
                         <input type="submit" value="[HAPUS]">
                     </form>
+                </td>
+                <td>
                     <a href="{{route('kategori.ubah', $kategori)}}">[UBAH]</a>
                 </td>
             </tr>

@@ -29,11 +29,14 @@ Route::post('/simpan-kategori', [KategoriController::class, 'simpan']);
 Route::get('/daftar-barang', [BarangController::class, 'tampil']);
 Route::get('/tambah-barang', [BarangController::class, 'create']);
 Route::post('/simpan-barang', [BarangController::class, 'simpan']);
+
+// KATEGORI
 Route::delete('/hapus-kategori/{kategori}', [KategoriController::class, 'hapus'])->name('kategori.hapus');
 Route::get('/ubah-kategori/{kategori}', [KategoriController::class, 'ubah'])->name('kategori.ubah');
 Route::put('/update-kategori', [KategoriController::class, 'update']);
 
+// BARANG
+Route::delete('/hapus-barang/{barang}', [BarangController::class, 'hapus'])->name('barang.hapus');
+Route::get('/ubah-barang/{barang}', [BarangController::class, 'ubah'])->name('barang.ubah');
+Route::put('/update-barang', [BarangController::class, 'update']);
 
-
-//haloo
-//tes

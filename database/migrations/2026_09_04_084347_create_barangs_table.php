@@ -21,7 +21,6 @@ return new class extends Migration
             $table->integer('stok')->default('0');
             $table->unsignedBigInteger('kategori_id'); //membuat field kategori_id sebagai foreign key
             $table->foreign('kategori_id')->references('id')->on('kategoris'); //membuat relasi one to many antara barang dan kategori
-            $table->timestamps();
         });
     }
 

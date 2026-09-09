@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Database\Seeders\KategoriSeeder;
+use Database\Seeders\BarangSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -23,8 +24,16 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call([BarangSeeder::class]); // bisa menambahkan seeder baru
+        $this->call([
+            KategoriSeeder::class,
+            BarangSeeder::class,
+            PegawaiSeeder::class,
+            PelangganSeeder::class,
+            NotaSeeder::class,
+            DetailNotaSeeder::class
+    ]); // bisa menambahkan seeder baru
 
 
     }
 }
+
