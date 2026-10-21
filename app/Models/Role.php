@@ -6,14 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    protected $table = 'tRoles';
+    // Nama tabel di MySQL adalah lowercase 'troles'
+    protected $table = 'troles';
 
     protected $fillable = [
         'nama',
     ];
 
     /**
-     * Relasi: satu Role memiliki banyak User
+     * Relasi: satu Role memiliki banyak User.
+     * Parameter kedua 'tRoles_id' adalah nama FK di tabel tusers.
      */
     public function users()
     {
