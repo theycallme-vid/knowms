@@ -15,13 +15,7 @@
         <!-- PANEL KIRI (Sama seperti sebelumnya) -->
         <div class="left-panel">
             <header class="panel-header">
-                <div class="logo-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                </div>
-                <div class="logo-text">
-                    <span class="logo-title">KMS</span>
-                    <span class="logo-subtitle">Knowledge Management System</span>
-                </div>
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="logo-img">
             </header>
 
             <main class="panel-content left-content">
