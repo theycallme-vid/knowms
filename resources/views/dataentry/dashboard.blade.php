@@ -547,7 +547,7 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-2 mb-4">
                 <div>
                     <div class="date-badge">RUANG PENULIS &middot; DATA ENTRY</div>
-                    <h1 class="display-serif fs-1 mb-1">Pengetahuan yang Anda tulis, membantu banyak langkah.</h1>
+                    <h1 class="display-serif fs-1 mb-1">DASHBOARD</h1>
                     <p class="text-muted fs-14 mb-0">Kelola FAQ Anda, lengkapi sumber resmi, lalu ajukan untuk divalidasi.</p>
                 </div>
                 <div>
