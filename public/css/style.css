@@ -1,0 +1,83 @@
+/* RESET & BASE */
+* { box-sizing: border-box; }
+body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; color: #111827; height: 100vh; }
+a { text-decoration: none; color: inherit; }
+
+/* LAYOUT UTAMA */
+.split-layout { display: flex; width: 100%; min-height: 100vh; }
+.left-panel, .right-panel { width: 50%; display: flex; flex-direction: column; padding: 48px 64px; position: relative; }
+
+/* --- PANEL KIRI --- */
+.left-panel {
+    /* Sesuaikan URL background dengan lokasi gambar Anda */
+    background: linear-gradient(to bottom, rgba(249, 250, 252, 0.9) 0%, rgba(249, 250, 252, 0.1) 40%, rgba(0,0,0,0.4) 100%), url('/images/auth/left-page.png') no-repeat center bottom;
+    background-size: cover;
+}
+
+.panel-header { display: flex; align-items: center; gap: 12px; }
+.logo-icon { background: #111827; color: white; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+.logo-text { display: flex; flex-direction: column; }
+.logo-title { font-weight: 700; font-size: 16px; line-height: 1.2; }
+.logo-subtitle { font-size: 11px; color: #6b7280; }
+
+.left-content { margin-top: 15vh; max-width: 480px; }
+.eyebrow { font-size: 11px; font-weight: 600; color: #6b7280; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 20px; }
+.heading { font-family: 'Merriweather', serif; font-size: 44px; font-weight: 700; line-height: 1.2; margin: 0 0 16px 0; }
+.heading .highlight { color: #b91c1c; }
+.subheading { font-size: 15px; color: #374151; line-height: 1.6; margin: 0; }
+
+.left-footer { margin-top: auto; display: flex; align-items: center; gap: 8px; color: white; font-size: 12px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+
+/* --- PANEL KANAN --- */
+.right-panel { background-color: #ffffff; }
+
+.right-header { text-align: right; }
+.back-link { font-size: 13px; color: #6b7280; font-weight: 500; }
+.back-link:hover { color: #111827; }
+
+/* Form digeser ke kiri mendekati panel gambar */
+.right-content { 
+    margin-top: auto; 
+    margin-bottom: auto; 
+    display: flex; 
+    justify-content: flex-start; /* Mengubah posisi ke arah kiri */
+    padding-left: 60px; /* Jarak form dari garis pembelah tengah */
+    width: 100%; 
+}
+
+/* Ukuran maksimal form diperbesar */
+.form-wrapper { width: 100%; max-width: 460px; }
+
+.badge { display: inline-block; background-color: #fce8e8; color: #b91c1c; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 4px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; }
+.form-heading { font-family: 'Merriweather', serif; font-size: 36px; margin: 0 0 12px 0; }
+.form-subheading { font-size: 15px; color: #6b7280; line-height: 1.5; margin: 0 0 36px 0; }
+
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151; }
+.input-icon-wrapper { position: relative; display: flex; align-items: center; }
+.input-icon { position: absolute; left: 16px; color: #9ca3af; }
+.input-icon-wrapper input { width: 100%; padding: 14px 16px 14px 44px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; outline: none; transition: border-color 0.2s; font-family: 'Inter', sans-serif; }
+.input-icon-wrapper input:focus { border-color: #b91c1c; }
+.toggle-password { position: absolute; right: 16px; background: none; border: none; color: #9ca3af; cursor: pointer; padding: 0; display: flex; }
+.helper-text { display: block; font-size: 11px; color: #9ca3af; margin-top: 6px; }
+
+.form-actions { display: flex; justify-content: space-between; align-items: center; margin: 24px 0; font-size: 13px; }
+.remember-me { display: flex; align-items: center; gap: 8px; color: #4b5563; cursor: pointer; }
+.forgot-password { color: #b91c1c; font-weight: 600; }
+.forgot-password:hover { text-decoration: underline; }
+
+.btn-submit { width: 100%; background-color: #8c1515; color: white; border: none; border-radius: 8px; padding: 16px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; display: flex; justify-content: center; gap: 8px; }
+.btn-submit:hover { background-color: #7f1d1d; }
+
+.right-footer { margin-top: auto; font-size: 11px; color: #9ca3af; }
+.right-footer a { color: #9ca3af; margin: 0 4px; }
+.right-footer a:hover { color: #111827; }
+
+/* RESPONSIVE */
+@media (max-width: 992px) {
+    .split-layout { flex-direction: column; }
+    .left-panel, .right-panel { width: 100%; min-height: 50vh; }
+    .left-panel { background: #f9fafc; }
+    .right-content { padding-left: 0; justify-content: center; } /* Form kembali ke tengah untuk versi mobile */
+    .left-content { margin-top: 40px; margin-bottom: 40px; }
+}
