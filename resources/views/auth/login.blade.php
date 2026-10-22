@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KMS - Login</title>
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
     <!-- Pastikan Anda memuat CSS Anda di sini, atau letakkan CSS di bawah pada tag <style> -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +44,13 @@
                     <span class="badge">AKSES STAF UBAYA</span>
                     <h2 class="form-heading">Selamat datang kembali.</h2>
                     <p class="form-subheading">Silakan masuk untuk melanjutkan pengelolaan dan berbagi wawasan akademik di ruang lingkup kampus.</p>
+
+                    @if (session('success'))
+                        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <span>{{ session('success') }}</span>
+                        </div>
+                    @endif
 
                     <!-- Form Laravel -->
                     <form action="{{ route('login.submit') }}" method="POST">

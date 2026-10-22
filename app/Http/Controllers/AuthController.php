@@ -76,14 +76,19 @@ class AuthController extends Controller
 
     private function redirectToDashboard()
     {
+        // Bersihkan url.intended jika mengarah ke login atau root agar tidak loop
+        $intended = session()->get('url.intended');
+        if ($intended && ($intended === route('login') || $intended === url('/'))) {
+            session()->forget('url.intended');
+        }
+
         $roleName = Auth::user()->getRoleName();
 
         return match ($roleName) {
             'Super Admin' => redirect()->intended(route('admin.dashboard')),
             'Validator'   => redirect()->intended(route('validator.dashboard')),
             'Data Entry'  => redirect()->intended(route('dataentry.dashboard')),
-            'CS'          => redirect()->intended(route('cs.dashboard')),
-            default       => redirect('/'),
+            default       => redirect()->route('login'),
         };
     }
 }
