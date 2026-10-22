@@ -3,7 +3,6 @@
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-<<<<<<< HEAD
 // Route::get('/', function () {
 //     return view('welcome');
 // });
@@ -30,7 +29,7 @@ Route::get('/dataentry/dashboard', function () {
 Route::get('/validator/dashboard', function () {
     return view('validator.dashboard');
 });
-=======
+
 // Root: redirect ke login jika belum login, atau dashboard jika sudah
 Route::get('/', function () {
     return redirect()->route('login');
@@ -45,6 +44,7 @@ Route::middleware('guest')->group(function () {
 // =============================================================================
 // LOGOUT (Hanya untuk yang SUDAH login)
 Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
+
 // --- Super Admin ---
 Route::middleware(['auth', 'role:Super Admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
@@ -65,5 +65,3 @@ Route::middleware(['auth', 'role:Data Entry'])->prefix('data-entry')->name('data
         return view('dashboard.dataentry');
     })->name('dashboard');
 });
-
->>>>>>> origin/main
