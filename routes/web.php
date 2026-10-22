@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Route::get('/', function () {
@@ -32,6 +33,16 @@ Route::get('/validator/dashboard', function () {
 
 // Root: redirect ke login jika belum login, atau dashboard jika sudah
 Route::get('/', function () {
+    if (Auth::check()) {
+        $roleName = Auth::user()->getRoleName();
+        return match ($roleName) {
+            'Super Admin' => redirect()->route('admin.dashboard'),
+            'Validator'   => redirect()->route('validator.dashboard'),
+            'Data Entry'  => redirect()->route('dataentry.dashboard'),
+            default       => redirect()->route('login'),
+        };
+    }
+
     return redirect()->route('login');
 });
 
@@ -62,6 +73,6 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
 // --- Data Entry ---
 Route::middleware(['auth', 'role:Data Entry'])->prefix('data-entry')->name('dataentry.')->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard.dataentry');
+        return view('dataentry.dashboard');
     })->name('dashboard');
 });
