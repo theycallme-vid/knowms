@@ -389,7 +389,7 @@
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
-                <a href="#" class="nav-link-custom">
+                <a href="/superadmin/pengguna-akses" class="nav-link-custom">
                     <i class="bi bi-people"></i>
                     <span>Pengguna & akses</span>
                 </a>
@@ -646,7 +646,7 @@
                             <h2 class="fw-bold fs-15 text-dark mb-3">Tindakan cepat</h2>
 
                             <!-- Action Item 1 -->
-                            <a href="#" class="quick-action-item">
+                            <a href="/superadmin/pengguna-akses" class="quick-action-item">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: #EFF6FF; color: #2563EB;">
                                         <i class="bi bi-person-plus fs-6"></i>
