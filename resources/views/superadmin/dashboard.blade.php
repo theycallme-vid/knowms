@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KMS - Super Admin Dashboard</title>
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,343 +20,8 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
-    <style>
-        :root {
-            --app-bg: #FAF9F5;
-            --sidebar-bg: #FAF9F5;
-            --card-bg: #FFFFFF;
-            --card-border: #EAEAE4;
-            --brand-maroon: #85172C;
-            --brand-maroon-hover: #701023;
-            --brand-maroon-soft: #FCEEEF;
-            --text-heading: #171A1F;
-            --text-body: #334155;
-            --text-muted: #64748B;
-            --text-subtle: #94A3B8;
-            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            --font-serif: 'Lora', Georgia, serif;
-        }
-
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--app-bg);
-            color: var(--text-body);
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Typography */
-        .display-serif {
-            font-family: var(--font-serif);
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: var(--text-heading);
-        }
-
-        .fs-11 { font-size: 0.6875rem !important; }
-        .fs-12 { font-size: 0.75rem !important; }
-        .fs-13 { font-size: 0.8125rem !important; }
-        .fs-14 { font-size: 0.875rem !important; }
-        .fs-15 { font-size: 0.9375rem !important; }
-        .fs-24 { font-size: 1.5rem !important; }
-
-        /* Sidebar Styling */
-        .sidebar {
-            width: 260px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--card-border);
-            height: 100vh;
-            position: sticky;
-            top: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 1.5rem 1.25rem 1.25rem 1.25rem;
-            z-index: 1020;
-            overflow-y: auto;
-            scrollbar-width: thin;
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background-color: #E2E8F0;
-            border-radius: 4px;
-        }
-
-        .sidebar-brand-icon {
-            width: 36px;
-            height: 36px;
-            background-color: #0F172A;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #FFFFFF;
-            flex-shrink: 0;
-        }
-
-        .role-pill {
-            display: inline-block;
-            background-color: #ECEFE8;
-            color: #475569;
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            margin-top: 1rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .nav-link-custom {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.625rem 0.875rem;
-            border-radius: 12px;
-            color: #475569;
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.15s ease-in-out;
-            margin-bottom: 0.2rem;
-        }
-
-        .nav-link-custom:hover {
-            background-color: #F1F4F8;
-            color: var(--text-heading);
-        }
-
-        .nav-link-custom.active {
-            background-color: var(--brand-maroon-soft);
-            color: var(--brand-maroon);
-            font-weight: 600;
-        }
-
-        .nav-link-custom i {
-            font-size: 1.05rem;
-        }
-
-        /* Help Box */
-        .help-box {
-            background-color: #EEF4F9;
-            border: 1px solid #DCE6F0;
-            border-radius: 16px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .help-icon {
-            width: 28px;
-            height: 28px;
-            color: #3B82F6;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Top Header Navbar */
-        .top-navbar {
-            padding: 1.25rem 2rem 0.75rem 2rem;
-            background-color: var(--app-bg);
-        }
-
-        .search-container {
-            position: relative;
-            width: 340px;
-        }
-
-        .search-container i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-subtle);
-            font-size: 0.875rem;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 0.5rem 1rem 0.5rem 2.25rem;
-            border-radius: 9999px;
-            border: 1px solid #E2E8F0;
-            background-color: #FFFFFF;
-            font-size: 0.8125rem;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .search-input:focus {
-            border-color: var(--brand-maroon);
-            box-shadow: 0 0 0 3px rgba(133, 23, 44, 0.1);
-        }
-
-        .search-input::placeholder {
-            color: var(--text-subtle);
-        }
-
-        .avatar-circle {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: #EDE4D8;
-            color: #795535;
-            font-weight: 700;
-            font-size: 0.8125rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        /* Main Content Layout */
-        .content-area {
-            padding: 0.5rem 2rem 2.5rem 2rem;
-        }
-
-        /* Custom Cards */
-        .card-custom {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            padding: 1.25rem;
-            height: 100%;
-            transition: box-shadow 0.2s ease;
-        }
-
-        .card-custom:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-        }
-
-        /* Stat Icon */
-        .stat-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.15rem;
-            flex-shrink: 0;
-        }
-
-        /* Action List Item */
-        .quick-action-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.625rem 0.75rem;
-            border-radius: 12px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.15s ease;
-            margin-bottom: 0.5rem;
-        }
-
-        .quick-action-item:hover {
-            background-color: #F8FAFC;
-            transform: translateX(2px);
-        }
-
-        /* Custom Badges */
-        .badge-status {
-            font-size: 0.75rem;
-            font-weight: 500;
-            padding: 0.35rem 0.875rem;
-            border-radius: 9999px;
-            display: inline-block;
-        }
-
-        .badge-status-terbit {
-            background-color: #DCFCE7;
-            color: #15803D;
-        }
-
-        .badge-status-validasi {
-            background-color: #DBEAFE;
-            color: #1D4ED8;
-        }
-
-        .badge-status-selesai {
-            background-color: #CCFBF1;
-            color: #0F766E;
-        }
-
-        .badge-status-revisi {
-            background-color: #FEF3C7;
-            color: #B45309;
-        }
-
-        /* Modern Table Styling */
-        .activity-table th {
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-subtle);
-            border-bottom: 1px solid #F1F5F9;
-            padding: 0.75rem 0.5rem;
-            background: transparent;
-        }
-
-        .activity-table td {
-            font-size: 0.8125rem;
-            padding: 0.875rem 0.5rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #F8FAFC;
-            background: transparent;
-        }
-
-        .activity-table tbody tr:hover td {
-            background-color: #FAFAFA;
-        }
-
-        /* Date Tag */
-        .date-badge {
-            color: #2E7D32;
-            font-size: 0.6875rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin-bottom: 0.35rem;
-        }
-
-        /* Donut Legend Dot */
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-        }
-
-        /* Responsive Sidebar Drawer */
-        @media (max-width: 991.98px) {
-            .sidebar {
-                position: fixed;
-                left: -260px;
-                transition: left 0.3s ease;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            }
-            .sidebar.show {
-                left: 0;
-            }
-            .top-navbar {
-                padding: 1rem;
-            }
-            .content-area {
-                padding: 0.5rem 1rem 2rem 1rem;
-            }
-            .search-container {
-                width: 100%;
-                max-width: 260px;
-            }
-        }
-    </style>
+    <!-- Super Admin Dashboard CSS -->
+    <link rel="stylesheet" href="{{ asset('css/superadmin/style.css') }}">
 </head>
 <body>
 
@@ -364,14 +30,8 @@
     <aside class="sidebar" id="sidebar">
         <div>
             <!-- KMS Brand Header -->
-            <div class="d-flex align-items-center gap-2">
-                <div class="sidebar-brand-icon">
-                    <i class="bi bi-journal-bookmark-fill fs-5"></i>
-                </div>
-                <div>
-                    <div class="fw-bold fs-15 text-dark lh-sm">KMS</div>
-                    <div class="fs-11 text-muted">Knowledge Management System</div>
-                </div>
+            <div class="sidebar-brand">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
             </div>
 
             <!-- Role Badge -->
@@ -410,23 +70,20 @@
 
         <!-- Bottom Section of Sidebar -->
         <div>
-            <!-- Help Box -->
-            <div class="help-box">
-                <div class="help-icon">
-                    <i class="bi bi-life-preserver fs-5"></i>
-                </div>
-                <div class="fw-bold fs-13 text-dark mb-1">Butuh bantuan?</div>
-                <div class="text-muted fs-11 mb-2">Panduan pengelolaan pengetahuan untuk tim kampus.</div>
-                <a href="#" class="fw-semibold fs-12 text-decoration-none" style="color: #2563EB;">
-                    Buka panduan &rarr;
-                </a>
-            </div>
-
-            <!-- Account Settings -->
-            <a href="#" class="nav-link-custom">
+            <!-- Account Settings & Logout -->
+            <a href="#" class="nav-link-custom mb-1">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan akun</span>
             </a>
+            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary" style="cursor: pointer;">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Keluar</span>
+            </a>
+
+            <!-- Hidden Logout Form -->
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                @csrf
+            </form>
         </div>
     </aside>
 
@@ -446,7 +103,7 @@
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
                     <span class="mx-2 text-secondary">/</span>
-                    <strong class="text-dark">Super Admin</strong>
+                    <strong class="text-dark">Dashboard</strong>
                 </div>
             </div>
 
@@ -463,13 +120,35 @@
                     <i class="bi bi-bell fs-5"></i>
                 </button>
 
-                <!-- User Profile -->
-                <div class="d-flex align-items-center gap-2">
-                    <div class="avatar-circle">DP</div>
-                    <div class="d-none d-sm-block text-start lh-sm">
-                        <div class="fw-bold fs-13 text-dark">Dimas Pratama</div>
-                        <div class="fs-11 text-muted">Super Admin</div>
-                    </div>
+                <!-- User Profile Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()->nama ?? 'SA', 0, 2)) }}</div>
+                        <div class="d-none d-sm-block text-start lh-sm">
+                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Super Admin' }}</div>
+                            <div class="fs-11 text-muted">{{ Auth::user()->getRoleName() ?? 'Super Admin' }}</div>
+                        </div>
+                        <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="min-width: 200px;">
+                        <li>
+                            <div class="px-3 py-2 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Super Admin' }}</div>
+                                <div class="fs-11 text-muted">{{ Auth::user()->email ?? '' }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 fs-13 d-flex align-items-center gap-2" href="#">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                                <i class="bi bi-box-arrow-right"></i> Keluar
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </header>
@@ -783,6 +462,9 @@
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- SweetAlert2 for modern confirmation pop-up -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <!-- Charts Initialization Scripts -->
 <script>
     // Toggle Mobile Sidebar
@@ -791,6 +473,32 @@
         const backdrop = document.getElementById('sidebarBackdrop');
         sidebar.classList.toggle('show');
         backdrop.classList.toggle('d-none');
+    }
+
+    // Konfirmasi Logout dengan Pop-Up
+    function confirmLogout() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Konfirmasi Keluar',
+                text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#991b1b', // Warna maroon KMS
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '<i class="bi bi-box-arrow-right me-1"></i> Ya, Keluar',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('logout-form').submit();
+                }
+            });
+        } else {
+            if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+                document.getElementById('logout-form').submit();
+            }
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {

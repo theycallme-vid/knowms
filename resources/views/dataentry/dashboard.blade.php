@@ -63,18 +63,6 @@
 
         <!-- Bottom Section of Sidebar -->
         <div>
-            <!-- Help Box -->
-            <div class="help-box">
-                <div class="help-icon">
-                    <i class="bi bi-life-preserver fs-5"></i>
-                </div>
-                <div class="fw-bold fs-13 text-dark mb-1">Butuh bantuan?</div>
-                <div class="text-muted fs-11 mb-2">Panduan pengelolaan pengetahuan untuk tim kampus.</div>
-                <a href="#" class="fw-semibold fs-12 text-decoration-none" style="color: #2563EB;">
-                    Buka panduan &rarr;
-                </a>
-            </div>
-
             <!-- Account Settings & Logout -->
             <a href="#" class="nav-link-custom mb-1">
                 <i class="bi bi-gear"></i>

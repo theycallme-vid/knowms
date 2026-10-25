@@ -1,0 +1,563 @@
+:root {
+    --app-bg: #F8F9FB;
+    --card-bg: #FFFFFF;
+    --card-border: #E8ECEF;
+    --brand-maroon: #85172C;
+    --brand-maroon-hover: #6D1122;
+    --brand-maroon-soft: #FCEEEF;
+    --brand-maroon-border: #F8D7DA;
+    --text-heading: #171A1F;
+    --text-body: #334155;
+    --text-muted: #64748B;
+    --text-subtle: #94A3B8;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Lora', Georgia, serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--app-bg);
+    color: var(--text-body);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Typography */
+.display-serif {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text-heading);
+}
+
+.fs-11 { font-size: 0.6875rem !important; }
+.fs-12 { font-size: 0.75rem !important; }
+.fs-13 { font-size: 0.8125rem !important; }
+.fs-14 { font-size: 0.875rem !important; }
+
+/* Full-width Responsive Container (Matching Figma Layout) */
+.mhs-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+}
+
+@media (min-width: 1200px) {
+    .mhs-container {
+        padding-left: 4.25rem;
+        padding-right: 4.25rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .mhs-container {
+        padding-left: 5rem;
+        padding-right: 5rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .mhs-container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .mhs-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* ========================================================================= */
+/* NAVBAR                                                                    */
+/* ========================================================================= */
+.mhs-navbar {
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--card-border);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.navbar-logo-img {
+    height: 44px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.mhs-nav-link {
+    padding: 0.45rem 1.15rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+.mhs-nav-link:hover {
+    background: #F1F4F8;
+    color: var(--text-heading);
+}
+.mhs-nav-link.active {
+    background: var(--brand-maroon-soft);
+    color: var(--brand-maroon);
+    font-weight: 600;
+}
+
+.avatar-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #EDE4D8;
+    color: #795535;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ========================================================================= */
+/* BUTTONS                                                                   */
+/* ========================================================================= */
+.btn-maroon {
+    background-color: var(--brand-maroon);
+    color: #FFFFFF;
+    border: 1px solid var(--brand-maroon);
+    font-weight: 600;
+    border-radius: 9999px;
+    padding: 0.6rem 1.4rem;
+    font-size: 0.8125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-maroon:hover {
+    background-color: var(--brand-maroon-hover);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(133, 23, 44, 0.25);
+}
+
+/* ========================================================================= */
+/* HERO SECTION & BACKGROUND BANNER (FULL WIDTH)                            */
+/* ========================================================================= */
+.hero-section {
+    position: relative;
+    width: 100%;
+    background:
+        linear-gradient(90deg, 
+            rgba(248, 249, 251, 0.93) 0%, 
+            rgba(248, 249, 251, 0.88) 36%, 
+            rgba(248, 249, 251, 0.68) 55%, 
+            rgba(248, 249, 251, 0.20) 80%, 
+            rgba(248, 249, 251, 0.02) 100%),
+        url('/images/mahasiswa/banner-faq.jpg') no-repeat right center / cover;
+    padding: 3rem 0 4.25rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.hero-section::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 70px;
+    background: linear-gradient(to bottom, transparent, var(--app-bg));
+    pointer-events: none;
+}
+
+.hero-inner {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-maroon);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.hero-title {
+    font-size: 2.95rem;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--text-heading);
+}
+
+@media (min-width: 1600px) {
+    .hero-title {
+        font-size: 3.25rem;
+    }
+}
+
+.hero-search {
+    background: #FFFFFF;
+    border-radius: 9999px;
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    padding: 0.55rem 0.65rem 0.55rem 1.65rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 820px;
+    min-height: 64px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.hero-search:focus-within {
+    border-color: var(--brand-maroon);
+    box-shadow: 0 14px 36px rgba(133, 23, 44, 0.14);
+}
+
+.hero-search i.bi-search {
+    color: var(--text-subtle);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.hero-search input {
+    border: 0;
+    outline: none;
+    flex: 1;
+    font-size: 0.975rem;
+    color: var(--text-heading);
+    background: transparent;
+    min-width: 0;
+    font-family: var(--font-sans);
+}
+
+.hero-search input::placeholder {
+    color: #94A3B8;
+    font-size: 0.95rem;
+}
+
+.hero-search .btn-maroon {
+    padding: 0.75rem 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    gap: 0.6rem;
+    border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(133, 23, 44, 0.22);
+    flex-shrink: 0;
+}
+
+.hero-search .btn-maroon i {
+    font-size: 0.95rem;
+    transition: transform 0.2s ease;
+}
+
+.hero-search .btn-maroon:hover i {
+    transform: translateX(3px);
+}
+
+/* Floating Faculty Card */
+.faculty-card {
+    background: rgba(255, 255, 255, 0.90);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+    padding: 1.35rem 1.6rem;
+    min-width: 270px;
+    max-width: 340px;
+    transition: transform 0.2s ease;
+}
+
+.faculty-card:hover {
+    transform: translateY(-2px);
+}
+
+.suggest-chip {
+    color: #475569;
+    text-decoration: none;
+    font-weight: 500;
+    margin-right: 0.75rem;
+    transition: color 0.15s ease;
+}
+.suggest-chip:hover {
+    color: var(--brand-maroon);
+    text-decoration: underline;
+}
+
+/* ========================================================================= */
+/* KATEGORI PILLS GRID                                                       */
+/* ========================================================================= */
+.cat-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.cat-pill {
+    flex: 1 1 auto;
+    min-width: 140px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.75rem 1.15rem;
+    border-radius: 9999px;
+    background: #FFFFFF;
+    border: 1px solid var(--card-border);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #475569;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.cat-pill:hover {
+    border-color: #CBD5E1;
+    color: var(--text-heading);
+    background-color: #FBFBFC;
+    transform: translateY(-1px);
+}
+
+.cat-pill.active {
+    background: var(--brand-maroon);
+    border-color: var(--brand-maroon);
+    color: #FFFFFF;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(133, 23, 44, 0.22);
+}
+
+.cat-pill.active i {
+    color: #FFFFFF;
+}
+
+/* ========================================================================= */
+/* FAQ ACCORDION CARDS                                                       */
+/* ========================================================================= */
+.faq-item {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.02);
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.faq-item:hover {
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    border-color: #CBD5E1;
+}
+
+.faq-toggle {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem 1.6rem;
+    cursor: pointer;
+}
+
+.faq-num {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-subtle);
+    width: 24px;
+    flex-shrink: 0;
+}
+
+.faq-toggle:not(.collapsed) .faq-num {
+    color: var(--brand-maroon);
+}
+
+.faq-q {
+    font-weight: 600;
+    color: var(--text-heading);
+    font-size: 0.95rem;
+    flex: 1;
+    line-height: 1.35;
+}
+
+.faq-cat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.faq-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #F1F4F8;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.faq-toggle:not(.collapsed) .faq-icon {
+    background: var(--brand-maroon-soft);
+    color: var(--brand-maroon);
+}
+
+.faq-toggle.collapsed .faq-icon-minus,
+.faq-toggle:not(.collapsed) .faq-icon-plus {
+    display: none;
+}
+
+.faq-body {
+    padding: 0 1.6rem 1.4rem 4rem;
+    border-top: 1px solid #F8FAFC;
+}
+
+.tag-soft {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 9999px;
+    background: var(--brand-maroon-soft);
+    color: var(--brand-maroon);
+}
+
+.step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--brand-maroon-soft);
+    color: var(--brand-maroon);
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.source-box {
+    background: #EAF2F9;
+    border-radius: 12px;
+    padding: 0.85rem 1.15rem;
+    font-size: 0.8rem;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.source-box:hover {
+    background: #DCE8F3;
+    color: #0F172A;
+}
+
+.disclaimer {
+    background: #FEF9EE;
+    border: 1px solid #F6E5BE;
+    color: #8D5C06;
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.8rem;
+}
+
+/* ========================================================================= */
+/* CTA BANNER                                                                */
+/* ========================================================================= */
+.cta-card {
+    background: linear-gradient(135deg, #EAF2F9 0%, #FAF0F2 100%);
+    border: 1px solid #E2E8F0;
+    border-radius: 22px;
+    padding: 1.75rem 2.25rem;
+}
+
+.cta-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: #FFFFFF;
+    color: var(--brand-maroon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+/* ========================================================================= */
+/* FOOTER                                                                    */
+/* ========================================================================= */
+.mhs-footer {
+    border-top: 1px solid var(--card-border);
+    background-color: #FFFFFF;
+}
+
+.footer-link {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+    color: var(--text-heading);
+}
+
+/* ========================================================================= */
+/* RESPONSIVE BREAKPOINTS                                                    */
+/* ========================================================================= */
+@media (max-width: 991.98px) {
+    .hero-title {
+        font-size: 2.15rem;
+    }
+    .hero-section {
+        background:
+            linear-gradient(180deg, 
+                rgba(248, 249, 251, 0.98) 0%, 
+                rgba(248, 249, 251, 0.92) 65%, 
+                rgba(248, 249, 251, 0.65) 100%),
+            url('/images/mahasiswa/banner-faq.jpg') no-repeat center right / cover;
+        padding: 2rem 0 3rem;
+    }
+    .faq-body {
+        padding-left: 1.6rem;
+    }
+    .faq-cat-label {
+        display: none;
+    }
+    .faculty-card {
+        max-width: 100%;
+        width: 100%;
+    }
+}

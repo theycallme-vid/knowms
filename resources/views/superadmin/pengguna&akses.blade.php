@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>KMS - Pengguna & Hak Akses (Super Admin)</title>
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,517 +18,8 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <style>
-        :root {
-            --app-bg: #FAF9F5;
-            --sidebar-bg: #FAF9F5;
-            --card-bg: #FFFFFF;
-            --card-border: #EAEAE4;
-            --brand-maroon: #85172C;
-            --brand-maroon-hover: #701023;
-            --brand-maroon-soft: #FCEEEF;
-            --text-heading: #171A1F;
-            --text-body: #334155;
-            --text-muted: #64748B;
-            --text-subtle: #94A3B8;
-            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            --font-serif: 'Lora', Georgia, serif;
-        }
-
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--app-bg);
-            color: var(--text-body);
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Typography */
-        .display-serif {
-            font-family: var(--font-serif);
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: var(--text-heading);
-        }
-
-        .fs-11 { font-size: 0.6875rem !important; }
-        .fs-12 { font-size: 0.75rem !important; }
-        .fs-13 { font-size: 0.8125rem !important; }
-        .fs-14 { font-size: 0.875rem !important; }
-        .fs-15 { font-size: 0.9375rem !important; }
-        .fs-24 { font-size: 1.5rem !important; }
-
-        /* Sidebar Styling */
-        .sidebar {
-            width: 260px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--card-border);
-            height: 100vh;
-            position: sticky;
-            top: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 1.5rem 1.25rem 1.25rem 1.25rem;
-            z-index: 1020;
-            overflow-y: auto;
-            scrollbar-width: thin;
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background-color: #E2E8F0;
-            border-radius: 4px;
-        }
-
-        .sidebar-brand-icon {
-            width: 36px;
-            height: 36px;
-            background-color: #0F172A;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #FFFFFF;
-            flex-shrink: 0;
-        }
-
-        .role-pill {
-            display: inline-block;
-            background-color: #ECEFE8;
-            color: #475569;
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            margin-top: 1rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .nav-link-custom {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.625rem 0.875rem;
-            border-radius: 12px;
-            color: #475569;
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.15s ease-in-out;
-            margin-bottom: 0.2rem;
-        }
-
-        .nav-link-custom:hover {
-            background-color: #F1F4F8;
-            color: var(--text-heading);
-        }
-
-        .nav-link-custom.active {
-            background-color: var(--brand-maroon-soft);
-            color: var(--brand-maroon);
-            font-weight: 600;
-        }
-
-        .nav-link-custom i {
-            font-size: 1.05rem;
-        }
-
-        /* Help Box */
-        .help-box {
-            background-color: #EEF4F9;
-            border: 1px solid #DCE6F0;
-            border-radius: 16px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .help-icon {
-            width: 28px;
-            height: 28px;
-            color: #3B82F6;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Top Header Navbar */
-        .top-navbar {
-            padding: 1.25rem 2rem 0.75rem 2rem;
-            background-color: var(--app-bg);
-        }
-
-        .search-container {
-            position: relative;
-            width: 340px;
-        }
-
-        .search-container i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-subtle);
-            font-size: 0.875rem;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 0.5rem 1rem 0.5rem 2.25rem;
-            border-radius: 9999px;
-            border: 1px solid #E2E8F0;
-            background-color: #FFFFFF;
-            font-size: 0.8125rem;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .search-input:focus {
-            border-color: var(--brand-maroon);
-            box-shadow: 0 0 0 3px rgba(133, 23, 44, 0.1);
-        }
-
-        .search-input::placeholder {
-            color: var(--text-subtle);
-        }
-
-        .avatar-circle {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: #EDE4D8;
-            color: #795535;
-            font-weight: 700;
-            font-size: 0.8125rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .avatar-user-table {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.875rem;
-            flex-shrink: 0;
-        }
-
-        /* Main Content Layout */
-        .content-area {
-            padding: 0.5rem 2rem 2.5rem 2rem;
-        }
-
-        /* Custom Cards */
-        .card-custom {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            padding: 1.25rem;
-            height: 100%;
-            transition: box-shadow 0.2s ease;
-        }
-
-        .card-custom:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-        }
-
-        /* Stat Icon */
-        .stat-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.15rem;
-            flex-shrink: 0;
-        }
-
-        /* Date Tag */
-        .date-badge {
-            color: #2E7D32;
-            font-size: 0.6875rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin-bottom: 0.35rem;
-        }
-
-        /* Brand Maroon Buttons */
-        .btn-maroon {
-            background-color: var(--brand-maroon);
-            color: #FFFFFF;
-            border: 1px solid var(--brand-maroon);
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-maroon:hover {
-            background-color: var(--brand-maroon-hover);
-            color: #FFFFFF;
-            border-color: var(--brand-maroon-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(133, 23, 44, 0.2);
-        }
-
-        .btn-maroon-soft {
-            background-color: var(--brand-maroon-soft);
-            color: var(--brand-maroon);
-            border: 1px solid rgba(133, 23, 44, 0.15);
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-maroon-soft:hover {
-            background-color: #F8D7DA;
-            color: var(--brand-maroon-hover);
-        }
-
-        /* Role Badges */
-        .badge-role {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.35rem 0.8rem;
-            border-radius: 9999px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .badge-role-superadmin {
-            background-color: #FCEEEF;
-            color: #85172C;
-            border: 1px solid rgba(133, 23, 44, 0.2);
-        }
-
-        .badge-role-validator {
-            background-color: #DBEAFE;
-            color: #1D4ED8;
-            border: 1px solid rgba(29, 78, 216, 0.2);
-        }
-
-        .badge-role-dataentry {
-            background-color: #CCFBF1;
-            color: #0F766E;
-            border: 1px solid rgba(15, 118, 110, 0.2);
-        }
-
-        .badge-role-none {
-            background-color: #F1F5F9;
-            color: #64748B;
-            border: 1px solid #E2E8F0;
-        }
-
-        /* Status Badges */
-        .badge-status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .badge-active {
-            background-color: #DCFCE7;
-            color: #15803D;
-            border: 1px solid rgba(21, 128, 61, 0.15);
-        }
-
-        .badge-inactive {
-            background-color: #F1F5F9;
-            color: #64748B;
-            border: 1px solid #E2E8F0;
-        }
-
-        /* Security Banner */
-        .security-guard-banner {
-            background: linear-gradient(135deg, #FFF9F9 0%, #FFFFFF 100%);
-            border: 1px solid #F8D7DA;
-            border-left: 5px solid var(--brand-maroon);
-            border-radius: 14px;
-            padding: 1.1rem 1.25rem;
-            margin-bottom: 1.5rem;
-        }
-
-        /* Tab Filter Pills */
-        .nav-pills-custom {
-            gap: 0.5rem;
-        }
-
-        .nav-pills-custom .nav-link {
-            border-radius: 9999px;
-            color: #475569;
-            background-color: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            padding: 0.45rem 1.1rem;
-            transition: all 0.15s ease;
-        }
-
-        .nav-pills-custom .nav-link:hover {
-            background-color: #F8FAFC;
-            color: var(--text-heading);
-            border-color: #CBD5E1;
-        }
-
-        .nav-pills-custom .nav-link.active {
-            background-color: var(--brand-maroon);
-            color: #FFFFFF;
-            border-color: var(--brand-maroon);
-            box-shadow: 0 2px 6px rgba(133, 23, 44, 0.25);
-        }
-
-        /* Table Styling */
-        .table-responsive-custom {
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid var(--card-border);
-            background-color: #FFFFFF;
-        }
-
-        .custom-user-table {
-            margin-bottom: 0;
-            width: 100%;
-        }
-
-        .custom-user-table th {
-            font-size: 0.6875rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-subtle);
-            border-bottom: 1px solid #F1F5F9;
-            padding: 1rem 1rem;
-            background-color: #FBFBFA;
-        }
-
-        .custom-user-table td {
-            font-size: 0.8125rem;
-            padding: 1rem 1rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #F8FAFC;
-            background: transparent;
-        }
-
-        .custom-user-table tbody tr:hover td {
-            background-color: #FCFDFD;
-        }
-
-        /* Action Buttons */
-        .btn-action-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.875rem;
-            color: #475569;
-            background-color: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            transition: all 0.15s ease;
-            text-decoration: none;
-        }
-
-        .btn-action-icon:hover {
-            color: var(--brand-maroon);
-            background-color: var(--brand-maroon-soft);
-            border-color: #F8D7DA;
-        }
-
-        .btn-action-danger {
-            color: #DC2626;
-            background-color: #FEF2F2;
-            border-color: #FEE2E2;
-        }
-
-        .btn-action-danger:hover {
-            color: #FFFFFF;
-            background-color: #DC2626;
-            border-color: #DC2626;
-        }
-
-        /* Modal Styles */
-        .modal-content-custom {
-            border-radius: 20px;
-            border: 1px solid var(--card-border);
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
-        }
-
-        .modal-header-custom {
-            border-bottom: 1px solid #F1F5F9;
-            padding: 1.25rem 1.5rem;
-        }
-
-        .modal-footer-custom {
-            border-top: 1px solid #F1F5F9;
-            padding: 1rem 1.5rem;
-            background-color: #FAF9F5;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-        }
-
-        .form-label-custom {
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--text-heading);
-            margin-bottom: 0.35rem;
-        }
-
-        .form-control-custom, .form-select-custom {
-            border-radius: 10px;
-            border: 1px solid #E2E8F0;
-            padding: 0.55rem 0.9rem;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-        }
-
-        .form-control-custom:focus, .form-select-custom:focus {
-            border-color: var(--brand-maroon);
-            box-shadow: 0 0 0 3px rgba(133, 23, 44, 0.1);
-            outline: none;
-        }
-
-        .strict-verification-box {
-            background-color: #FFF5F5;
-            border: 1px dashed #E53E3E;
-            border-radius: 12px;
-            padding: 1rem;
-        }
-
-        /* Responsive Sidebar */
-        @media (max-width: 991.98px) {
-            .sidebar {
-                position: fixed;
-                left: -260px;
-                transition: left 0.3s ease;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            }
-            .sidebar.show {
-                left: 0;
-            }
-            .top-navbar {
-                padding: 1rem;
-            }
-            .content-area {
-                padding: 0.5rem 1rem 2rem 1rem;
-            }
-            .search-container {
-                width: 100%;
-                max-width: 260px;
-            }
-        }
-    </style>
+    <!-- Super Admin CSS -->
+    <link rel="stylesheet" href="{{ asset('css/superadmin/style.css') }}">
 </head>
 <body>
 
@@ -612,14 +104,8 @@
     <aside class="sidebar" id="sidebar">
         <div>
             <!-- KMS Brand Header -->
-            <div class="d-flex align-items-center gap-2">
-                <div class="sidebar-brand-icon">
-                    <i class="bi bi-journal-bookmark-fill fs-5"></i>
-                </div>
-                <div>
-                    <div class="fw-bold fs-15 text-dark lh-sm">KMS</div>
-                    <div class="fs-11 text-muted">Knowledge Management System</div>
-                </div>
+            <div class="sidebar-brand">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
             </div>
 
             <!-- Role Badge -->
@@ -659,11 +145,20 @@
         <!-- Bottom Section of Sidebar -->
         <div>
 
-            <!-- Account Settings -->
-            <a href="#" class="nav-link-custom">
+            <!-- Account Settings & Logout -->
+            <a href="#" class="nav-link-custom mb-1">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan akun</span>
             </a>
+            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary" style="cursor: pointer;">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Keluar</span>
+            </a>
+
+            <!-- Hidden Logout Form -->
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                @csrf
+            </form>
         </div>
     </aside>
 
@@ -683,9 +178,7 @@
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
                     <span class="mx-2 text-secondary">/</span>
-                    <span>Super Admin</span>
-                    <span class="mx-2 text-secondary">/</span>
-                    <strong class="text-dark">Pengguna & Akses</strong>
+                    <strong class="text-dark">Pengguna & Hak Akses</strong>
                 </div>
             </div>
 
@@ -705,13 +198,35 @@
                     </span>
                 </button>
 
-                <!-- User Profile -->
-                <div class="d-flex align-items-center gap-2">
-                    <div class="avatar-circle">DP</div>
-                    <div class="d-none d-sm-block text-start lh-sm">
-                        <div class="fw-bold fs-13 text-dark">Dimas Pratama</div>
-                        <div class="fs-11 text-muted">Super Admin</div>
-                    </div>
+                <!-- User Profile Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()->nama ?? 'SA', 0, 2)) }}</div>
+                        <div class="d-none d-sm-block text-start lh-sm">
+                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Super Admin' }}</div>
+                            <div class="fs-11 text-muted">{{ Auth::user()->getRoleName() ?? 'Super Admin' }}</div>
+                        </div>
+                        <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="min-width: 200px;">
+                        <li>
+                            <div class="px-3 py-2 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Super Admin' }}</div>
+                                <div class="fs-11 text-muted">{{ Auth::user()->email ?? '' }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 fs-13 d-flex align-items-center gap-2" href="#">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                                <i class="bi bi-box-arrow-right"></i> Keluar
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </header>
@@ -732,6 +247,21 @@
                 <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm d-flex align-items-center gap-2 mb-4" role="alert">
                     <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
                     <div class="fs-13 fw-medium text-dark">{{ session('error') }}</div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm d-flex align-items-start gap-2 mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-5 text-danger mt-0.5"></i>
+                    <div class="fs-13 text-dark">
+                        <strong class="d-block mb-1">Gagal menyimpan pengguna:</strong>
+                        <ul class="mb-0 ps-3">
+                            @foreach($errors->all() as $err)
+                                <li>{{ $err }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
                     <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
@@ -1038,12 +568,26 @@
                     <div class="mb-3">
                         <label for="create_password" class="form-label-custom">Kata Sandi Awal <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="password" class="form-control form-control-custom" id="create_password" name="password" required minlength="8" placeholder="Minimal 8 karakter">
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('create_password', this)">
+                            <input type="password" 
+                                   class="form-control form-control-custom" 
+                                   id="create_password" 
+                                   name="password" 
+                                   required 
+                                   minlength="8" 
+                                   placeholder="Minimal 8 karakter"
+                                   autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('create_password', this)" title="Lihat kata sandi">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
-                        <div class="form-text fs-11 text-muted">Password akan di-hash secara aman menggunakan bcrypt.</div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="fs-11 text-muted" id="create_password_msg">
+                                <i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.
+                            </div>
+                            <div class="fs-11 fw-semibold text-muted" id="create_password_counter">
+                                0/8 karakter
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Role Selection -->
@@ -1131,12 +675,18 @@
                     <div class="mb-3">
                         <label for="edit_password" class="form-label-custom">Ganti Kata Sandi (Opsional)</label>
                         <div class="input-group">
-                            <input type="password" class="form-control form-control-custom" id="edit_password" name="password" minlength="6" placeholder="Biarkan kosong jika tidak ingin mengganti">
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('edit_password', this)">
+                            <input type="password" 
+                                   class="form-control form-control-custom" 
+                                   id="edit_password" 
+                                   name="password" 
+                                   minlength="8" 
+                                   placeholder="Minimal 8 karakter jika ingin mengganti"
+                                   autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('edit_password', this)" title="Lihat kata sandi">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
-                        <div class="form-text fs-11 text-muted">Hanya isi bila pengguna meminta pengaturan ulang sandi.</div>
+                        <div class="form-text fs-11 text-muted">Biarkan kosong jika tidak ingin mengubah sandi. Jika diisi, minimal 8 karakter.</div>
                     </div>
 
                     <!-- Status Aktif / Nonaktif -->
@@ -1349,6 +899,9 @@
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- SweetAlert2 for modern confirmation pop-up -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <!-- Interactive Scripts: Strict Verification, Search & Filters -->
 <script>
     // Jumlah Super Admin aktif saat ini untuk validasi kuorum di sisi client
@@ -1361,6 +914,32 @@
         const backdrop = document.getElementById('sidebarBackdrop');
         sidebar.classList.toggle('show');
         backdrop.classList.toggle('d-none');
+    }
+
+    // Konfirmasi Logout dengan Pop-Up
+    function confirmLogout() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Konfirmasi Keluar',
+                text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#991b1b', // Warna maroon KMS
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '<i class="bi bi-box-arrow-right me-1"></i> Ya, Keluar',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('logout-form').submit();
+                }
+            });
+        } else {
+            if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+                document.getElementById('logout-form').submit();
+            }
+        }
     }
 
     // Toggle Password Visibility
@@ -1581,6 +1160,79 @@
         filterTableRows();
     });
 
+    // =========================================================================
+    // PENGECEKAN KATA SANDI MINIMAL 8 KARAKTER (TAMBAH PENGGUNA)
+    // =========================================================================
+    const createPassInput = document.getElementById('create_password');
+    const createPassMsg = document.getElementById('create_password_msg');
+    const createPassCounter = document.getElementById('create_password_counter');
+    const formTambahPengguna = document.querySelector('#modalTambahPengguna form');
+
+    function validateCreatePassword() {
+        if (!createPassInput) return true;
+        const len = createPassInput.value.length;
+
+        if (createPassCounter) {
+            createPassCounter.innerText = `${len}/8 karakter`;
+        }
+
+        if (len === 0) {
+            createPassInput.classList.remove('is-invalid', 'is-valid');
+            if (createPassMsg) {
+                createPassMsg.className = 'fs-11 text-muted';
+                createPassMsg.innerHTML = '<i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.';
+            }
+            if (createPassCounter) {
+                createPassCounter.className = 'fs-11 fw-semibold text-muted';
+            }
+            return false;
+        } else if (len < 8) {
+            createPassInput.classList.add('is-invalid');
+            createPassInput.classList.remove('is-valid');
+            if (createPassMsg) {
+                createPassMsg.className = 'fs-11 text-danger';
+                createPassMsg.innerHTML = `<i class="bi bi-x-circle me-1"></i>Kata sandi terlalu pendek (kurang ${8 - len} karakter).`;
+            }
+            if (createPassCounter) {
+                createPassCounter.className = 'fs-11 fw-semibold text-danger';
+            }
+            return false;
+        } else {
+            createPassInput.classList.remove('is-invalid');
+            createPassInput.classList.add('is-valid');
+            if (createPassMsg) {
+                createPassMsg.className = 'fs-11 text-success';
+                createPassMsg.innerHTML = '<i class="bi bi-check-circle me-1"></i>Kata sandi memenuhi syarat minimal 8 karakter.';
+            }
+            if (createPassCounter) {
+                createPassCounter.className = 'fs-11 fw-semibold text-success';
+            }
+            return true;
+        }
+    }
+
+    if (createPassInput) {
+        createPassInput.addEventListener('input', validateCreatePassword);
+    }
+
+    if (formTambahPengguna) {
+        formTambahPengguna.addEventListener('submit', function (e) {
+            if (!validateCreatePassword()) {
+                e.preventDefault();
+                createPassInput.focus();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Kata Sandi Kurang Dari 8 Karakter',
+                        text: 'Silakan masukkan kata sandi awal minimal 8 karakter sebelum menyimpan pengguna.',
+                        icon: 'warning',
+                        confirmButtonColor: '#85172C',
+                        confirmButtonText: 'Mengerti'
+                    });
+                }
+            }
+        });
+    }
+
     // Reset Form Tambah Pengguna saat modal ditutup (klik Batal, klik X, atau klik backdrop)
     document.getElementById('modalTambahPengguna').addEventListener('hidden.bs.modal', function () {
         // Reset semua input teks & select
@@ -1593,14 +1245,25 @@
         // Reset checkbox is_active ke kondisi awal (checked/aktif)
         document.getElementById('create_is_active').checked = true;
 
-        // Reset ikon tombol show/hide password ke kondisi awal (mata tertutup)
-        const passInput = document.getElementById('create_password');
-        if (passInput.type === 'text') {
-            passInput.type = 'password';
-            const eyeIcon = passInput.nextElementSibling?.querySelector('i');
-            if (eyeIcon) {
-                eyeIcon.classList.replace('bi-eye-slash', 'bi-eye');
+        // Reset status validasi & ikon mata kata sandi
+        if (createPassInput) {
+            createPassInput.classList.remove('is-invalid', 'is-valid');
+            if (createPassInput.type === 'text') {
+                createPassInput.type = 'password';
+                const eyeIcon = createPassInput.nextElementSibling?.querySelector('i');
+                if (eyeIcon) {
+                    eyeIcon.classList.replace('bi-eye-slash', 'bi-eye');
+                }
             }
+        }
+
+        if (createPassMsg) {
+            createPassMsg.className = 'fs-11 text-muted';
+            createPassMsg.innerHTML = '<i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.';
+        }
+        if (createPassCounter) {
+            createPassCounter.className = 'fs-11 fw-semibold text-muted';
+            createPassCounter.innerText = '0/8 karakter';
         }
     });
 </script>

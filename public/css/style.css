@@ -42,7 +42,7 @@ a { text-decoration: none; color: inherit; }
     margin-bottom: auto; 
     display: flex; 
     justify-content: flex-start; /* Mengubah posisi ke arah kiri */
-    padding-left: 60px; /* Jarak form dari garis pembelah tengah */
+    padding-left: 200px; /* Jarak form dari garis pembelah tengah */
     width: 100%; 
 }
 

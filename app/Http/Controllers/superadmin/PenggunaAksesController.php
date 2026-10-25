@@ -40,9 +40,17 @@ class PenggunaAksesController extends Controller
             'nama'      => 'required|string|max:100',
             'email'     => 'required|email|max:50|unique:tusers,email',
             'npk'       => 'nullable|string|max:15|unique:tusers,npk',
-            'password'  => 'required|string|min:6',
+            'password'  => 'required|string|min:8',
             'tRoles_id' => 'required|integer',
             'is_active' => 'nullable|boolean',
+        ], [
+            'password.required' => 'Kata sandi awal wajib diisi.',
+            'password.min'      => 'Kata sandi awal minimal harus 8 karakter.',
+            'email.required'    => 'Email wajib diisi.',
+            'email.email'       => 'Format email tidak valid.',
+            'email.unique'      => 'Email sudah terdaftar di sistem.',
+            'nama.required'     => 'Nama lengkap wajib diisi.',
+            'tRoles_id.required'=> 'Pemberian role wajib dipilih.',
         ]);
 
         try {
@@ -70,8 +78,13 @@ class PenggunaAksesController extends Controller
             'nama'      => 'required|string|max:100',
             'email'     => 'required|email|max:50|unique:tusers,email,' . $id,
             'npk'       => 'nullable|string|max:15|unique:tusers,npk,' . $id,
-            'password'  => 'nullable|string|min:6',
+            'password'  => 'nullable|string|min:8',
             'is_active' => 'nullable|boolean',
+        ], [
+            'password.min'      => 'Kata sandi baru minimal harus 8 karakter.',
+            'email.required'    => 'Email wajib diisi.',
+            'email.unique'      => 'Email sudah terdaftar oleh staf lain.',
+            'nama.required'     => 'Nama lengkap wajib diisi.',
         ]);
 
         try {

@@ -5,40 +5,22 @@ use App\Http\Controllers\superadmin\PenggunaAksesController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-// =============================================================================
-// ROOT ROUTE
-// =============================================================================
-// Redirect ke dashboard sesuai role jika sudah login, atau ke halaman login jika belum
+
+// HALAMAN PUBLIK: FAQ Mahasiswa (halaman pertama). Login hanya dibuka lewat "/login"
 Route::get('/', function () {
-    if (Auth::check()) {
-        $roleName = Auth::user()->getRoleName();
-        return match ($roleName) {
-            'Super Admin' => redirect()->route('admin.dashboard'),
-            'Validator'   => redirect()->route('validator.dashboard'),
-            'Data Entry'  => redirect()->route('dataentry.dashboard'),
-            default       => redirect()->route('login'),
-        };
-    }
+    return view('mahasiswa.faq');
+})->name('mahasiswa.faq');
 
-    return redirect()->route('login');
-});
-
-// =============================================================================
 // GUEST ROUTES (Autentikasi)
-// =============================================================================
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 });
 
-// =============================================================================
 // LOGOUT (Hanya untuk yang sudah login)
-// =============================================================================
 Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// =============================================================================
 // SUPER ADMIN ROUTES
-// =============================================================================
 Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     // Dashboard Super Admin
     Route::get('/admin/dashboard', function () {
@@ -59,18 +41,14 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     Route::post('/superadmin/pengguna-akses/toggle-status/{id}', [PenggunaAksesController::class, 'toggleStatus'])->name('superadmin.pengguna.toggleStatus');
 });
 
-// =============================================================================
 // VALIDATOR ROUTES
-// =============================================================================
 Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('validator.')->group(function () {
     Route::get('/dashboard', function () {
         return view('validator.dashboard');
     })->name('dashboard');
 });
 
-// =============================================================================
 // DATA ENTRY ROUTES
-// =============================================================================
 Route::middleware(['auth', 'role:Data Entry'])->group(function () {
     Route::prefix('data-entry')->name('dataentry.')->group(function () {
         Route::get('/dashboard', function () {
