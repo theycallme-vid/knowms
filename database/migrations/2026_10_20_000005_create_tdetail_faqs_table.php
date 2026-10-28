@@ -10,11 +10,8 @@ return new class extends Migration
     {
         if (!Schema::hasTable('tdetail_faqs')) {
             Schema::create('tdetail_faqs', function (Blueprint $table) {
-                // Tabel pivot antara tFaqs dan tTag (Many-to-Many)
-                // Tidak perlu 'id' autoincrement, PK gabungan dari dua FK sudah cukup
-                // Tidak perlu timestamps karena ini murni tabel pivot
 
-                $table->integer('tFaqs_id');
+                $table->string('tFaqs_id', 20);
                 $table->integer('tTag_id');
 
                 // Primary Key gabungan (composite PK)
@@ -22,15 +19,11 @@ return new class extends Migration
 
                 $table->foreign('tFaqs_id', 'fk_tFaqs_has_tTag_tFaqs1')
                       ->references('id')
-                      ->on('tfaqs')
-                      ->onDelete('cascade')  // Jika FAQ dihapus, pivot-nya ikut terhapus
-                      ->onUpdate('no action');
+                      ->on('tfaqs');
 
                 $table->foreign('tTag_id', 'fk_tFaqs_has_tTag_tTag1')
                       ->references('id')
-                      ->on('ttag')
-                      ->onDelete('cascade')  // Jika Tag dihapus, pivot-nya ikut terhapus
-                      ->onUpdate('no action');
+                      ->on('ttag');
             });
         }
     }

@@ -74,4 +74,28 @@ class User extends Authenticatable
     {
         return $this->getRoleName() === $roleName;
     }
+
+    /**
+     * Helper cepat untuk cek role spesifik.
+     * Contoh penggunaan di Blade: @if(auth()->user()->isAdmin())
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('Super Admin');
+    }
+
+    public function isValidator(): bool
+    {
+        return $this->hasRole('Validator');
+    }
+
+    public function isDataEntry(): bool
+    {
+        return $this->hasRole('Data Entry');
+    }
+
+    public function isCS(): bool
+    {
+        return $this->hasRole('CS');
+    }
 }

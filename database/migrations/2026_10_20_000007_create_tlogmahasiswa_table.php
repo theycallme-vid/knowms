@@ -25,17 +25,13 @@ return new class extends Migration
                 $table->integer('tMahasiswas_id')->nullable();
                 $table->foreign('tMahasiswas_id', 'fk_tLogMahasiswa_tMahasiswas1')
                       ->references('id')
-                      ->on('tmahasiswas')
-                      ->onDelete('no action')
-                      ->onUpdate('no action');
+                      ->on('tmahasiswas');
 
                 // FK ke FAQ yang ditemukan (NULLABLE: bisa NULL jika hasil pencarian kosong)
-                $table->integer('tFaqs_id')->nullable();
+                $table->string('tFaqs_id', 20)->nullable();
                 $table->foreign('tFaqs_id', 'fk_tLogMahasiswa_tFaqs1')
                       ->references('id')
-                      ->on('tfaqs')
-                      ->onDelete('no action')
-                      ->onUpdate('no action');
+                      ->on('tfaqs');
 
                 // Log tidak memerlukan updated_at karena data log tidak pernah diubah
                 $table->timestamps(false);
