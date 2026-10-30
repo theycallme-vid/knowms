@@ -20,14 +20,9 @@ return new class extends Migration
                 $table->string('npk', 15)->nullable()->unique();
                 $table->integer('tRoles_id');
                 $table->boolean('is_active')->default(true);
-                $table->rememberToken();
                 $table->timestamps();
 
-                $table->foreign('tRoles_id', 'fk_tUsers_tRoles1')
-                      ->references('id')
-                      ->on('troles')
-                      ->onDelete('no action')
-                      ->onUpdate('no action');
+                $table->foreign('tRoles_id', 'fk_tUsers_tRoles1')->references('id')->on('troles');
             });
         } elseif (!Schema::hasColumn('tusers', 'remember_token')) {
             Schema::table('tusers', function (Blueprint $table) {

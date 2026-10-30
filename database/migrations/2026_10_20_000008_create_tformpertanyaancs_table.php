@@ -22,9 +22,7 @@ return new class extends Migration
                 $table->integer('tMahasiswas_id')->nullable();
                 $table->foreign('tMahasiswas_id', 'fk_tPertanyaanMahasiswas_tMahasiswas1')
                       ->references('id')
-                      ->on('tmahasiswas')
-                      ->onDelete('no action')
-                      ->onUpdate('no action');
+                      ->on('tmahasiswas');
 
                 $table->timestamps();
             });
