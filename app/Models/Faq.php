@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,94 +6,50 @@ use Illuminate\Database\Eloquent\Model;
 class Faq extends Model
 {
     protected $table = 'tfaqs';
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
-        'pertanyaan',
-        'jawaban',
-        'status',
+        'id',
         'id_dataentry',
-        'id_validator',
-        'catatanValidasi',
-        'tglValidasi',
+        'pertanyaan',
     ];
 
-    protected $casts = [
-        'tglValidasi' => 'datetime',
-    ];
-
-    // =========================================================
-    // RELASI
-    // =========================================================
-
-    /**
-     * Relasi: FAQ ini dibuat oleh satu User yang berperan sebagai Data Entry.
-     * FK di tabel ini: id_dataentry → tusers.id
-     */
+    /** Data Entry yang membuat FAQ */
     public function dataEntry()
     {
         return $this->belongsTo(User::class, 'id_dataentry');
     }
 
-    /**
-     * Relasi: FAQ ini diperiksa oleh satu User yang berperan sebagai Validator.
-     * FK di tabel ini: id_validator → tusers.id (Nullable)
-     */
-    public function validator()
+    /** Versi-versi dari FAQ ini */
+    public function versions()
     {
-        return $this->belongsTo(User::class, 'id_validator');
+        return $this->hasMany(FaqVersion::class, 'tFaqs_id');
     }
 
-    /**
-     * Relasi Many-to-Many: satu FAQ bisa memiliki banyak Tag,
-     * melalui tabel pivot tdetail_faqs.
-     * Parameter: nama model tujuan, nama tabel pivot, FK lokal, FK tujuan
-     */
+    /** Versi aktif/terbaru yang approved */
+    public function latestApprovedVersion()
+    {
+        return $this->hasOne(FaqVersion::class, 'tFaqs_id')
+                    ->where('status', 'approved')
+                    ->latestOfMany('updated_at');
+    }
+
+    /** Tag-tag yang dimiliki FAQ ini */
     public function tags()
     {
         return $this->belongsToMany(
             Tag::class,
-            'tdetail_faqs',  // nama tabel pivot
-            'tFaqs_id',      // FK yang menunjuk ke tabel ini (tfaqs)
-            'tTag_id'        // FK yang menunjuk ke tabel tujuan (ttag)
+            'tdetail_faqs',
+            'tFaqs_id',
+            'tTag_id'
         );
     }
 
-    /**
-     * Relasi: satu FAQ bisa muncul di banyak log pencarian.
-     */
+    /** Log pencarian terkait FAQ ini */
     public function logPencarian()
     {
         return $this->hasMany(LogMahasiswa::class, 'tFaqs_id');
-    }
-
-    // =========================================================
-    // SCOPE (Query Builder Shortcut)
-    // =========================================================
-
-    /**
-     * Scope: hanya ambil FAQ yang sudah approved (tampil publik).
-     * Contoh penggunaan: Faq::approved()->get()
-     */
-    public function scopeApproved($query)
-    {
-        return $query->where('status', 'approved');
-    }
-
-    /**
-     * Scope: hanya ambil FAQ dengan status draft.
-     * Contoh penggunaan: Faq::draft()->get()
-     */
-    public function scopeDraft($query)
-    {
-        return $query->where('status', 'draft');
-    }
-
-    /**
-     * Scope: hanya ambil FAQ yang menunggu validasi (submitted).
-     * Contoh penggunaan: Faq::submitted()->get()
-     */
-    public function scopeSubmitted($query)
-    {
-        return $query->where('status', 'submitted');
     }
 }
