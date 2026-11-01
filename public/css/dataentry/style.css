@@ -106,14 +106,14 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.625rem 0.875rem;
-    border-radius: 12px;
+    padding: 0.625rem 1rem;
+    border-radius: 9999px;
     color: #475569;
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
     transition: all 0.15s ease-in-out;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
 }
 
 .nav-link-custom:hover {
@@ -125,6 +125,11 @@ body {
     background-color: var(--brand-maroon-soft);
     color: var(--brand-maroon);
     font-weight: 600;
+}
+
+.sidebar-divider {
+    border-top: 1px solid var(--card-border);
+    opacity: 0.6;
 }
 
 .nav-link-custom i {
@@ -239,8 +244,8 @@ body {
     background-color: var(--brand-maroon);
     color: #FFFFFF;
     border: none;
-    border-radius: 9999px;
-    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    padding: 0.55rem 1.25rem;
     font-size: 0.875rem;
     font-weight: 600;
     transition: background-color 0.2s ease, transform 0.1s ease;
@@ -253,6 +258,29 @@ body {
 .btn-maroon:hover {
     background-color: var(--brand-maroon-hover);
     color: #FFFFFF;
+}
+
+/* White Outline Button */
+.btn-white-outline {
+    background-color: #FFFFFF;
+    color: var(--text-heading);
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.btn-white-outline:hover {
+    background-color: #F8FAFC;
+    color: #0F172A;
+    border-color: #CBD5E1;
 }
 
 /* Status Filter Buttons */
@@ -309,22 +337,36 @@ body {
 }
 
 /* Modern Table Styling */
+.faq-table thead tr {
+    background-color: #F8FAFC;
+}
+
 .faq-table th {
     font-size: 0.6875rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-subtle);
-    border-bottom: 1px solid #F1F5F9;
-    padding: 0.75rem 0.75rem;
-    background: transparent;
+    color: #64748B;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 0.75rem 1rem;
+    background-color: #F8FAFC;
+}
+
+.faq-table th:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.faq-table th:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 .faq-table td {
     font-size: 0.8125rem;
-    padding: 0.95rem 0.75rem;
+    padding: 0.95rem 1rem;
     vertical-align: middle;
-    border-bottom: 1px solid #F8FAFC;
+    border-bottom: 1px solid #F1F5F9;
 }
 
 .faq-table tbody tr:hover td {
@@ -333,11 +375,11 @@ body {
 
 /* Highlighted row for needs revision */
 .faq-table tbody tr.row-revision td {
-    background-color: #FFF6F6;
+    background-color: #FEF2F2 !important;
 }
 
 .faq-table tbody tr.row-revision:hover td {
-    background-color: #FFEEED;
+    background-color: #FEE8E8 !important;
 }
 
 /* Action Icon Buttons */
@@ -384,14 +426,385 @@ body {
     font-weight: 600;
 }
 
-/* Date Tag */
+/* Date / Eyebrow Tag */
 .date-badge {
-    color: #2E7D32;
+    color: #64748B;
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-bottom: 0.35rem;
+}
+
+/* ============================================================
+   BUAT FAQ PAGE STYLES
+   ============================================================ */
+
+/* Back breadcrumb link */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+    margin-bottom: 0.4rem;
+}
+
+.back-link:hover {
+    color: var(--text-heading);
+}
+
+/* Form Section Card */
+.form-section {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1rem;
+}
+
+/* Form Meta Bar (FAQ-0249 · Versi 1 ... Draft badge) */
+.form-meta-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.form-meta-bar .meta-id {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--text-heading);
+    margin-bottom: 0.15rem;
+}
+
+.form-meta-bar .meta-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* Form field label */
+.form-label-custom {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-label-required::after {
+    content: " *";
+    color: var(--brand-maroon);
+}
+
+/* Clean question input */
+.faq-question-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #E2E8F0;
+    border-radius: 0;
+    padding: 0.5rem 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-heading);
+    background: transparent;
+    outline: none;
+    transition: border-color 0.2s ease;
+    font-family: var(--font-sans);
+    resize: none;
+}
+
+.faq-question-input::placeholder {
+    color: var(--text-subtle);
+    font-weight: 400;
+}
+
+.faq-question-input:focus {
+    border-bottom-color: var(--brand-maroon);
+}
+
+/* Rich Text Editor Area */
+.rich-editor-wrapper {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #E2E8F0;
+    background-color: #FAFAFA;
+}
+
+.editor-toolbar-btn {
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-family: var(--font-sans);
+}
+
+.editor-toolbar-btn:hover {
+    background-color: #E2E8F0;
+    color: var(--text-heading);
+}
+
+.editor-toolbar-btn.active {
+    background-color: #E2E8F0;
+    color: var(--text-heading);
+}
+
+.editor-toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background-color: #E2E8F0;
+    margin: 0 0.25rem;
+}
+
+.editor-content {
+    min-height: 180px;
+    padding: 1rem 1.1rem;
+    font-size: 0.875rem;
+    line-height: 1.75;
+    color: var(--text-body);
+    outline: none;
+    font-family: var(--font-sans);
+}
+
+.editor-content:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-subtle);
+}
+
+.editor-content ol,
+.editor-content ul {
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Keyword / Tag chips */
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    align-items: center;
+    min-height: 44px;
+    background-color: #FFFFFF;
+    cursor: text;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background-color: #EEF2FF;
+    color: #4338CA;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.tag-chip .tag-remove {
+    cursor: pointer;
+    color: #6366F1;
+    font-size: 0.7rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tag-chip .tag-remove:hover {
+    color: #4338CA;
+}
+
+.tag-add-placeholder {
+    font-size: 0.8125rem;
+    color: var(--text-subtle);
+    cursor: text;
+    flex: 1;
+    min-width: 80px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-sans);
+}
+
+/* Source Reference List */
+.source-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--brand-maroon);
+    background: none;
+    border: none;
+    padding: 0.3rem 0;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.source-add-btn:hover {
+    color: var(--brand-maroon-hover);
+}
+
+.source-item {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-top: 0.75rem;
+    background-color: #FAFBFF;
+    position: relative;
+}
+
+.source-item-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background-color: #E0E7FF;
+    color: #4338CA;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 0.4rem;
+}
+
+.source-item-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 0.2rem;
+}
+
+.source-item-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.source-remove-btn {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-subtle);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    line-height: 1;
+}
+
+.source-remove-btn:hover {
+    color: #DC2626;
+    background-color: #FEE2E2;
+}
+
+/* Sticky Footer Action Bar */
+.form-action-bar {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--card-bg);
+    border-top: 1px solid var(--card-border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    z-index: 100;
+    margin-top: 1.5rem;
+}
+
+.btn-draft {
+    background-color: #FFFFFF;
+    color: var(--text-heading);
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 0.55rem 1.35rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-sans);
+    text-decoration: none;
+}
+
+.btn-draft:hover {
+    background-color: #F8FAFC;
+    border-color: #94A3B8;
+    color: var(--text-heading);
+}
+
+.btn-cancel {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    font-family: var(--font-sans);
+    text-decoration: none;
+}
+
+.btn-cancel:hover {
+    color: var(--text-heading);
+    background-color: #F1F5F9;
+}
+
+.btn-submit-validasi {
+    background-color: var(--brand-maroon);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.55rem 1.35rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-family: var(--font-sans);
+}
+
+.btn-submit-validasi:hover {
+    background-color: var(--brand-maroon-hover);
+    color: #FFFFFF;
 }
 
 /* Responsive Sidebar Drawer */

@@ -54,6 +54,10 @@ Route::middleware(['auth', 'role:Data Entry'])->group(function () {
         Route::get('/dashboard', function () {
             return view('dataentry.dashboard');
         })->name('dashboard');
+
+        Route::get('/buat-faq', function () {
+            return view('dataentry.buatfaq');
+        })->name('buatfaq');
     });
 
     Route::get('/dataentry/dashboard', function () {
