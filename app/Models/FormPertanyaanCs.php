@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,15 +10,12 @@ class FormPertanyaanCs extends Model
     protected $fillable = [
         'pertanyaan',
         'calonTag',
-        'tMahasiswas_id',
+        'tSession_id',
     ];
 
-    /**
-     * Relasi: pertanyaan CS ini diajukan oleh satu Mahasiswa.
-     * Nullable: bisa NULL jika yang bertanya adalah Guest.
-     */
-    public function mahasiswa()
+    /** Sesi terkait */
+    public function session()
     {
-        return $this->belongsTo(Mahasiswa::class, 'tMahasiswas_id');
+        return $this->belongsTo(Session::class, 'tSession_id');
     }
 }

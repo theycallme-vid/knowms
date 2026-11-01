@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,16 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 class LogMahasiswa extends Model
 {
     protected $table = 'tlogmahasiswa';
-
-    // Log tidak pernah diupdate, cukup created_at
-    // Namun karena kita pakai kolom 'waktu_pencarian', matikan timestamps bawaan Laravel
     public $timestamps = false;
 
     protected $fillable = [
         'keyword',
         'hasil',
         'waktu_pencarian',
-        'tMahasiswas_id',
+        'tSession_id',
         'tFaqs_id',
     ];
 
@@ -25,19 +21,13 @@ class LogMahasiswa extends Model
         'hasil'           => 'integer',
     ];
 
-    /**
-     * Relasi: log ini dimiliki oleh satu Mahasiswa.
-     * Nullable: bisa NULL jika yang mencari adalah Guest (bukan mahasiswa teridentifikasi).
-     */
-    public function mahasiswa()
+    /** Sesi pencarian */
+    public function session()
     {
-        return $this->belongsTo(Mahasiswa::class, 'tMahasiswas_id');
+        return $this->belongsTo(Session::class, 'tSession_id');
     }
 
-    /**
-     * Relasi: log ini merujuk ke satu FAQ yang ditemukan.
-     * Nullable: bisa NULL jika pencarian tidak menemukan hasil.
-     */
+    /** FAQ yang ditemukan */
     public function faq()
     {
         return $this->belongsTo(Faq::class, 'tFaqs_id');

@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,30 +10,21 @@ return new class extends Migration
         if (!Schema::hasTable('tlogmahasiswa')) {
             Schema::create('tlogmahasiswa', function (Blueprint $table) {
                 $table->integer('id')->autoIncrement();
-
-                // Kata kunci yang diketikkan saat mencari
                 $table->longText('keyword');
-
-                // 1 = ditemukan hasil, 0 = tidak ditemukan
                 $table->tinyInteger('hasil');
-
-                // Kapan pencarian terjadi (menggantikan peran created_at untuk log)
                 $table->dateTime('waktu_pencarian');
 
-                // FK ke mahasiswa (NULLABLE: bisa NULL jika yang mencari adalah Guest)
-                $table->integer('tMahasiswas_id')->nullable();
-                $table->foreign('tMahasiswas_id', 'fk_tLogMahasiswa_tMahasiswas1')
+                // FK ke sesi pencarian (nullable: bisa tanpa sesi)
+                $table->integer('tSession_id')->nullable();
+                $table->foreign('tSession_id', 'fk_tLogMahasiswa_tSession1')
                       ->references('id')
-                      ->on('tmahasiswas');
+                      ->on('tsession');
 
-                // FK ke FAQ yang ditemukan (NULLABLE: bisa NULL jika hasil pencarian kosong)
+                // FK ke FAQ yang ditemukan (nullable: bisa tidak ada hasil)
                 $table->string('tFaqs_id', 20)->nullable();
                 $table->foreign('tFaqs_id', 'fk_tLogMahasiswa_tFaqs1')
                       ->references('id')
                       ->on('tfaqs');
-
-                // Log tidak memerlukan updated_at karena data log tidak pernah diubah
-                $table->timestamps(false);
             });
         }
     }
