@@ -11,6 +11,7 @@ return new class extends Migration
             Schema::create('tdirektorat', function (Blueprint $table) {
                 $table->integer('id')->autoIncrement();
                 $table->string('nama', 45);
+                $table->timestamps();
             });
         }
     }
