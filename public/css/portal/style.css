@@ -1,0 +1,660 @@
+:root {
+    --portal-bg: #FAF8F5;
+    --card-bg: #FFFFFF;
+    --card-border: #EBE6DF;
+    --brand-maroon: #881327;
+    --brand-maroon-hover: #6E0E1E;
+    --brand-maroon-soft: #FCEEEF;
+    --brand-maroon-border: #F6D4D8;
+    --scanner-bg: #EDF2F7;
+    --scanner-frame: #64748B;
+    --text-heading: #182230;
+    --text-body: #344054;
+    --text-muted: #667085;
+    --text-subtle: #98A2B3;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Lora', Georgia, serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--portal-bg);
+    color: var(--text-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================================================= */
+/* TYPOGRAPHY & HELPERS                                                      */
+/* ========================================================================= */
+.display-serif {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-heading);
+}
+
+.text-maroon {
+    color: var(--brand-maroon) !important;
+}
+
+.fs-11 {
+    font-size: 0.6875rem !important;
+}
+
+.fs-12 {
+    font-size: 0.75rem !important;
+}
+
+.fs-13 {
+    font-size: 0.8125rem !important;
+}
+
+.fs-14 {
+    font-size: 0.875rem !important;
+}
+
+.fs-15 {
+    font-size: 0.9375rem !important;
+}
+
+/* Full-Page Responsive Container */
+.portal-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 4rem;
+    padding-right: 4rem;
+}
+
+@media (min-width: 1400px) {
+    .portal-container {
+        padding-left: 5rem;
+        padding-right: 5rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .portal-container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .portal-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* ========================================================================= */
+/* MAIN LAYOUT & BRAND LOGO (MENYATU DENGAN BODY CREAM)                      */
+/* ========================================================================= */
+.portal-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0 0.25rem;
+}
+
+.portal-brand-bar {
+    background: transparent;
+    border: none;
+}
+
+.portal-logo-img {
+    height: 80px;
+    max-width: 100%;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+@media (max-width: 991.98px) {
+    .portal-logo-img {
+        height: 60px;
+    }
+}
+
+/* ========================================================================= */
+/* LEFT COLUMN: HERO, CAMPUS IMAGE & GUEST CARD                              */
+/* ========================================================================= */
+.portal-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-maroon);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.portal-eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 1.75px;
+    background-color: var(--brand-maroon);
+}
+
+.portal-hero-title {
+    font-size: clamp(2rem, 2.8vw, 2.75rem);
+    line-height: 1.14;
+    font-weight: 600;
+}
+
+.portal-hero-desc {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    max-width: 540px;
+}
+
+.feature-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-body);
+}
+
+/* Easy-to-change Campus Image Wrapper */
+.campus-banner-wrapper {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background-color: #E2E8F0;
+}
+
+.campus-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.4s ease;
+}
+
+.campus-banner-wrapper:hover .campus-banner-img {
+    transform: scale(1.02);
+}
+
+/* Guest Access Card */
+.guest-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 0.8rem 1.1rem;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.025);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.guest-card:hover {
+    border-color: #D0D5DD;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    transform: translateY(-1px);
+}
+
+.guest-icon-box {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background-color: #F0F5FA;
+    color: #3B6998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.guest-action-link {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--brand-maroon);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* ========================================================================= */
+/* RIGHT COLUMN: STUDENT PORTAL SCANNER CARD                                 */
+/* ========================================================================= */
+.portal-access-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 1.65rem 2.1rem;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.045);
+}
+
+@media (max-width: 575.98px) {
+    .portal-access-card {
+        padding: 1.35rem 1.25rem;
+    }
+}
+
+.badge-akses-mhs {
+    display: inline-block;
+    background-color: var(--brand-maroon-soft);
+    color: var(--brand-maroon);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+}
+
+.qr-corner-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background-color: #FCFBF9;
+    border: 1px solid var(--card-border);
+    color: var(--brand-maroon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Camera Scanner Viewport */
+.camera-viewport {
+    position: relative;
+    width: 100%;
+    height: 270px;
+    background-color: var(--scanner-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #E2E8F0;
+}
+
+.camera-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+/* Scanner Reticle / Frame Guides */
+.scanner-frame {
+    position: absolute;
+    inset: 22px 38px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+@media (max-width: 575.98px) {
+    .scanner-frame {
+        inset: 18px 22px;
+    }
+}
+
+/* Corner Brackets */
+.scanner-corner {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-color: var(--scanner-frame);
+    border-style: solid;
+    border-width: 0;
+    transition: border-color 0.25s ease;
+}
+
+.camera-viewport.is-active .scanner-corner,
+.camera-viewport.is-active .scanner-mid {
+    border-color: #FFFFFF;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+.corner-tl {
+    top: 0;
+    left: 0;
+    border-top-width: 2px;
+    border-left-width: 2px;
+    border-top-left-radius: 6px;
+}
+
+.corner-tr {
+    top: 0;
+    right: 0;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-top-right-radius: 6px;
+}
+
+.corner-bl {
+    bottom: 0;
+    left: 0;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-bottom-left-radius: 6px;
+}
+
+.corner-br {
+    bottom: 0;
+    right: 0;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
+    border-bottom-right-radius: 6px;
+}
+
+/* Midpoint Dashes matching the design */
+.scanner-mid {
+    position: absolute;
+    border-color: var(--scanner-frame);
+    border-style: solid;
+    border-width: 0;
+    opacity: 0.7;
+}
+
+.mid-top {
+    top: 0;
+    left: 50%;
+    width: 22px;
+    transform: translateX(-50%);
+    border-top-width: 2px;
+}
+
+.mid-bottom {
+    bottom: 0;
+    left: 50%;
+    width: 22px;
+    transform: translateX(-50%);
+    border-bottom-width: 2px;
+}
+
+.mid-left {
+    left: 0;
+    top: 50%;
+    height: 22px;
+    transform: translateY(-50%);
+    border-left-width: 2px;
+}
+
+.mid-right {
+    right: 0;
+    top: 50%;
+    height: 22px;
+    transform: translateY(-50%);
+    border-right-width: 2px;
+}
+
+/* Placeholder content inside camera viewport */
+.camera-placeholder {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 1rem;
+}
+
+.camera-icon-card {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background-color: #FFFFFF;
+    color: #64748B;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    margin-bottom: 0.65rem;
+}
+
+/* Live Status Pill overlay when camera is active */
+.camera-live-badge {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(4px);
+    color: #FFFFFF;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #22C55E;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+}
+
+/* Switch Camera Floating Button */
+.btn-switch-camera {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 4;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.65);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.btn-switch-camera:hover {
+    background: rgba(15, 23, 42, 0.85);
+}
+
+/* Primary Maroon Button */
+.btn-portal-maroon {
+    background-color: var(--brand-maroon);
+    color: #FFFFFF;
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding: 0.72rem 1.25rem;
+    border-radius: 10px;
+    border: none;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-portal-maroon:hover,
+.btn-portal-maroon:focus {
+    background-color: var(--brand-maroon-hover);
+    color: #FFFFFF;
+}
+
+.btn-portal-maroon.is-stop {
+    background-color: #334155;
+}
+
+.btn-portal-maroon.is-stop:hover {
+    background-color: #1E293B;
+}
+
+/* Step List on the right of scanner */
+.portal-step-header {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1E293B;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.5rem;
+}
+
+.portal-step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.15rem;
+    margin-bottom: 1.4rem;
+}
+
+.portal-step-item:last-child {
+    margin-bottom: 0;
+}
+
+.step-number-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #F4EEE8;
+    color: #1E293B;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.step-title {
+    font-size: 1.025rem;
+    font-weight: 700;
+    color: #182C4A;
+    margin-bottom: 0.25rem;
+    line-height: 1.35;
+}
+
+.step-desc {
+    font-size: 0.925rem;
+    color: #64748B;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Divider with text */
+.portal-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-subtle);
+    font-size: 0.75rem;
+    margin: 1rem 0 0.85rem;
+}
+
+.portal-divider::before,
+.portal-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid #EAEAEA;
+}
+
+.portal-divider span {
+    padding: 0 0.85rem;
+}
+
+/* NRP Input & Submit Button */
+.nrp-input-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.nrp-input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-subtle);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.nrp-form-control {
+    width: 100%;
+    padding: 0.68rem 0.9rem 0.68rem 2.5rem;
+    font-size: 0.85rem;
+    color: var(--text-heading);
+    background-color: #FFFFFF;
+    border: 1px solid #D0D5DD;
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nrp-form-control::placeholder {
+    color: #98A2B3;
+}
+
+.nrp-form-control:focus {
+    border-color: var(--brand-maroon);
+    box-shadow: 0 0 0 3px rgba(136, 19, 39, 0.1);
+}
+
+.btn-nrp-submit {
+    background-color: #FFFFFF;
+    color: var(--text-heading);
+    border: 1px solid #D0D5DD;
+    border-radius: 10px;
+    padding: 0.68rem 1.15rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+}
+
+.btn-nrp-submit:hover {
+    background-color: #F8FAFC;
+    border-color: #98A2B3;
+    color: var(--text-heading);
+}
+
+.btn-nrp-submit.has-value {
+    background-color: var(--brand-maroon);
+    border-color: var(--brand-maroon);
+    color: #FFFFFF;
+}
+
+.btn-nrp-submit.has-value:hover {
+    background-color: var(--brand-maroon-hover);
+    color: #FFFFFF;
+}
+
+/* ========================================================================= */
+/* FOOTER                                                                    */
+/* ========================================================================= */
+.portal-footer {
+    margin-top: auto;
+    padding: 0.5rem 0 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+}

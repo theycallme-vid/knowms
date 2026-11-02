@@ -1,15 +1,19 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 
-// HALAMAN PUBLIK: FAQ Mahasiswa (halaman pertama). Login hanya dibuka lewat "/login"
-Route::get('/', function () {
-    return view('mahasiswa.faq');
-})->name('mahasiswa.faq');
+// HALAMAN PUBLIK: FAQ Mahasiswa
+Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
+
+// HALAMAN PORTAL MAHASISWA & PROSES SIMPAN SESSION FAKULTAS
+Route::get('/', [PortalController::class, 'index'])->name('portal');
+Route::get('/portal', [PortalController::class, 'index']);
+Route::post('/portal/session', [PortalController::class, 'storeSession'])->name('portal.session');
 
 // GUEST ROUTES (Autentikasi)
 Route::middleware('guest')->group(function () {
