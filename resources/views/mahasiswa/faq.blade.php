@@ -22,14 +22,42 @@
 <body>
 
 @php
+    /*
+    |--------------------------------------------------------------------------
+    | TEMPLATE DETAIL KODE FAKULTAS (2 DIGIT DEPAN NRP)
+    |--------------------------------------------------------------------------
+    | Daftar ini mencocokkan kode_fakultas dari session aktif (tabel tsession).
+    | Contoh: NRP "161124002" -> kode "16" -> "Fakultas Teknik".
+    | Silakan sesuaikan kode dan nama fakultas lainnya di bawah ini
+    | (serta pada PortalController::FAKULTAS_MAP).
+    */
+    $daftarFakultas = $fakultasMap ?? [
+        '16' => 'Fakultas Teknik',
+        '11' => 'Fakultas Farmasi',
+        '12' => 'Fakultas Hukum',
+        '13' => 'Fakultas Bisnis dan Ekonomika',
+        '15' => 'Fakultas Psikologi',
+        '17' => 'Fakultas Teknobiologi',
+        '18' => 'Fakultas Kedokteran',
+        '19' => 'Fakultas Industri Kreatif',
+        '10' => 'Politeknik Ubaya',
+    ];
+
+    $activeKodeFakultas = $kodeFakultas ?? session('kode_fakultas');
+    $activeNamaFakultas = $namaFakultas ?? (
+        $activeKodeFakultas
+            ? ($daftarFakultas[$activeKodeFakultas] ?? ('Fakultas (Kode ' . $activeKodeFakultas . ')'))
+            : 'Umum (Semua Fakultas)'
+    );
+
     $categories = [
-        ['key' => 'top',       'label' => 'Top FAQ',        'icon' => 'bi-stars'],
-        ['key' => 'umum',      'label' => 'Kategori umum',  'icon' => 'bi-grid'],
-        ['key' => 'fakultas',  'label' => 'Fakultas Teknik','icon' => 'bi-building'],
-        ['key' => 'akademik',  'label' => 'Akademik',       'icon' => 'bi-book'],
-        ['key' => 'biaya',     'label' => 'Biaya & beasiswa','icon' => 'bi-wallet2'],
-        ['key' => 'praktikum', 'label' => 'Praktikum',      'icon' => 'bi-eyedropper'],
-        ['key' => 'tugas',     'label' => 'Tugas akhir',    'icon' => 'bi-mortarboard'],
+        ['key' => 'top',       'label' => 'Top FAQ',              'icon' => 'bi-stars'],
+        ['key' => 'umum',      'label' => 'Kategori umum',        'icon' => 'bi-grid'],
+        ['key' => 'fakultas',  'label' => $activeNamaFakultas,    'icon' => 'bi-building'],
+        ['key' => 'akademik',  'label' => 'Akademik',             'icon' => 'bi-book'],
+        ['key' => 'biaya',     'label' => 'Biaya & beasiswa',     'icon' => 'bi-wallet2'],
+        ['key' => 'praktikum', 'label' => 'Praktikum',            'icon' => 'bi-eyedropper'],
+        ['key' => 'tugas',     'label' => 'Tugas akhir',          'icon' => 'bi-mortarboard'],
     ];
 
     $faqs = [
@@ -115,14 +143,9 @@
             <div class="col-lg-4 col-xl-4 d-flex justify-content-lg-end">
                 <div class="faculty-card">
                     <div class="hero-eyebrow mb-2" style="font-size: 0.65rem;">
-                        <i class="bi bi-building me-1"></i> DISESUAIKAN UNTUKMU
+                        <i class="bi bi-building me-1"></i> Fakultas
                     </div>
-                    <div class="display-serif fs-4 fw-bold text-dark mb-0">Fakultas Teknik</div>
-                    <div class="fs-12 text-muted mb-2.5">Program Studi Informatika</div>
-                    <a href="#" class="fs-12 fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: var(--brand-maroon);">
-                        <span>Ubah fakultas</span>
-                        <i class="bi bi-chevron-down fs-11"></i>
-                    </a>
+                    <div class="display-serif fs-4 fw-bold text-dark mb-0">{{ $activeNamaFakultas }}</div>
                 </div>
             </div>
         </div>
@@ -283,7 +306,6 @@
 
         <!-- Official Disclaimer Callout -->
         <div class="disclaimer mt-3 d-flex align-items-center gap-2.5 shadow-sm">
-            <i class="bi bi-info-circle fs-5 flex-shrink-0"></i>
             <span>FAQ ini merupakan panduan umum. Persyaratan dan jadwal resmi mengikuti pengumuman program studi atau fakultasmu.</span>
         </div>
     </section>
@@ -312,8 +334,7 @@
 <footer class="mhs-footer">
     <div class="mhs-container py-4">
         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 pb-3 border-bottom border-light">
-            <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="navbar-logo-img">
-            
+
             <div class="d-flex gap-4">
                 <a href="#" class="footer-link">Tentang KMS</a>
                 <a href="#" class="footer-link">Panduan penggunaan</a>
@@ -329,9 +350,6 @@
 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-3 fs-12 text-muted">
             <span>&copy; {{ date('Y') }} KMS &middot; Knowledge Management System</span>
-            <a href="{{ url('/login') }}" class="footer-link fs-12 text-decoration-none" title="Masuk ke ruang kerja staf atau administrator">
-                <i class="bi bi-box-arrow-in-right me-1"></i>Masuk staf
-            </a>
         </div>
     </div>
 </footer>
