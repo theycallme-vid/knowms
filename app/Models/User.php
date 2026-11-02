@@ -68,6 +68,12 @@ class User extends Authenticatable
         return $this->hasMany(FaqVersion::class, 'id_validator');
     }
 
+    /** Riwayat import file yang dilakukan oleh user ini */
+    public function riwayatImports()
+    {
+        return $this->hasMany(RiwayatImport::class, 'id_user');
+    }
+
     /** Helper: nama role */
     public function getRoleName(): string
     {
