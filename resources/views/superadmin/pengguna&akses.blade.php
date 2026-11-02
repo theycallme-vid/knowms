@@ -119,7 +119,7 @@
                     <i class="bi bi-grid"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="#" class="nav-link-custom">
+                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>

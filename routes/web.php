@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
+use App\Http\Controllers\validator\ValidatorFaqController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +47,8 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
     Route::get('/dashboard', function () {
         return view('validator.dashboard');
     })->name('dashboard');
+
+    Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
 });
 
 // DATA ENTRY ROUTES
