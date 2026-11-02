@@ -109,36 +109,62 @@
             </div>
 
             <!-- Role Badge -->
+            @php
+                $authUser = auth()->user();
+                if ($authUser && !$authUser->relationLoaded('role')) {
+                    $authUser->load('role');
+                }
+                $currentUserRole = $authUser ? $authUser->getRoleName() : 'Super Admin';
+            @endphp
             <div>
-                <span class="role-pill">Ruang Super Admin</span>
+                <span class="role-pill">Ruang {{ $currentUserRole ?: 'Super Admin' }}</span>
             </div>
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="/superadmin/dashboard" class="nav-link-custom">
-                    <i class="bi bi-grid"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="/superadmin/pengguna-akses" class="nav-link-custom active">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna & akses</span>
-                </a>
-                <a href="#" class="nav-link-custom">
-                    <i class="bi bi-diagram-3"></i>
-                    <span>Kategori</span>
-                </a>
-                <a href="#" class="nav-link-custom">
-                    <i class="bi bi-graph-up"></i>
-                    <span>Laporan pencarian</span>
-                </a>
-                <a href="#" class="nav-link-custom">
-                    <i class="bi bi-clock-history"></i>
-                    <span>Riwayat aktivitas</span>
-                </a>
+                @if($currentUserRole === 'Validator')
+                    <a href="{{ route('validator.dashboard') }}" class="nav-link-custom">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Daftar FAQ</span>
+                    </a>
+                    <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
+                        <i class="bi bi-list-check"></i>
+                        <span>Validasi FAQ</span>
+                    </a>
+                    <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom active">
+                        <i class="bi bi-people"></i>
+                        <span>Pengguna &amp; Akses</span>
+                    </a>
+                @else
+                    <a href="/superadmin/dashboard" class="nav-link-custom">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Daftar FAQ</span>
+                    </a>
+                    <a href="/superadmin/pengguna-akses" class="nav-link-custom active">
+                        <i class="bi bi-people"></i>
+                        <span>Pengguna & akses</span>
+                    </a>
+                    <a href="#" class="nav-link-custom">
+                        <i class="bi bi-diagram-3"></i>
+                        <span>Kategori</span>
+                    </a>
+                    <a href="#" class="nav-link-custom">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Laporan pencarian</span>
+                    </a>
+                    <a href="#" class="nav-link-custom">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Riwayat aktivitas</span>
+                    </a>
+                @endif
             </nav>
         </div>
 
@@ -267,11 +293,11 @@
             @endif
 
             <!-- Page Header Area -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-2 mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <div class="date-badge">KAMIS, 22 OKTOBER 2026</div>
-                    <h1 class="display-serif fs-1 mb-1">Pengguna & Hak Akses</h1>
-                    <p class="text-muted fs-14 mb-0">Kelola akun staf kampus, penugasan peran (role), dan kontrol wewenang dengan proteksi keamanan ketat.</p>
+                    <div class="date-badge">{{ $currentUserRole === 'Validator' ? 'RUANG PENELAAH · VALIDATOR' : 'KAMIS, 22 OKTOBER 2026' }}</div>
+                    <h1 class="page-title mb-1">Pengguna & Hak Akses</h1>
+                    <p class="text-muted fs-13 mb-0">Kelola akun staf kampus, penugasan peran (role), dan kontrol wewenang dengan proteksi keamanan ketat.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <button type="button" class="btn btn-maroon rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm fs-13" data-bs-toggle="modal" data-bs-target="#modalTambahPengguna">
