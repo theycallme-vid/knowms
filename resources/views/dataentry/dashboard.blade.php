@@ -104,17 +104,17 @@
                 <!-- User Profile Dropdown -->
                 <div class="dropdown">
                     <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()->nama ?? 'NP', 0, 2)) }}</div>
+                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Nadia Putri' }}</div>
-                            <div class="fs-11 text-muted">{{ Auth::user()->getRoleName() ?: 'Data Entry' }}</div>
+                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
+                            <div class="fs-11 text-muted">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
                         </div>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="min-width: 200px;">
                         <li>
                             <div class="px-3 py-2 border-bottom">
-                                <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Nadia Putri' }}</div>
-                                <div class="fs-11 text-muted">{{ Auth::user()->email ?? 'nadiaputri@kms.ac.id' }}</div>
+                                <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
+                                <div class="fs-11 text-muted">{{ Auth::user()?->email ?? 'nadiaputri@kms.ac.id' }}</div>
                             </div>
                         </li>
                         <li>
@@ -165,8 +165,8 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Total FAQ saya</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">24</div>
-                            <div class="fs-12 text-muted">8 di antaranya telah terbit</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $total }}</div>
+                            <div class="fs-12 text-muted">{{ $approvedCount }} di antaranya telah terbit</div>
                         </div>
                     </div>
                 </div>
@@ -179,7 +179,7 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Draft</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">8</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $draftCount }}</div>
                             <div class="fs-12 text-muted">Lanjutkan penulisan Anda</div>
                         </div>
                     </div>
@@ -193,7 +193,7 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Menunggu Validasi</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">5</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $submittedCount }}</div>
                             <div class="fs-12 text-muted">Sedang ditinjau validator</div>
                         </div>
                     </div>
@@ -207,8 +207,8 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Perlu Revisi</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">3</div>
-                            <div class="fs-12" style="color: #DC2626;">Ada catatan untuk ditindaklanjuti</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $rejectedCount }}</div>
+                            <div class="fs-12" style="color: #DC2626;">{{ $rejectedCount > 0 ? 'Ada catatan untuk ditindaklanjuti' : 'Tidak ada catatan revisi' }}</div>
                         </div>
                     </div>
                 </div>
@@ -219,7 +219,7 @@
                 <!-- Table Header Info -->
                 <div class="mb-3">
                     <h2 class="fw-bold fs-16 text-dark mb-1">Daftar FAQ</h2>
-                    <div class="text-muted fs-12">24 FAQ &middot; seluruh pengajuan dan publikasi Anda</div>
+                    <div class="text-muted fs-12">{{ $total }} FAQ &middot; seluruh pengajuan dan publikasi Anda</div>
                 </div>
 
                 <!-- Search & Filter Controls -->
@@ -231,12 +231,9 @@
                     <div>
                         <select id="categoryFilter" class="form-select rounded-3 fs-13 text-secondary" style="border-color: #E2E8F0; width: auto; padding-top: 0.5rem; padding-bottom: 0.5rem; min-width: 160px;">
                             <option value="all" selected>Semua kategori</option>
-                            <option value="Akademik">Akademik</option>
-                            <option value="Kelulusan">Kelulusan</option>
-                            <option value="Keuangan">Keuangan</option>
-                            <option value="Transkrip & nilai">Transkrip & nilai</option>
-                            <option value="Rencana studi">Rencana studi</option>
-                            <option value="Administrasi">Administrasi</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->nama }}">{{ $cat->nama }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>
@@ -249,11 +246,11 @@
 
                 <!-- Status Filter Tabs -->
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    <button class="filter-pill active" data-status="all">Semua 24</button>
-                    <button class="filter-pill" data-status="Draft">Draft 8</button>
-                    <button class="filter-pill" data-status="Menunggu Validasi">Menunggu Validasi 5</button>
-                    <button class="filter-pill" data-status="Perlu Revisi">Perlu Revisi 3</button>
-                    <button class="filter-pill" data-status="Terbit">Terbit 8</button>
+                    <button class="filter-pill active" data-status="all">Semua {{ $total }}</button>
+                    <button class="filter-pill" data-status="Draft">Draft {{ $draftCount }}</button>
+                    <button class="filter-pill" data-status="Menunggu Validasi">Menunggu Validasi {{ $submittedCount }}</button>
+                    <button class="filter-pill" data-status="Perlu Revisi">Perlu Revisi {{ $rejectedCount }}</button>
+                    <button class="filter-pill" data-status="Terbit">Terbit {{ $approvedCount }}</button>
                 </div>
 
                 <!-- Table -->
@@ -269,163 +266,117 @@
                             </tr>
                         </thead>
                         <tbody id="faqTableBody">
-                            <!-- Row 1: Draft -->
-                            <tr data-status="Draft" data-category="Akademik">
-                                <td>
-                                    <div class="fw-semibold text-dark fs-13 mb-0.5">Bagaimana prosedur pengajuan cuti akademik?</div>
-                                    <div class="fs-11 text-muted">FAQ-0248 &middot; Versi 1</div>
-                                </td>
-                                <td class="text-secondary fs-12">Akademik</td>
-                                <td>
-                                    <div class="text-secondary fs-12 lh-sm">21 Okt 2026</div>
-                                    <div class="fs-11 text-muted">10.12 WIB</div>
-                                </td>
-                                <td>
-                                    <span class="badge-status badge-status-draft">Draft</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <div class="d-inline-flex gap-1">
-                                        <button class="action-icon-btn" title="Lihat"><i class="bi bi-eye"></i></button>
-                                        <button class="action-icon-btn" title="Edit"><i class="bi bi-pencil"></i></button>
-                                        <button class="action-icon-btn" title="Lainnya"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 2: Menunggu Validasi — edit DISABLED -->
-                            <tr data-status="Menunggu Validasi" data-category="Kelulusan">
-                                <td>
-                                    <div class="fw-semibold text-dark fs-13 mb-0.5">Apa saja persyaratan yudisium Fakultas Teknik?</div>
-                                    <div class="fs-11 text-muted">FAQ-0247 &middot; Versi 1</div>
-                                </td>
-                                <td class="text-secondary fs-12">Kelulusan</td>
-                                <td>
-                                    <div class="text-secondary fs-12 lh-sm">21 Okt 2026</div>
-                                    <div class="fs-11 text-muted">10.18 WIB</div>
-                                </td>
-                                <td>
-                                    <span class="badge-status badge-status-validasi">Menunggu Validasi</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <div class="d-inline-flex gap-1">
-                                        <button class="action-icon-btn" title="Lihat"><i class="bi bi-eye"></i></button>
-                                        <button class="action-icon-btn action-icon-disabled" title="Tidak dapat diedit saat sedang ditinjau validator" disabled>
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="action-icon-btn" title="Lainnya"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Row 3: Perlu Revisi (Highlighted) — dengan tooltip catatan validator -->
-                            <tr class="row-revision" data-status="Perlu Revisi" data-category="Keuangan">
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div>
-                                            <div class="fw-semibold text-dark fs-13 mb-0.5">Kapan batas pembayaran UKT semester genap?</div>
-                                            <div class="fs-11 text-muted">FAQ-0239 &middot; Versi 2</div>
+                            @if($faqs->isEmpty())
+                                <tr id="emptyFaqRow">
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="py-4">
+                                            <div class="mb-3">
+                                                <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px; background-color: #F8FAFC; color: #94A3B8; border: 1px dashed #CBD5E1;">
+                                                    <i class="bi bi-journal-x fs-2"></i>
+                                                </span>
+                                            </div>
+                                            <h5 class="fw-bold text-dark fs-16 mb-1">Belum ada FAQ</h5>
+                                            <p class="text-muted fs-13 mb-3 mx-auto" style="max-width: 440px;">
+                                                Belum ada data FAQ yang tercatat di sistem saat ini. Klik tombol di bawah untuk membuat FAQ pertama Anda.
+                                            </p>
+                                            <a href="{{ route('dataentry.buatfaq') }}" class="btn-maroon">
+                                                <i class="bi bi-plus-lg"></i>
+                                                <span>Buat FAQ Baru</span>
+                                            </a>
                                         </div>
-                                        <!-- Revisi tooltip icon -->
-                                        <span class="revisi-note-icon ms-1"
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="right"
-                                            data-bs-html="true"
-                                            title="<strong>Catatan Validator:</strong><br>Mohon cantumkan surat edaran terbaru dan perjelas ketentuan denda. Tautan sumber sebelumnya belum dapat diakses.<br><span class='text-muted' style='font-size:0.7rem;'>— Ratna Kusuma, 20 Okt 14.30</span>">
-                                            <i class="bi bi-chat-left-text-fill" style="color: #DC2626; font-size: 0.75rem;"></i>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="text-secondary fs-12">Keuangan</td>
-                                <td>
-                                    <div class="text-secondary fs-12 lh-sm">20 Okt 2026</div>
-                                    <div class="fs-11 text-muted">14.30 WIB</div>
-                                </td>
-                                <td>
-                                    <span class="badge-status badge-status-revisi">Perlu Revisi</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <div class="d-inline-flex gap-1">
-                                        <button class="action-icon-btn" title="Lihat"><i class="bi bi-eye"></i></button>
-                                        <button class="action-icon-btn" title="Edit / Perbaiki"><i class="bi bi-pencil"></i></button>
-                                        <button class="action-icon-btn" title="Lainnya"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                            @else
+                                @foreach($faqs as $faq)
+                                    @php
+                                        $latest = $faq->latest_version;
+                                        $st = $latest ? strtolower($latest->status) : 'draft';
 
-                            <!-- Row 4: Terbit -->
-                            <tr data-status="Terbit" data-category="Transkrip & nilai">
-                                <td>
-                                    <div class="fw-semibold text-dark fs-13 mb-0.5">Bagaimana cara mengunduh transkrip sementara?</div>
-                                    <div class="fs-11 text-muted">FAQ-0235 &middot; Versi 3</div>
-                                </td>
-                                <td class="text-secondary fs-12">Transkrip & nilai</td>
-                                <td>
-                                    <div class="text-secondary fs-12 lh-sm">19 Okt 2026</div>
-                                    <div class="fs-11 text-muted">09.45 WIB</div>
-                                </td>
-                                <td>
-                                    <span class="badge-status badge-status-terbit">Terbit</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <div class="d-inline-flex gap-1">
-                                        <button class="action-icon-btn" title="Lihat"><i class="bi bi-eye"></i></button>
-                                        <button class="action-icon-btn action-icon-disabled" title="FAQ yang telah terbit tidak dapat diedit langsung" disabled>
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="action-icon-btn" title="Lainnya"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
+                                        $statusMap = [
+                                            'draft'     => ['label' => 'Draft', 'badge' => 'badge-status-draft', 'rowClass' => ''],
+                                            'submitted' => ['label' => 'Menunggu Validasi', 'badge' => 'badge-status-validasi', 'rowClass' => ''],
+                                            'rejected'  => ['label' => 'Perlu Revisi', 'badge' => 'badge-status-revisi', 'rowClass' => 'row-revision'],
+                                            'approved'  => ['label' => 'Terbit', 'badge' => 'badge-status-terbit', 'rowClass' => ''],
+                                        ];
+                                        $meta = $statusMap[$st] ?? ['label' => ucfirst($st), 'badge' => 'badge-status-draft', 'rowClass' => ''];
+                                        $categoryName = $faq->tags->pluck('nama')->first() ?? 'Umum';
+                                        $versionCount = $faq->versions->count() ?: 1;
+                                        $updatedTime = $latest && $latest->updated_at ? $latest->updated_at : $faq->updated_at;
+                                    @endphp
+                                    <tr class="{{ $meta['rowClass'] }}" data-status="{{ $meta['label'] }}" data-category="{{ $categoryName }}">
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div>
+                                                    <div class="fw-semibold text-dark fs-13 mb-0.5">{{ $faq->pertanyaan }}</div>
+                                                    <div class="fs-11 text-muted">{{ $faq->id }} &middot; Versi {{ $versionCount }}</div>
+                                                </div>
+                                                @if($st === 'rejected' && $latest && $latest->catatan)
+                                                    <span class="revisi-note-icon ms-1"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="right"
+                                                        data-bs-html="true"
+                                                        title="<strong>Catatan Validator:</strong><br>{{ e($latest->catatan) }}">
+                                                        <i class="bi bi-chat-left-text-fill" style="color: #DC2626; font-size: 0.75rem;"></i>
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="text-secondary fs-12">{{ $categoryName }}</td>
+                                        <td>
+                                            <div class="text-secondary fs-12 lh-sm">{{ $updatedTime ? $updatedTime->translatedFormat('d M Y') : '-' }}</div>
+                                            <div class="fs-11 text-muted">{{ $updatedTime ? $updatedTime->format('H.i') . ' WIB' : '' }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge-status {{ $meta['badge'] }}">{{ $meta['label'] }}</span>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <div class="d-inline-flex gap-1 align-items-center">
+                                                <!-- Lihat Detail -->
+                                                <button type="button" class="action-icon-btn" title="Lihat Detail FAQ" onclick="viewFaqDetail('{{ $faq->id }}')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
 
-                            <!-- Row 5: Menunggu Validasi — edit DISABLED -->
-                            <tr data-status="Menunggu Validasi" data-category="Rencana studi">
-                                <td>
-                                    <div class="fw-semibold text-dark fs-13 mb-0.5">Bagaimana mengajukan perubahan kelas KRS?</div>
-                                    <div class="fs-11 text-muted">FAQ-0231 &middot; Versi 1</div>
-                                </td>
-                                <td class="text-secondary fs-12">Rencana studi</td>
-                                <td>
-                                    <div class="text-secondary fs-12 lh-sm">18 Okt 2026</div>
-                                    <div class="fs-11 text-muted">13.20 WIB</div>
-                                </td>
-                                <td>
-                                    <span class="badge-status badge-status-validasi">Menunggu Validasi</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <div class="d-inline-flex gap-1">
-                                        <button class="action-icon-btn" title="Lihat"><i class="bi bi-eye"></i></button>
-                                        <button class="action-icon-btn action-icon-disabled" title="Tidak dapat diedit saat sedang ditinjau validator" disabled>
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="action-icon-btn" title="Lainnya"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
+                                                <!-- Edit FAQ -->
+                                                @if(in_array($st, ['submitted', 'approved']))
+                                                    <button class="action-icon-btn action-icon-disabled" title="Tidak dapat diedit saat status {{ $meta['label'] }}" disabled>
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                @else
+                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="action-icon-btn text-decoration-none" title="Edit / Perbaiki">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                @endif
 
-                            <!-- Row 6: Terbit -->
-                            <tr data-status="Terbit" data-category="Administrasi">
-                                <td>
-                                    <div class="fw-semibold text-dark fs-13 mb-0.5">Bagaimana mendapatkan surat aktif kuliah?</div>
-                                    <div class="fs-11 text-muted">FAQ-0228 &middot; Versi 4</div>
-                                </td>
-                                <td class="text-secondary fs-12">Administrasi</td>
-                                <td>
-                                    <div class="text-secondary fs-12 lh-sm">17 Okt 2026</div>
-                                    <div class="fs-11 text-muted">11.05 WIB</div>
-                                </td>
-                                <td>
-                                    <span class="badge-status badge-status-terbit">Terbit</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <div class="d-inline-flex gap-1">
-                                        <button class="action-icon-btn" title="Lihat"><i class="bi bi-eye"></i></button>
-                                        <button class="action-icon-btn action-icon-disabled" title="FAQ yang telah terbit tidak dapat diedit langsung" disabled>
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="action-icon-btn" title="Lainnya"><i class="bi bi-three-dots-vertical"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
+                                                <!-- Dropdown Lainnya -->
+                                                <div class="dropdown d-inline-block">
+                                                    <button class="action-icon-btn border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu Opsi">
+                                                        <i class="bi bi-three-dots-vertical"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 py-1 fs-12">
+                                                        <li>
+                                                            <a class="dropdown-item py-1.5" href="javascript:void(0)" onclick="viewFaqDetail('{{ $faq->id }}')">
+                                                                <i class="bi bi-clock-history me-1.5 text-secondary"></i> Riwayat Versi
+                                                            </a>
+                                                        </li>
+                                                        @if(!in_array($st, ['submitted', 'approved']))
+                                                            <li><hr class="dropdown-divider my-1"></li>
+                                                            <li>
+                                                                <form action="{{ route('dataentry.faq.destroy', $faq->id) }}" method="POST" id="delete-faq-{{ $faq->id }}" class="d-inline">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="button" class="dropdown-item py-1.5 text-danger" onclick="confirmDeleteFaq('{{ $faq->id }}')">
+                                                                        <i class="bi bi-trash3 me-1.5"></i> Hapus FAQ
+                                                                    </button>
+                                                                </form>
+                                                            </li>
+                                                        @endif
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @endif
                         </tbody>
                     </table>
                 </div>
@@ -433,14 +384,15 @@
                 <!-- Table Pagination Footer -->
                 <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 mt-2 border-top border-light gap-2">
                     <div class="fs-12 text-muted" id="faqCountLabel">
-                        Menampilkan 1-6 dari 24 FAQ
+                        @if($faqs->isEmpty())
+                            Menampilkan 0 FAQ
+                        @else
+                            Menampilkan 1-{{ $faqs->count() }} dari {{ $total }} FAQ
+                        @endif
                     </div>
                     <div class="d-flex align-items-center gap-1">
                         <a href="#" class="page-pill"><i class="bi bi-chevron-left"></i></a>
                         <a href="#" class="page-pill active">1</a>
-                        <a href="#" class="page-pill">2</a>
-                        <a href="#" class="page-pill">3</a>
-                        <a href="#" class="page-pill">4</a>
                         <a href="#" class="page-pill"><i class="bi bi-chevron-right"></i></a>
                     </div>
                 </div>
@@ -517,15 +469,26 @@
         }
     }
 
+    // Inisialisasi Tooltip Bootstrap
+    document.addEventListener('DOMContentLoaded', function () {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (el) {
+            return new bootstrap.Tooltip(el);
+        });
+    });
+
     // Dynamic Filter & Search Handler
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('faqSearchInput');
         const categoryFilter = document.getElementById('categoryFilter');
         const filterPills = document.querySelectorAll('.filter-pill');
-        const tableRows = document.querySelectorAll('#faqTableBody tr');
+        const tableRows = document.querySelectorAll('#faqTableBody tr:not(#emptyFaqRow)');
+        const totalFaqCount = {{ $total }};
         let currentStatus = 'all';
 
         function filterTable() {
+            if (totalFaqCount === 0) return;
+
             const query = (searchInput.value || '').toLowerCase().trim();
             const selectedCategory = categoryFilter.value;
             let visibleCount = 0;
@@ -549,7 +512,7 @@
 
             const countLabel = document.getElementById('faqCountLabel');
             if (countLabel) {
-                countLabel.textContent = `Menampilkan ${visibleCount} dari 24 FAQ`;
+                countLabel.textContent = `Menampilkan ${visibleCount} dari ${totalFaqCount} FAQ`;
             }
         }
 
@@ -573,6 +536,22 @@
             categoryFilter.addEventListener('change', filterTable);
         }
     });
+
+    @if(session('success'))
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: "{{ session('success') }}",
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true
+            });
+        }
+    });
+    @endif
 </script>
 </body>
 </html>

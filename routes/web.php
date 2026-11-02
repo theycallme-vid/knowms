@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\dataentry\FaqController as DataEntryFaqController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -51,16 +52,16 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
 // DATA ENTRY ROUTES
 Route::middleware(['auth', 'role:Data Entry'])->group(function () {
     Route::prefix('data-entry')->name('dataentry.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('dataentry.dashboard');
-        })->name('dashboard');
-
-        Route::get('/buat-faq', function () {
-            return view('dataentry.buatfaq');
-        })->name('buatfaq');
+        Route::get('/dashboard', [DataEntryFaqController::class, 'dashboard'])->name('dashboard');
+        Route::get('/buat-faq', [DataEntryFaqController::class, 'create'])->name('buatfaq');
+        Route::post('/buat-faq', [DataEntryFaqController::class, 'store'])->name('buatfaq.store');
+        Route::get('/faq/{id}', [DataEntryFaqController::class, 'show'])->name('faq.show');
+        Route::get('/faq/{id}/edit', [DataEntryFaqController::class, 'edit'])->name('faq.edit');
+        Route::match(['put', 'patch', 'post'], '/faq/{id}/update', [DataEntryFaqController::class, 'update'])->name('faq.update');
+        Route::delete('/faq/{id}', [DataEntryFaqController::class, 'destroy'])->name('faq.destroy');
+        Route::get('/faq/check/duplicate', [DataEntryFaqController::class, 'checkDuplicate'])->name('faq.checkDuplicate');
+        Route::get('/pustaka/{id}/download', [DataEntryFaqController::class, 'downloadPustaka'])->name('pustaka.download');
     });
 
-    Route::get('/dataentry/dashboard', function () {
-        return view('dataentry.dashboard');
-    });
+    Route::get('/dataentry/dashboard', [DataEntryFaqController::class, 'dashboard']);
 });
