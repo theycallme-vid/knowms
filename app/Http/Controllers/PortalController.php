@@ -24,7 +24,7 @@ class PortalController extends Controller
         '17' => 'Fakultas Teknobiologi',
         '18' => 'Fakultas Kedokteran',
         '19' => 'Fakultas Industri Kreatif',
-        '10' => 'Politeknik Ubaya',
+        '14' => 'Politeknik Ubaya',
     ];
 
     /**
@@ -43,11 +43,33 @@ class PortalController extends Controller
     {
         $rawNrp = trim((string) $request->input('nrp', ''));
 
-        // Ambil hanya angka/karakter alfanumerik dari hasil scan/input
-        $cleanNrp = preg_replace('/[^0-9A-Za-z]/', '', $rawNrp);
+        // Jika pengguna mengisi NRP (baik lewat scan maupun ketik manual), lakukan validasi ketat:
+        if ($rawNrp !== '') {
+            // 1. Wajib tepat 9 digit karakter dan hanya berupa string angka (0-9)
+            if (!preg_match('/^\d{9}$/', $rawNrp)) {
+                return redirect()
+                    ->route('portal')
+                    ->withInput()
+                    ->withErrors([
+                        'nrp' => 'NRP harus terdiri dari tepat 9 digit angka (contoh: 160423018).',
+                    ]);
+            }
 
-        // Ambil 2 karakter depan sebagai kode_fakultas (contoh: "161124002" -> "16")
-        $kodeFakultas = strlen($cleanNrp) >= 2 ? substr($cleanNrp, 0, 2) : null;
+            // 2. Ambil 2 karakter terdepan sebagai kode_fakultas dan wajib terdaftar di FAKULTAS_MAP
+            $kodeFakultas = substr($rawNrp, 0, 2);
+
+            if (!array_key_exists($kodeFakultas, self::FAKULTAS_MAP)) {
+                return redirect()
+                    ->route('portal')
+                    ->withInput()
+                    ->withErrors([
+                        'nrp' => "Kode fakultas '{$kodeFakultas}' pada NRP tidak terdaftar di sistem.",
+                    ]);
+            }
+        } else {
+            // Jika kosong (Lanjutkan tanpa NRP / Tamu)
+            $kodeFakultas = null;
+        }
 
         // Simpan ke tabel tsession beserta timestamp created_at
         $sessionRecord = new TSession();
@@ -87,6 +109,32 @@ class PortalController extends Controller
             'namaFakultas' => $namaFakultas,
             'fakultasMap'  => self::FAKULTAS_MAP,
         ]);
+    }
+
+    /**
+     * Mengakhiri session mahasiswa (saat klik Tidak pada pop-up atau habis waktu idle 30+10 detik)
+     * lalu mengembalikan ke halaman Portal Mahasiswa
+     */
+    public function endSession(Request $request)
+    {
+        $tsessionId = session('tsession_id');
+
+        if ($tsessionId) {
+            $sessionRecord = TSession::find($tsessionId);
+            if ($sessionRecord) {
+                // SoftDeletes: mengisi kolom deleted_at dengan timestamp berakhirnya sesi
+                $sessionRecord->delete();
+            }
+        }
+
+        // Hapus data session fakultas aktif dari browser
+        $request->session()->forget([
+            'tsession_id',
+            'kode_fakultas',
+            'nama_fakultas',
+        ]);
+
+        return redirect()->route('portal');
     }
 
     /**

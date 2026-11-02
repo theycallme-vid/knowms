@@ -24,24 +24,12 @@
 @php
     /*
     |--------------------------------------------------------------------------
-    | TEMPLATE DETAIL KODE FAKULTAS (2 DIGIT DEPAN NRP)
+    | TEMPLATE DETAIL KODE FAKULTAS (MENGACU KE PortalController::FAKULTAS_MAP)
     |--------------------------------------------------------------------------
     | Daftar ini mencocokkan kode_fakultas dari session aktif (tabel tsession).
     | Contoh: NRP "161124002" -> kode "16" -> "Fakultas Teknik".
-    | Silakan sesuaikan kode dan nama fakultas lainnya di bawah ini
-    | (serta pada PortalController::FAKULTAS_MAP).
     */
-    $daftarFakultas = $fakultasMap ?? [
-        '16' => 'Fakultas Teknik',
-        '11' => 'Fakultas Farmasi',
-        '12' => 'Fakultas Hukum',
-        '13' => 'Fakultas Bisnis dan Ekonomika',
-        '15' => 'Fakultas Psikologi',
-        '17' => 'Fakultas Teknobiologi',
-        '18' => 'Fakultas Kedokteran',
-        '19' => 'Fakultas Industri Kreatif',
-        '10' => 'Politeknik Ubaya',
-    ];
+    $daftarFakultas = $fakultasMap ?? \App\Http\Controllers\PortalController::FAKULTAS_MAP;
 
     $activeKodeFakultas = $kodeFakultas ?? session('kode_fakultas');
     $activeNamaFakultas = $namaFakultas ?? (
@@ -354,6 +342,88 @@
     </div>
 </footer>
 
+<!-- POP UP TAMPILAN HITUNG MUNDUR END SESSION -->
+<div
+    class="modal fade"
+    id="sessionTimeoutModal"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+    tabindex="-1"
+    aria-labelledby="sessionTimeoutModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 430px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+            <div class="modal-body p-4 text-center">
+                <!-- Icon -->
+                <div
+                    class="d-inline-flex align-items-center justify-content-center mb-3"
+                    style="width: 56px; height: 56px; border-radius: 14px; background-color: #FCEEEF; color: #85172C;"
+                >
+                    <i class="bi bi-hourglass-split fs-3"></i>
+                </div>
+
+                <!-- Title -->
+                <h5 id="sessionTimeoutModalLabel" class="display-serif fw-bold text-dark mb-2" style="font-size: 1.35rem;">
+                    Apakah Anda masih ingin melanjutkan?
+                </h5>
+
+                <!-- Subtitle -->
+                <p class="text-muted fs-13 mb-3" style="line-height: 1.55;">
+                    Tidak ada aktivitas terdeteksi selama 30 detik. Demi keamanan dan kenyamanan bersama, sesi akan berakhir otomatis dalam:
+                </p>
+
+                <!-- Countdown Box -->
+                <div
+                    class="py-2.5 px-3 mb-3 mx-auto d-inline-flex align-items-center gap-2"
+                    style="background-color: #FAF8F5; border: 1px solid #EBE6DF; border-radius: 999px;"
+                >
+                    <span class="fw-bold" style="color: #85172C; font-size: 1.05rem;" id="idleCountdownNumber">10</span>
+                    <span class="text-muted fs-12 fw-medium">detik tersisa</span>
+                </div>
+
+                <!-- Visual Progress Bar -->
+                <div class="progress mb-4" style="height: 6px; border-radius: 999px; background-color: #F1F5F9;">
+                    <div
+                        id="idleCountdownBar"
+                        class="progress-bar"
+                        role="progressbar"
+                        style="width: 100%; background-color: #85172C; transition: width 1s linear;"
+                        aria-valuenow="10"
+                        aria-valuemin="0"
+                        aria-valuemax="10"
+                    ></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-light border flex-fill py-2 fw-semibold fs-13"
+                        style="border-radius: 10px; color: #334155;"
+                        onclick="endPortalSessionNow()"
+                    >
+                        Tidak, Akhiri Sesi
+                    </button>
+                    <button
+                        type="button"
+                        class="btn flex-fill py-2 fw-semibold fs-13 text-white"
+                        style="border-radius: 10px; background-color: #85172C;"
+                        onclick="continueActiveSession()"
+                    >
+                        Ya, Lanjutkan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Tersembunyi untuk Mengakhiri Sesi dan Kembali ke Portal -->
+<form id="endPortalSessionForm" action="{{ route('portal.end-session') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -397,6 +467,134 @@
     }
 
     document.getElementById('faqSearch').addEventListener('input', filterFaq);
+
+    // =========================================================================
+    // SISTEM IDLE TIMEOUT 30 DETIK & POP-UP HITUNG MUNDUR 10 DETIK
+    // =========================================================================
+    const IDLE_LIMIT_SECONDS     = 30; // 30 detik tanpa aktivitas -> munculkan pop-up
+    const POPUP_COUNTDOWN_SEC    = 10; // 10 detik waktu tunggu pada pop-up
+
+    let idleTimeoutTimer         = null;
+    let popupCountdownInterval   = null;
+    let remainingPopupSeconds    = POPUP_COUNTDOWN_SEC;
+    let isTimeoutModalShown      = false;
+    let timeoutModalInstance     = null;
+
+    const modalEl                = document.getElementById('sessionTimeoutModal');
+    const countdownNumberEl      = document.getElementById('idleCountdownNumber');
+    const countdownBarEl         = document.getElementById('idleCountdownBar');
+    const endSessionForm         = document.getElementById('endPortalSessionForm');
+
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        timeoutModalInstance = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+
+    /**
+     * Mereset timer inaktivitas 30 detik setiap kali pengguna menggerakkan kursor,
+     * klik, mengetik, atau melakukan scroll (selama pop-up belum muncul).
+     */
+    function resetIdleTimer() {
+        if (isTimeoutModalShown) {
+            return; // Jika pop-up sudah muncul, user wajib memilih tombol pada pop-up
+        }
+
+        if (idleTimeoutTimer) {
+            clearTimeout(idleTimeoutTimer);
+        }
+
+        idleTimeoutTimer = setTimeout(showSessionTimeoutPopup, IDLE_LIMIT_SECONDS * 1000);
+    }
+
+    /**
+     * Menampilkan pop-up konfirmasi setelah 30 detik tidak ada aktivitas
+     * dan memulai hitung mundur 10 detik.
+     */
+    function showSessionTimeoutPopup() {
+        isTimeoutModalShown = true;
+        remainingPopupSeconds = POPUP_COUNTDOWN_SEC;
+        updateCountdownDisplay(remainingPopupSeconds);
+
+        if (timeoutModalInstance) {
+            timeoutModalInstance.show();
+        }
+
+        if (popupCountdownInterval) {
+            clearInterval(popupCountdownInterval);
+        }
+
+        popupCountdownInterval = setInterval(() => {
+            remainingPopupSeconds -= 1;
+            updateCountdownDisplay(remainingPopupSeconds);
+
+            if (remainingPopupSeconds <= 0) {
+                clearInterval(popupCountdownInterval);
+                endPortalSessionNow();
+            }
+        }, 1000);
+    }
+
+    /**
+     * Memperbarui angka dan progress bar hitung mundur 10 detik pada pop-up
+     */
+    function updateCountdownDisplay(sec) {
+        const safeSec = Math.max(0, sec);
+        if (countdownNumberEl) {
+            countdownNumberEl.textContent = safeSec;
+        }
+        if (countdownBarEl) {
+            const pct = (safeSec / POPUP_COUNTDOWN_SEC) * 100;
+            countdownBarEl.style.width = pct + '%';
+        }
+    }
+
+    /**
+     * Dipanggil saat pengguna menekan tombol "Ya, Lanjutkan"
+     */
+    function continueActiveSession() {
+        if (popupCountdownInterval) {
+            clearInterval(popupCountdownInterval);
+            popupCountdownInterval = null;
+        }
+
+        if (timeoutModalInstance) {
+            timeoutModalInstance.hide();
+        }
+
+        isTimeoutModalShown = false;
+        resetIdleTimer();
+    }
+
+    /**
+     * Dipanggil saat pengguna menekan tombol "Tidak, Akhiri Sesi"
+     * atau ketika waktu 10 detik pada pop-up habis tanpa aktivitas/respon
+     */
+    function endPortalSessionNow() {
+        if (popupCountdownInterval) {
+            clearInterval(popupCountdownInterval);
+            popupCountdownInterval = null;
+        }
+        if (idleTimeoutTimer) {
+            clearTimeout(idleTimeoutTimer);
+            idleTimeoutTimer = null;
+        }
+
+        if (endSessionForm) {
+            endSessionForm.submit();
+        } else {
+            window.location.href = "{{ route('portal') }}";
+        }
+    }
+
+    // Daftarkan event listener aktivitas pengguna (kursor, klik, ketik, scroll, sentuh layar)
+    ['mousemove', 'mousedown', 'click', 'keydown', 'scroll', 'touchstart'].forEach(evtName => {
+        window.addEventListener(evtName, resetIdleTimer, { passive: true });
+    });
+
+    // Mulai penghitung inaktivitas 30 detik saat halaman FAQ dibuka
+    resetIdleTimer();
 </script>
 
 </body>

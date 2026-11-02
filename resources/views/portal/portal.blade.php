@@ -263,8 +263,10 @@
                                     type="text"
                                     id="nrpInput"
                                     name="nrp"
-                                    class="nrp-form-control"
-                                    placeholder="Contoh: 160423018"
+                                    value="{{ old('nrp') }}"
+                                    maxlength="9"
+                                    class="nrp-form-control @error('nrp') border-danger @enderror"
+                                    placeholder="Contoh: 160423018 (9 digit angka)"
                                     autocomplete="off"
                                     inputmode="numeric"
                                 >
@@ -274,6 +276,16 @@
                                 <i class="bi bi-arrow-right"></i>
                                 <span id="btnSubmitNrpLabel">Lanjutkan tanpa NRP</span>
                             </button>
+                        </div>
+
+                        <!-- Pesan Error Validasi NRP -->
+                        <div
+                            id="nrpErrorBox"
+                            class="text-danger fs-12 fw-medium mt-1.5 d-flex align-items-center gap-1 {{ $errors->has('nrp') ? '' : 'd-none' }}"
+                            style="margin-top: 0.4rem;"
+                        >
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            <span id="nrpErrorText">{{ $errors->first('nrp') }}</span>
                         </div>
 
                         <div class="text-muted fs-11 mt-2">
@@ -494,34 +506,101 @@
         scanAnimationFrame = requestAnimationFrame(scanQrFrame);
     }
 
+    // Daftar kode fakultas resmi yang terdaftar pada PortalController::FAKULTAS_MAP
+    const fakultasMap = @json(\App\Http\Controllers\PortalController::FAKULTAS_MAP);
+
+    const nrpErrorBox  = document.getElementById('nrpErrorBox');
+    const nrpErrorText = document.getElementById('nrpErrorText');
+    const portalNrpForm = document.getElementById('portalNrpForm');
+
+    function showNrpError(msg) {
+        if (!nrpErrorBox || !nrpErrorText) return;
+        nrpErrorText.textContent = msg;
+        nrpErrorBox.classList.remove('d-none');
+        nrpInput.classList.add('border-danger');
+    }
+
+    function hideNrpError() {
+        if (!nrpErrorBox) return;
+        nrpErrorBox.classList.add('d-none');
+        nrpInput.classList.remove('border-danger');
+    }
+
+    /**
+     * Memvalidasi ketentuan NRP:
+     * 1. Wajib tepat 9 digit karakter angka (0-9)
+     * 2. 2 karakter terdepan wajib terdaftar di PortalController::FAKULTAS_MAP
+     */
+    function validateNrpValue(nrp) {
+        if (!/^\d{9}$/.test(nrp)) {
+            return {
+                valid: false,
+                message: 'NRP harus terdiri dari tepat 9 digit angka (contoh: 160423018).'
+            };
+        }
+
+        const kodeFakultas = nrp.substring(0, 2);
+        if (!Object.prototype.hasOwnProperty.call(fakultasMap, kodeFakultas)) {
+            return {
+                valid: false,
+                message: `Kode fakultas '${kodeFakultas}' pada NRP tidak terdaftar di sistem.`
+            };
+        }
+
+        return {
+            valid: true,
+            kodeFakultas: kodeFakultas,
+            namaFakultas: fakultasMap[kodeFakultas]
+        };
+    }
+
     /**
      * Ketika QR Code berhasil terbaca:
-     * Mengambil string NRP, mengisi input, lalu otomatis submit ke database tsession & redirect ke FAQ
+     * Mengambil string NRP, memvalidasi 9 digit & kode fakultas, lalu otomatis submit ke tsession & redirect ke FAQ
      */
     function handleQrDetected(qrValue) {
         stopCamera();
 
-        // Ekstrak angka NRP jika QR berisi format URL atau teks gabungan, atau gunakan langsung
-        const nrpMatch = qrValue.match(/\b\d{7,12}\b/);
-        const extractedNrp = nrpMatch ? nrpMatch[0] : qrValue;
+        // Ekstrak 9 digit angka NRP jika QR berisi format URL atau teks gabungan, atau gunakan langsung
+        const nrpMatch = qrValue.match(/\b\d{9}\b/);
+        const extractedNrp = nrpMatch ? nrpMatch[0] : qrValue.replace(/\D/g, '');
 
-        nrpInput.value = extractedNrp;
+        nrpInput.value = extractedNrp.slice(0, 9);
         updateNrpButtonState();
-        showCameraAlert('QR berhasil terbaca! NRP: ' + extractedNrp + '. Mengalihkan ke FAQ Mahasiswa...', 'success');
+
+        const validation = validateNrpValue(extractedNrp);
+        if (!validation.valid) {
+            showCameraAlert('QR terbaca (' + (extractedNrp || qrValue) + '), namun tidak valid: ' + validation.message, 'danger');
+            showNrpError(validation.message);
+            nrpInput.focus();
+            return;
+        }
+
+        hideNrpError();
+        showCameraAlert(
+            'QR berhasil terbaca! NRP: ' + extractedNrp + ' (' + validation.namaFakultas + '). Mengalihkan ke FAQ...',
+            'success'
+        );
 
         // Otomatis submit form untuk menyimpan 2 karakter depan NRP ke tabel tsession & pindah ke faq.blade.php
-        const form = document.getElementById('portalNrpForm');
-        if (form) {
-            form.submit();
+        if (portalNrpForm) {
+            portalNrpForm.submit();
         }
     }
 
     /**
      * Mengubah tombol submit NRP secara dinamis saat NRP diisi / kosong
+     * sekaligus memfilter agar input hanya menerima angka maksimal 9 digit
      */
     function updateNrpButtonState() {
-        const val = (nrpInput.value || '').trim();
-        if (val.length > 0) {
+        const cleaned = (nrpInput.value || '').replace(/\D/g, '').slice(0, 9);
+        if (nrpInput.value !== cleaned) {
+            nrpInput.value = cleaned;
+        }
+
+        hideNrpError();
+
+        if (cleaned.length > 0) {
             btnSubmitNrp.classList.add('has-value');
             btnSubmitNrpLabel.textContent = 'Lanjutkan dengan NRP';
         } else {
@@ -531,6 +610,31 @@
     }
 
     nrpInput.addEventListener('input', updateNrpButtonState);
+
+    // Validasi saat form NRP di-submit secara manual
+    if (portalNrpForm) {
+        portalNrpForm.addEventListener('submit', function (e) {
+            const val = (nrpInput.value || '').trim();
+            // Jika kosong, izinkan masuk sebagai tamu ("Lanjutkan tanpa NRP")
+            if (val === '') {
+                hideNrpError();
+                return;
+            }
+
+            const check = validateNrpValue(val);
+            if (!check.valid) {
+                e.preventDefault();
+                showNrpError(check.message);
+                nrpInput.focus();
+            }
+        });
+    }
+
+    // Inisialisasi state tombol saat halaman dimuat (misal ketika ada old('nrp'))
+    if ((nrpInput.value || '').trim().length > 0) {
+        btnSubmitNrp.classList.add('has-value');
+        btnSubmitNrpLabel.textContent = 'Lanjutkan dengan NRP';
+    }
 
     // Matikan kamera secara otomatis apabila pengguna berpindah halaman
     window.addEventListener('beforeunload', () => {
