@@ -27,10 +27,9 @@ return new class extends Migration
                       ->references('id')
                       ->on('troles');
 
-                $table->tinyInteger('is_active')->default(1);
+                $table->boolean('is_active')->default(1);
 
                 $table->timestamps();
-                $table->rememberToken()->nullable();
 
                 // FK ke direktorat (nullable)
                 $table->integer('tDirektorat_id')->nullable();

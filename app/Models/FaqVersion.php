@@ -42,9 +42,11 @@ class FaqVersion extends Model
         return $this->belongsTo(DaftarPustaka::class, 'tDaftarPustakas_id');
     }
 
-    // Scope helpers
-    public function scopeDraft($q)      { return $q->where('status', 'draft'); }
-    public function scopeSubmitted($q)  { return $q->where('status', 'submitted'); }
-    public function scopeApproved($q)   { return $q->where('status', 'approved'); }
-    public function scopeRejected($q)   { return $q->where('status', 'rejected'); }
+    // Scope helpers (sesuai ENUM: Draft, Submitted, Approved, Rejected, Active, InActive)
+    public function scopeDraft($q)      { return $q->where('status', 'Draft'); }
+    public function scopeSubmitted($q)  { return $q->where('status', 'Submitted'); }
+    public function scopeApproved($q)   { return $q->where('status', 'Approved'); }
+    public function scopeRejected($q)   { return $q->where('status', 'Rejected'); }
+    public function scopeActive($q)     { return $q->where('status', 'Active'); }
+    public function scopeInActive($q)   { return $q->where('status', 'InActive'); }
 }

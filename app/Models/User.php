@@ -10,6 +10,9 @@ class User extends Authenticatable
 
     protected $table = 'tusers';
 
+    // Nonaktifkan remember_token karena tidak ada pada ERD tUsers
+    protected $rememberTokenName = null;
+
     protected $fillable = [
         'superId',
         'nama',
@@ -23,7 +26,6 @@ class User extends Authenticatable
 
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     protected $casts = [

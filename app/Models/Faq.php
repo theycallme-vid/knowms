@@ -47,7 +47,7 @@ class Faq extends Model
     public function latestApprovedVersion()
     {
         return $this->hasOne(FaqVersion::class, 'tFaqs_id')
-                    ->where('status', 'approved')
+                    ->whereIn('status', ['Approved', 'Active'])
                     ->latestOfMany('updated_at');
     }
 
