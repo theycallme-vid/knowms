@@ -13,14 +13,10 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        $dataku = [
-            ['nama' => 'Super Admin'],
-            ['nama' => 'Data Entry'],
-            ['nama' => 'Validator'],
+        $roles = [
+            ['id' => 1, 'nama' => 'Super Admin'],
+            ['id' => 2, 'nama' => 'Data Entry'],
+            ['id' => 3, 'nama' => 'Validator'],
         ];
-
-        Role::insert($dataku);
     }
-
-    
 }
