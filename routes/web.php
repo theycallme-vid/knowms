@@ -3,9 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\dataentry\FaqController as DataEntryFaqController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\validator\ValidatorFaqController;
 use Illuminate\Support\Facades\Route;
-
 
 // HALAMAN PUBLIK: FAQ Mahasiswa (halaman pertama). Login hanya dibuka lewat "/login"
 Route::get('/', function () {
@@ -44,25 +43,52 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
 
 // VALIDATOR ROUTES
 Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('validator.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('validator.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [ValidatorFaqController::class, 'dashboard'])->name('dashboard');
+    Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
+    Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
 });
 
 // DATA ENTRY ROUTES
 Route::middleware(['auth', 'role:Data Entry'])->group(function () {
     Route::prefix('data-entry')->name('dataentry.')->group(function () {
+        // 1. Menu Daftar FAQ (Dashboard)
         Route::get('/dashboard', [DataEntryFaqController::class, 'dashboard'])->name('dashboard');
+
+        // 2. Menu Buat FAQ (Input Satuan & Pratinjau Import File)
         Route::get('/buat-faq', [DataEntryFaqController::class, 'create'])->name('buatfaq');
         Route::post('/buat-faq', [DataEntryFaqController::class, 'store'])->name('buatfaq.store');
         Route::get('/pratinjau-unggah', [DataEntryFaqController::class, 'pratinjau'])->name('pratinjau');
         Route::post('/upload-excel', [DataEntryFaqController::class, 'uploadExcel'])->name('uploadExcel');
+        Route::post('/pratinjau-unggah/update-item', [DataEntryFaqController::class, 'updatePreviewItem'])->name('pratinjau.updateItem');
+        Route::post('/pratinjau-unggah/delete-item', [DataEntryFaqController::class, 'deletePreviewItem'])->name('pratinjau.deleteItem');
         Route::post('/pratinjau-unggah/submit', [DataEntryFaqController::class, 'submitPratinjau'])->name('pratinjau.submit');
+        Route::get('/template/faq', [DataEntryFaqController::class, 'downloadTemplateFaq'])->name('template.faq');
+
+        // Detail, Edit, Update, Delete FAQ
+        Route::get('/faq/check/duplicate', [DataEntryFaqController::class, 'checkDuplicate'])->name('faq.checkDuplicate');
         Route::get('/faq/{id}', [DataEntryFaqController::class, 'show'])->name('faq.show');
         Route::get('/faq/{id}/edit', [DataEntryFaqController::class, 'edit'])->name('faq.edit');
         Route::match(['put', 'patch', 'post'], '/faq/{id}/update', [DataEntryFaqController::class, 'update'])->name('faq.update');
         Route::delete('/faq/{id}', [DataEntryFaqController::class, 'destroy'])->name('faq.destroy');
-        Route::get('/faq/check/duplicate', [DataEntryFaqController::class, 'checkDuplicate'])->name('faq.checkDuplicate');
+
+        // 3. Menu Daftar Kata Kunci (ttag)
+        Route::get('/kata-kunci', [DataEntryFaqController::class, 'kataKunciIndex'])->name('katakunci');
+        Route::post('/kata-kunci', [DataEntryFaqController::class, 'kataKunciStore'])->name('katakunci.store');
+        Route::post('/kata-kunci/{id}/update', [DataEntryFaqController::class, 'kataKunciUpdate'])->name('katakunci.update');
+        Route::delete('/kata-kunci/{id}', [DataEntryFaqController::class, 'kataKunciDestroy'])->name('katakunci.destroy');
+        Route::post('/kata-kunci/upload', [DataEntryFaqController::class, 'kataKunciUpload'])->name('katakunci.upload');
+        Route::post('/kata-kunci/save-import', [DataEntryFaqController::class, 'kataKunciSaveImport'])->name('katakunci.saveImport');
+        Route::post('/kata-kunci/cancel-import', [DataEntryFaqController::class, 'kataKunciCancelImport'])->name('katakunci.cancelImport');
+        Route::get('/template/kata-kunci', [DataEntryFaqController::class, 'downloadTemplateKataKunci'])->name('template.katakunci');
+
+        // 4. Menu Sumber Pustaka (tdaftarpustaka)
+        Route::get('/sumber-pustaka', [DataEntryFaqController::class, 'sumberPustakaIndex'])->name('sumberpustaka');
+        Route::post('/sumber-pustaka', [DataEntryFaqController::class, 'sumberPustakaStore'])->name('sumberpustaka.store');
+        Route::delete('/sumber-pustaka/{id}', [DataEntryFaqController::class, 'sumberPustakaDestroy'])->name('sumberpustaka.destroy');
+        Route::post('/sumber-pustaka/upload', [DataEntryFaqController::class, 'sumberPustakaUpload'])->name('sumberpustaka.upload');
+        Route::post('/sumber-pustaka/save-import', [DataEntryFaqController::class, 'sumberPustakaSaveImport'])->name('sumberpustaka.saveImport');
+        Route::post('/sumber-pustaka/cancel-import', [DataEntryFaqController::class, 'sumberPustakaCancelImport'])->name('sumberpustaka.cancelImport');
+        Route::get('/template/sumber-pustaka', [DataEntryFaqController::class, 'downloadTemplatePustaka'])->name('template.pustaka');
         Route::get('/pustaka/{id}/download', [DataEntryFaqController::class, 'downloadPustaka'])->name('pustaka.download');
     });
 

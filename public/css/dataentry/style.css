@@ -807,6 +807,262 @@ body {
     color: #FFFFFF;
 }
 
+/* ============================================================
+   PRATINJAU UNGGAHAN & IMPORT PREVIEW STYLES
+   ============================================================ */
+
+.badge-pratinjau {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+}
+
+.file-pill-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.9rem;
+    background-color: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.btn-outline-maroon {
+    background-color: #FFFFFF;
+    color: var(--brand-maroon);
+    border: 1.5px solid var(--brand-maroon);
+    border-radius: 10px;
+    padding: 0.45rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-outline-maroon:hover {
+    background-color: var(--brand-maroon-soft);
+    color: var(--brand-maroon-hover);
+    border-color: var(--brand-maroon-hover);
+}
+
+/* Preview Filter Pills (Semua, Belum lengkap, Siap diajukan) */
+.preview-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid #CBD5E1;
+    background-color: #FFFFFF;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.preview-filter-pill:hover {
+    background-color: #F8FAFC;
+    color: #0F172A;
+}
+
+.preview-filter-pill.active {
+    border: 1.5px solid #334155;
+    background-color: #E2E8F0;
+    color: #0F172A;
+}
+
+.preview-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    background-color: #E2E8F0;
+    color: #334155;
+}
+
+.preview-filter-pill.active .preview-filter-count {
+    background-color: #334155;
+    color: #FFFFFF;
+}
+
+/* Preview Table Customizations */
+.preview-table-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.preview-row-selected td {
+    background-color: #F0F7FF !important;
+}
+
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.keyword-pill-blue {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #DBEAFE;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.keyword-pill-empty {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background-color: #F1F5F9;
+    color: #94A3B8;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-style: italic;
+}
+
+.badge-ready {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.7rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background-color: #DCFCE7;
+    color: #15803D;
+    border: 1px solid #BBF7D0;
+}
+
+.badge-incomplete {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.7rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background-color: #FEE2E2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+}
+
+.btn-table-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #334155;
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-table-edit:hover {
+    background-color: #F8FAFC;
+    border-color: #94A3B8;
+    color: #0F172A;
+}
+
+.btn-table-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #DC2626;
+    background-color: #FFFFFF;
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-table-delete:hover {
+    background-color: #FEF2F2;
+    border-color: #FCA5A5;
+}
+
+/* Sticky Bottom Bar for Preview & Forms */
+.sticky-bottom-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1010;
+    background-color: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 0.9rem 1.5rem;
+    margin-top: 1.25rem;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.selected-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.75rem;
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.upload-dropzone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 14px;
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    background-color: #F8FAFC;
+    transition: all 0.2s ease;
+}
+
+.upload-dropzone:hover {
+    border-color: var(--brand-maroon);
+    background-color: #FFFBFB;
+}
+
+.action-icon-disabled {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+}
+
 /* Responsive Sidebar Drawer */
 @media (max-width: 991.98px) {
     .sidebar {

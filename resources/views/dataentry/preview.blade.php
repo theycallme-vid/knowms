@@ -11,396 +11,251 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Tailwind CSS (CDN dengan Konfigurasi Brand KMS) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        maroon: {
-                            50: '#fdf2f4',
-                            100: '#fbe6e9',
-                            200: '#f7d0d6',
-                            300: '#ef95a3',
-                            400: '#e55a71',
-                            500: '#85172C', // Warna Brand Marun KMS
-                            600: '#751426',
-                            700: '#641121',
-                            800: '#530e1b',
-                            900: '#430b16',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        serif: ['Lora', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Data Entry External CSS -->
+    <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
 </head>
-<body class="bg-[#FAFAF9] font-sans text-gray-800 antialiased min-h-screen">
+<body>
 
-<div class="flex min-h-screen">
-    <!-- ========================================================================= -->
-    <!-- SIDEBAR KIRI                                                              -->
-    <!-- ========================================================================= -->
-    <aside id="sidebar" class="w-64 bg-white border-r border-gray-200/80 fixed inset-y-0 left-0 z-40 flex flex-col justify-between p-5 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
+<div class="d-flex">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
         <div>
-            <!-- KMS Brand Logo -->
-            <div class="mb-5 px-1">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="h-9 w-auto object-contain">
+            <div class="sidebar-brand mb-3">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="sidebar-logo-img">
             </div>
 
-            <!-- Role Badge -->
-            <div class="mb-6 px-1">
-                <span class="inline-block px-3 py-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded-full">
-                    Ruang Data Entry
-                </span>
+            <div class="mb-3">
+                <span class="role-pill">Ruang Data Entry</span>
             </div>
 
-            <!-- Navigation Links -->
-            <nav class="space-y-1">
-                <a href="{{ route('dataentry.dashboard') }}"
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
-                    <i class="bi bi-file-earmark-text text-base text-gray-400"></i>
+            <nav class="nav flex-column">
+                <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
+                    <i class="bi bi-file-earmark-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
-
-                <a href="{{ route('dataentry.buatfaq') }}"
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-maroon-500 bg-maroon-50 transition">
-                    <i class="bi bi-plus-lg text-base text-maroon-500"></i>
+                <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom active">
+                    <i class="bi bi-plus-lg"></i>
                     <span>Buat FAQ</span>
                 </a>
-
-                <a href="#"
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
-                    <i class="bi bi-book text-base text-gray-400"></i>
+                <a href="{{ route('dataentry.katakunci') }}" class="nav-link-custom">
+                    <i class="bi bi-tags"></i>
+                    <span>Daftar Kata Kunci</span>
+                </a>
+                <a href="{{ route('dataentry.sumberpustaka') }}" class="nav-link-custom">
+                    <i class="bi bi-book"></i>
                     <span>Sumber Pustaka</span>
                 </a>
             </nav>
         </div>
 
-        <!-- Bottom Sidebar Section -->
-        <div class="border-t border-gray-100 pt-4 space-y-1">
-            <a href="#" class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
-                <i class="bi bi-gear text-base text-gray-400"></i>
+        <div>
+            <hr class="sidebar-divider my-3">
+            <a href="#" class="nav-link-custom mb-1">
+                <i class="bi bi-gear"></i>
                 <span>Pengaturan Akun</span>
             </a>
-            <button type="button" onclick="confirmLogout()" class="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
-                <i class="bi bi-box-arrow-right text-base"></i>
+            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary">
+                <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
-            </button>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+            </a>
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                 @csrf
             </form>
         </div>
     </aside>
 
     <!-- Mobile Sidebar Backdrop -->
-    <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 z-30 bg-black/30 backdrop-blur-xs hidden lg:hidden"></div>
+    <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
 
-    <!-- ========================================================================= -->
-    <!-- KONTEN UTAMA                                                              -->
-    <!-- ========================================================================= -->
-    <main class="flex-1 lg:ml-64 flex flex-col min-w-0 min-h-screen">
-
+    <!-- Main Content -->
+    <main class="flex-grow-1 min-vw-0">
         <!-- Top Navbar -->
-        <header class="bg-white border-b border-gray-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-20">
-            <!-- Left: Mobile Toggle & Breadcrumb -->
-            <div class="flex items-center gap-3">
-                <button type="button" onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 lg:hidden rounded-lg hover:bg-gray-100" aria-label="Toggle Menu">
-                    <i class="bi bi-list text-xl"></i>
+        <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
+                    <i class="bi bi-list fs-5"></i>
                 </button>
-                <div class="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                    <i class="bi bi-house"></i>
+                <div class="d-flex align-items-center text-muted fs-13">
+                    <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
-                    <span class="text-gray-300">/</span>
-                    <span class="font-semibold text-gray-800">Data Entry</span>
+                    <span class="mx-2 text-muted">/</span>
+                    <span class="text-dark fw-semibold">Data Entry</span>
                 </div>
             </div>
 
-            <!-- Right: Search, Profile & Notification -->
-            <div class="flex items-center gap-3 sm:gap-4 ml-auto">
-                <!-- Search bar -->
-                <div class="relative hidden sm:block w-64 lg:w-72">
-                    <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" placeholder="Cari FAQ, pengguna, atau aktivitas..."
-                           class="w-full pl-9 pr-3 py-1.5 text-xs text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:border-maroon-500 transition placeholder:text-gray-400">
+            <div class="d-flex align-items-center gap-3 ms-auto">
+                <div class="search-container">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="search-input" placeholder="Cari FAQ, pengguna, atau aktivitas...">
                 </div>
 
-                <!-- Profile Info -->
-                <div class="flex items-center gap-2.5 pl-2 border-l border-gray-100">
-                    <div class="w-8 h-8 rounded-full bg-maroon-50 text-maroon-500 font-bold text-xs flex items-center justify-center border border-maroon-200">
-                        {{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}
-                    </div>
-                    <div class="hidden md:block text-left leading-tight">
-                        <div class="text-xs font-bold text-gray-900">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
-                        <div class="text-[11px] text-gray-500">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
-                    </div>
+                <div class="dropdown">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown">
+                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}</div>
+                        <div class="d-none d-sm-block text-start lh-sm">
+                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
+                            <div class="fs-11 text-muted">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                        <li>
+                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                                <i class="bi bi-box-arrow-right"></i> Keluar
+                            </a>
+                        </li>
+                    </ul>
                 </div>
 
-                <!-- Bell Notification -->
-                <button type="button" class="text-gray-500 hover:text-gray-800 p-1 rounded-lg hover:bg-gray-100" aria-label="Notifikasi">
-                    <i class="bi bi-bell text-lg"></i>
+                <button class="btn btn-link text-secondary p-1 text-decoration-none" aria-label="Notifikasi">
+                    <i class="bi bi-bell fs-5"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Area Isi Halaman -->
-        <div class="flex-1 px-4 sm:px-8 py-6 w-full max-w-[1400px] mx-auto pb-28">
-
-            <!-- Back Link -->
-            <div class="mb-3">
-                <a href="{{ route('dataentry.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 transition">
-                    <i class="bi bi-chevron-left text-xs"></i>
+        <!-- Content Area -->
+        <div class="content-area">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <a href="{{ route('dataentry.dashboard') }}" class="back-link mb-0">
+                    <i class="bi bi-chevron-left"></i>
                     <span>Daftar FAQ</span>
+                </a>
+                <span class="text-muted fs-12">&middot;</span>
+                <a href="{{ route('dataentry.buatfaq') }}" class="back-link mb-0">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Mode Input Satuan</span>
                 </a>
             </div>
 
-            <!-- ========================================================================= -->
-            <!-- HEADER KONTEN: JUDUL + BADGE PRATINJAU & NAMA FILE + TOMBOL UNGGAH FILE   -->
-            <!-- ========================================================================= -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <!-- Header: Judul Buat FAQ + Badge Pratinjau unggahan & Nama File + Unggah File -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h1 class="text-2xl sm:text-3xl font-serif font-bold text-gray-900 tracking-tight">
-                            Buat FAQ
-                        </h1>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
-                            Pratinjau unggahan
-                        </span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h1 class="display-serif fs-2 mb-0">Buat FAQ</h1>
+                        <span class="badge-pratinjau">Pratinjau unggahan</span>
                     </div>
-                    <p class="text-sm text-gray-500 mt-1">
+                    <p class="text-muted fs-14 mb-0 mt-1">
                         Tinjau setiap FAQ dari file yang diunggah sebelum diajukan ke validator.
                     </p>
                 </div>
 
-                <!-- Kanan Atas: Nama File Excel & Tombol Outline Merah Unggah File -->
-                <div class="flex items-center gap-3 shrink-0">
-                    <!-- Pill Nama File Excel -->
-                    <div class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-medium">
-                        <i class="bi bi-file-earmark-excel text-emerald-600 text-sm"></i>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <div class="file-pill-box">
+                        <i class="bi bi-file-earmark-spreadsheet text-success"></i>
                         <span id="activeFileName">{{ $fileName ?? 'FAQ_Akademik_2026.xlsx' }}</span>
                     </div>
-
-                    <!-- Tombol Outline Merah Unggah File -->
-                    <button type="button" onclick="openUploadModal()"
-                            class="inline-flex items-center gap-2 px-4 py-2 border border-maroon-500 text-maroon-500 hover:bg-maroon-50 text-xs sm:text-sm font-semibold rounded-xl transition duration-150 shadow-xs">
+                    <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#uploadModal">
                         <i class="bi bi-upload"></i>
                         <span>Unggah File</span>
                     </button>
                 </div>
             </div>
 
-            <!-- ========================================================================= -->
-            <!-- FILTER PILL & SEARCH BAR                                                  -->
-            <!-- ========================================================================= -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <!-- Grup Tombol Filter Berbentuk Pill -->
-                <div class="flex items-center gap-2 flex-wrap" id="filterPillsContainer">
-                    <!-- Pill Semua -->
-                    <button type="button" onclick="setFilter('all', this)"
-                            class="filter-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition"
-                            data-filter="all">
+            <!-- Filter Pills & Search Bar -->
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" onclick="setFilter('all', this)" class="preview-filter-pill active" data-filter="all">
                         <span>Semua</span>
-                        <span class="w-5 h-5 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-[11px] font-bold" id="badgeCountAll">5</span>
+                        <span class="preview-filter-count" id="badgeCountAll">{{ count($items) }}</span>
                     </button>
-
-                    <!-- Pill Belum Lengkap -->
-                    <button type="button" onclick="setFilter('incomplete', this)"
-                            class="filter-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition"
-                            data-filter="incomplete">
+                    <button type="button" onclick="setFilter('incomplete', this)" class="preview-filter-pill" data-filter="incomplete">
                         <span>Belum lengkap</span>
-                        <span class="w-5 h-5 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-[11px] font-bold" id="badgeCountIncomplete">3</span>
+                        <span class="preview-filter-count" id="badgeCountIncomplete">0</span>
                     </button>
-
-                    <!-- Pill Siap Diajukan (Default Active sesuai screenshot) -->
-                    <button type="button" onclick="setFilter('ready', this)"
-                            class="filter-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border-2 border-slate-700 text-slate-800 bg-slate-100 shadow-2xs transition"
-                            data-filter="ready">
+                    <button type="button" onclick="setFilter('ready', this)" class="preview-filter-pill" data-filter="ready">
                         <span>Siap diajukan</span>
-                        <span class="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[11px] font-bold" id="badgeCountReady">2</span>
+                        <span class="preview-filter-count" id="badgeCountReady">0</span>
                     </button>
                 </div>
 
-                <!-- Search Bar Cari Pertanyaan -->
-                <div class="relative w-full sm:w-72">
-                    <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" id="searchInput" oninput="filterFaqs()" placeholder="Cari pertanyaan..."
-                           class="w-full pl-9 pr-3 py-1.5 text-xs text-gray-800 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500/20 transition placeholder:text-gray-400">
+                <div class="position-relative" style="min-width: 260px;">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted fs-12"></i>
+                    <input type="text" id="searchInput" oninput="filterFaqs()" class="form-control form-control-sm rounded-3 ps-5 fs-13" placeholder="Cari pertanyaan...">
                 </div>
             </div>
 
-            <!-- ========================================================================= -->
-            <!-- TABEL PRATINJAU                                                           -->
-            <!-- ========================================================================= -->
-            <div class="bg-white border border-gray-200/90 rounded-2xl shadow-xs overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-700" id="previewTable">
-                        <thead class="bg-gray-50/70 border-b border-gray-200/80 text-[11px] uppercase tracking-wider font-semibold text-gray-500">
+            <!-- Tabel Pratinjau -->
+            <div class="preview-table-card">
+                <div class="table-responsive">
+                    <table class="table faq-table align-middle mb-0" id="previewTable">
+                        <thead>
                             <tr>
-                                <th scope="col" class="py-3.5 px-4 w-10 text-center">
-                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"
-                                           class="w-4 h-4 rounded text-maroon-500 focus:ring-maroon-500 border-gray-300 cursor-pointer">
+                                <th style="width: 44px;" class="text-center">
+                                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input" onchange="toggleSelectAll(this)">
                                 </th>
-                                <th scope="col" class="py-3.5 px-4 w-28">Kode / Versi</th>
-                                <th scope="col" class="py-3.5 px-4 min-w-[280px]">Pertanyaan & Jawaban</th>
-                                <th scope="col" class="py-3.5 px-4 min-w-[190px]">Kata Kunci</th>
-                                <th scope="col" class="py-3.5 px-4 min-w-[190px]">Sumber Pustaka</th>
-                                <th scope="col" class="py-3.5 px-4 w-32">Status</th>
-                                <th scope="col" class="py-3.5 px-4 w-32 text-right">Tindakan</th>
+                                <th style="width: 120px;">KODE / VERSI</th>
+                                <th style="min-width: 280px;">PERTANYAAN & JAWABAN</th>
+                                <th style="min-width: 190px;">KATA KUNCI</th>
+                                <th style="min-width: 190px;">SUMBER PUSTAKA</th>
+                                <th style="width: 130px;">STATUS</th>
+                                <th style="width: 145px; text-align: right;">TINDAKAN</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100" id="tableBody">
-                            @php
-                                $sampleItems = $items ?? [
-                                    [
-                                        'id' => 'FAQ-0249',
-                                        'version' => 'Versi 1',
-                                        'pertanyaan' => 'Bagaimana prosedur pengajuan cuti akademik?',
-                                        'jawaban' => 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender. Konsultasikan ke dosen pemb...',
-                                        'tags' => ['cuti akademik', 'pengajuan', 'mahasiswa S1', 'Akademik'],
-                                        'pustaka_judul' => 'Pedoman Akademik 2026/20...',
-                                        'pustaka_bagian' => 'Bagian Cuti Akademik',
-                                        'status' => 'ready',
-                                        'checked' => true,
-                                    ],
-                                    [
-                                        'id' => 'FAQ-0250',
-                                        'version' => 'Versi 1',
-                                        'pertanyaan' => 'Apa syarat mengambil mata kuliah di luar progra...',
-                                        'jawaban' => 'Mahasiswa dapat mengambil mata kuliah lintas prodi dengan persetujuan dosen PA dan kuota tersedia. Past...',
-                                        'tags' => [],
-                                        'pustaka_judul' => 'Pedoman Akademik 2026/20...',
-                                        'pustaka_bagian' => 'Bagian Lintas Prodi',
-                                        'status' => 'incomplete',
-                                        'checked' => false,
-                                    ],
-                                    [
-                                        'id' => 'FAQ-0251',
-                                        'version' => 'Versi 1',
-                                        'pertanyaan' => 'Bagaimana cara mengajukan beasiswa UBAYA?',
-                                        'jawaban' => 'Pendaftaran beasiswa dibuka sesuai jadwal, pastikan melengkapi berkas seperti transkrip nilai, surat rekome...',
-                                        'tags' => ['beasiswa', 'syarat', 'UBAYA'],
-                                        'pustaka_judul' => 'Pedoman Akademik 2026/20...',
-                                        'pustaka_bagian' => 'Bagian Beasiswa',
-                                        'status' => 'ready',
-                                        'checked' => true,
-                                    ],
-                                    [
-                                        'id' => 'FAQ-0252',
-                                        'version' => 'Versi 1',
-                                        'pertanyaan' => 'Kapan jadwal semester genap 2026/2027 dimulai?',
-                                        'jawaban' => 'Semester genap 2026/2027 dimulai sesuai kalender akademik yang ditetapkan. Pantau pengumuman resmi...',
-                                        'tags' => ['KRS', 'jadwal', 'semester genap'],
-                                        'pustaka_judul' => 'Pedoman Akademik 2026/20...',
-                                        'pustaka_bagian' => 'Kalender Akademik',
-                                        'status' => 'incomplete',
-                                        'checked' => false,
-                                    ],
-                                    [
-                                        'id' => 'FAQ-0253',
-                                        'version' => 'Versi 1',
-                                        'pertanyaan' => 'Mata kuliah apa saja yang sudah bisa diambil?',
-                                        'jawaban' => 'Daftar mata kuliah yang tersedia tercantum di buku panduan prodi masing-masing. Konsultasikan dengan...',
-                                        'tags' => ['lintas prodi', 'syarat', 'mata kuliah'],
-                                        'pustaka_judul' => 'Pedoman Akademik 2026/20...',
-                                        'pustaka_bagian' => 'Bagian Kurikulum',
-                                        'status' => 'incomplete',
-                                        'checked' => false,
-                                    ],
-                                ];
-                            @endphp
-
-                            @foreach($sampleItems as $index => $item)
-                                <tr class="faq-row hover:bg-slate-50/80 transition duration-150 {{ $item['checked'] ? 'bg-blue-50/20' : '' }}"
+                        <tbody id="tableBody">
+                            @foreach($items as $item)
+                                <tr class="faq-row {{ !empty($item['checked']) ? 'preview-row-selected' : '' }}"
                                     data-status="{{ $item['status'] }}"
                                     data-id="{{ $item['id'] }}"
+                                    data-pertanyaan="{{ e($item['pertanyaan']) }}"
+                                    data-jawaban="{{ e($item['jawaban']) }}"
+                                    data-tags="{{ e(implode(', ', $item['tags'] ?? [])) }}"
+                                    data-pustaka-judul="{{ e($item['pustaka_judul'] ?? '') }}"
+                                    data-pustaka-bagian="{{ e($item['pustaka_bagian'] ?? '') }}"
                                     id="row-{{ $item['id'] }}">
-                                    <!-- Checkbox -->
-                                    <td class="py-4 px-4 text-center">
+                                    <td class="text-center">
                                         <input type="checkbox"
-                                               class="row-checkbox w-4 h-4 rounded text-maroon-500 focus:ring-maroon-500 border-gray-300 cursor-pointer"
-                                               {{ $item['checked'] ? 'checked' : '' }}
+                                               class="form-check-input row-checkbox"
+                                               value="{{ $item['id'] }}"
+                                               {{ !empty($item['checked']) ? 'checked' : '' }}
                                                onchange="handleRowCheckboxChange(this, '{{ $item['id'] }}')">
                                     </td>
-
-                                    <!-- Kode / Versi -->
-                                    <td class="py-4 px-4 align-top">
-                                        <div class="font-bold text-gray-900 text-xs">{{ $item['id'] }}</div>
-                                        <div class="text-[11px] text-gray-400 mt-0.5">{{ $item['version'] }}</div>
+                                    <td>
+                                        <div class="fw-bold text-dark fs-12">{{ $item['id'] }}</div>
+                                        <div class="fs-11 text-muted">{{ $item['version'] ?? 'Versi 1' }}</div>
                                     </td>
-
-                                    <!-- Pertanyaan & Jawaban (2 baris teks yang di-truncate) -->
-                                    <td class="py-4 px-4 align-top">
-                                        <div class="font-bold text-gray-900 text-xs mb-1 line-clamp-1 leading-snug faq-pertanyaan">
-                                            {{ $item['pertanyaan'] }}
-                                        </div>
-                                        <div class="text-[11px] text-gray-500 line-clamp-1 leading-relaxed faq-jawaban">
-                                            {{ $item['jawaban'] }}
-                                        </div>
+                                    <td>
+                                        <div class="fw-bold text-dark fs-13 line-clamp-1 mb-0.5 faq-pertanyaan">{{ $item['pertanyaan'] }}</div>
+                                        <div class="fs-12 text-muted line-clamp-1 faq-jawaban">{{ strip_tags($item['jawaban']) }}</div>
                                     </td>
-
-                                    <!-- Kata Kunci (Badge pill biru muda) -->
-                                    <td class="py-4 px-4 align-top">
-                                        <div class="flex flex-wrap gap-1.5 faq-tags-container">
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1 faq-tags-container">
                                             @if(!empty($item['tags']))
                                                 @foreach($item['tags'] as $tag)
-                                                    <span class="inline-block px-2.5 py-0.5 bg-blue-50/90 text-blue-700 border border-blue-100 rounded-md text-[11px] font-medium">
-                                                        {{ $tag }}
-                                                    </span>
+                                                    <span class="keyword-pill-blue">{{ $tag }}</span>
                                                 @endforeach
                                             @else
-                                                <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-400 rounded-md text-[11px] italic">
-                                                    Belum diisi
-                                                </span>
+                                                <span class="keyword-pill-empty">Belum diisi</span>
                                             @endif
                                         </div>
                                     </td>
-
-                                    <!-- Sumber Pustaka (Judul & Bagian) -->
-                                    <td class="py-4 px-4 align-top">
-                                        <div class="font-bold text-gray-900 text-xs line-clamp-1 faq-pustaka-judul">
-                                            {{ $item['pustaka_judul'] }}
-                                        </div>
-                                        <div class="text-[11px] text-gray-500 mt-0.5 line-clamp-1 faq-pustaka-bagian">
-                                            {{ $item['pustaka_bagian'] }}
-                                        </div>
-                                    </td>
-
-                                    <!-- Status (Badge Hijau 'Siap diajukan' / Merah 'Belum lengkap') -->
-                                    <td class="py-4 px-4 align-top">
-                                        @if($item['status'] === 'ready')
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                Siap diajukan
-                                            </span>
+                                    <td>
+                                        @if(!empty($item['pustaka_judul']))
+                                            <div class="fw-bold text-dark fs-12 line-clamp-1 faq-pustaka-judul">{{ $item['pustaka_judul'] }}</div>
+                                            <div class="fs-11 text-muted line-clamp-1 faq-pustaka-bagian">{{ $item['pustaka_bagian'] ?: 'Dokumen Rujukan Resmi' }}</div>
                                         @else
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200">
-                                                Belum lengkap
-                                            </span>
+                                            <div class="fw-bold text-danger fs-12 faq-pustaka-judul">Belum diisi</div>
+                                            <div class="fs-11 text-muted faq-pustaka-bagian">Pilih / ketik sumber</div>
                                         @endif
                                     </td>
-
-                                    <!-- Tindakan (Tombol Outline 'Edit' & 'Hapus') -->
-                                    <td class="py-4 px-4 align-top text-right whitespace-nowrap">
-                                        <div class="inline-flex items-center gap-1.5">
-                                            <!-- Tombol Edit -->
-                                            <button type="button" onclick="openEditModal('{{ $item['id'] }}')"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-2xs">
-                                                <i class="bi bi-pencil text-[10px]"></i>
-                                                <span>Edit</span>
+                                    <td class="faq-status-cell">
+                                        @if($item['status'] === 'ready')
+                                            <span class="badge-ready">Siap diajukan</span>
+                                        @else
+                                            <span class="badge-incomplete">Belum lengkap</span>
+                                        @endif
+                                    </td>
+                                    <td style="text-align: right;" class="text-nowrap">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button type="button" class="btn-table-edit" onclick="openEditModal('{{ $item['id'] }}')">
+                                                <i class="bi bi-pencil"></i> Edit
                                             </button>
-
-                                            <!-- Tombol Hapus -->
-                                            <button type="button" onclick="deleteRow('{{ $item['id'] }}')"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition shadow-2xs">
-                                                <i class="bi bi-trash3 text-[10px]"></i>
-                                                <span>Hapus</span>
+                                            <button type="button" class="btn-table-delete" onclick="deleteRow('{{ $item['id'] }}')">
+                                                <i class="bi bi-trash3"></i> Hapus
                                             </button>
                                         </div>
                                     </td>
@@ -410,195 +265,172 @@
                     </table>
                 </div>
 
-                <!-- Footer Tabel: Pagination & Counter -->
-                <div class="px-5 py-3.5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+                <!-- Footer Tabel -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center px-4 py-3 border-top bg-white fs-12 text-muted">
                     <div>
-                        Menampilkan <span id="visibleCounter">5</span> dari <span id="totalCounter">5</span> FAQ &middot; <span id="selectedCounterText">2 dipilih</span>
+                        Menampilkan <span id="visibleCounter">{{ count($items) }}</span> dari <span id="totalCounter">{{ count($items) }}</span> FAQ &middot; <span id="selectedCounterText">0 dipilih</span>
                     </div>
-
-                    <!-- Pagination Pills -->
-                    <div class="flex items-center gap-1">
-                        <button type="button" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-400 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50" disabled>
-                            <i class="bi bi-chevron-left text-[10px]"></i>
-                        </button>
-                        <button type="button" class="w-7 h-7 rounded-lg bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
-                            1
-                        </button>
-                        <button type="button" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-400 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50" disabled>
-                            <i class="bi bi-chevron-right text-[10px]"></i>
-                        </button>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="page-pill"><i class="bi bi-chevron-left"></i></span>
+                        <span class="page-pill active">1</span>
+                        <span class="page-pill"><i class="bi bi-chevron-right"></i></span>
                     </div>
-                </div>
-            </div><!-- /Tabel Pratinjau -->
-
-        </div>
-
-        <!-- ========================================================================= -->
-        <!-- FOOTER FORM (STICKY BOTTOM ACTION BAR)                                    -->
-        <!-- ========================================================================= -->
-        <footer class="fixed bottom-0 left-0 lg:left-64 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-gray-200/90 px-4 sm:px-8 py-3.5 shadow-lg">
-            <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <!-- Sisi Kiri: Pill Jumlah Item Dipilih & Keterangan -->
-                <div class="flex items-center gap-3">
-                    <span id="bottomPillCount" class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 font-bold rounded-lg text-xs border border-blue-200">
-                        2 dipilih
-                    </span>
-                    <span class="text-xs text-gray-500">
-                        FAQ siap diajukan akan diperiksa oleh validator sebelum tersedia.
-                    </span>
-                </div>
-
-                <!-- Sisi Kanan: Tombol Simpan Draft & Tombol Solid Merah Marun Ajukan Validasi -->
-                <div class="flex items-center gap-3 shrink-0">
-                    <button type="button" onclick="saveAsDraft()"
-                            class="px-5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl transition shadow-xs">
-                        Simpan Draft
-                    </button>
-                    <button type="button" onclick="submitSelectedForValidation()" id="btnSubmitValidation"
-                            class="px-6 py-2.5 text-xs sm:text-sm font-semibold text-white bg-maroon-500 hover:bg-maroon-600 rounded-xl shadow-xs inline-flex items-center gap-2 transition">
-                        <i class="bi bi-send-check text-sm"></i>
-                        <span id="btnSubmitValidationText">Ajukan Validasi (2)</span>
-                    </button>
                 </div>
             </div>
-        </footer>
 
+            <!-- Form Submit Pratinjau -->
+            <form id="submitPratinjauForm" action="{{ route('dataentry.pratinjau.submit') }}" method="POST">
+                @csrf
+                <input type="hidden" name="action" id="submitActionInput" value="submit">
+                <input type="hidden" name="items_json" id="itemsJsonInput">
+                <div id="selectedIdsContainer"></div>
+
+                <!-- Sticky Bottom Action Bar -->
+                <div class="sticky-bottom-bar d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="selected-pill-badge" id="bottomPillCount">0 dipilih</span>
+                        <span class="fs-12 text-muted">FAQ siap diajukan akan diperiksa oleh validator sebelum tersedia.</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" onclick="saveAsDraft()" class="btn-draft">
+                            Simpan Draft
+                        </button>
+                        <button type="button" onclick="submitSelectedForValidation()" class="btn-submit-validasi">
+                            <i class="bi bi-arrow-right"></i>
+                            <span id="btnSubmitValidationText">Ajukan Validasi (0)</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </main>
 </div>
 
-<!-- ========================================================================= -->
-<!-- MODAL: EDIT FAQ DRAFT DARI TABEL                                          -->
-<!-- ========================================================================= -->
-<div id="editModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <div>
-                <h3 class="text-base font-bold text-gray-900" id="modalEditTitle">Edit FAQ - FAQ-0249</h3>
-                <p class="text-xs text-gray-500">Perbarui pertanyaan, jawaban, atau kata kunci sebelum diajukan.</p>
+<!-- Modal Edit Baris Pratinjau FAQ -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold fs-16" id="modalEditTitle">Edit FAQ</h5>
+                    <div class="fs-12 text-muted">Lengkapi pertanyaan, jawaban, kata kunci, dan sumber pustaka agar siap diajukan.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <button type="button" onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-        </div>
-        <div class="p-6 space-y-4">
-            <input type="hidden" id="editRowId">
+            <div class="modal-body">
+                <input type="hidden" id="editRowId">
 
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
-                    Pertanyaan FAQ
-                </label>
-                <textarea id="modalEditPertanyaan" rows="2"
-                          class="w-full px-3.5 py-2.5 text-xs text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-500"></textarea>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Pertanyaan FAQ</label>
+                    <textarea id="modalEditPertanyaan" rows="2" class="form-control fs-13 rounded-3"></textarea>
+                </div>
 
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
-                    Jawaban FAQ
-                </label>
-                <textarea id="modalEditJawaban" rows="3"
-                          class="w-full px-3.5 py-2.5 text-xs text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-500"></textarea>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Jawaban FAQ</label>
+                    <textarea id="modalEditJawaban" rows="3" class="form-control fs-13 rounded-3"></textarea>
+                </div>
 
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
-                    Kata Kunci (Pisahkan dengan koma)
-                </label>
-                <input type="text" id="modalEditTags"
-                       class="w-full px-3.5 py-2 text-xs text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-500"
-                       placeholder="contoh: akademik, cuti, mahasiswa">
-            </div>
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Kata Kunci (Pisahkan dengan koma)</label>
+                    <input type="text" id="modalEditTags" class="form-control fs-13 rounded-3" placeholder="contoh: akademik, cuti, mahasiswa S1">
+                </div>
 
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
-                    Bagian Sumber Pustaka
-                </label>
-                <input type="text" id="modalEditBagian"
-                       class="w-full px-3.5 py-2 text-xs text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-500"
-                       placeholder="contoh: Bagian Cuti Akademik">
-            </div>
-        </div>
-        <div class="px-6 py-3.5 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
-            <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-xl">
-                Batal
-            </button>
-            <button type="button" onclick="saveEditedFaq()" class="px-5 py-2 text-xs font-semibold text-white bg-maroon-500 hover:bg-maroon-600 rounded-xl">
-                Simpan Perubahan
-            </button>
-        </div>
-    </div>
-</div>
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Judul / Link Sumber Pustaka</label>
+                    <input type="text" id="modalEditJudulPustaka" class="form-control fs-13 rounded-3" maxlength="45" list="existingPustakaList" placeholder="contoh: Pedoman Akademik 2026/2027">
+                    <datalist id="existingPustakaList">
+                        @if(isset($daftarPustaka))
+                            @foreach($daftarPustaka as $dp)
+                                <option value="{{ $dp->link }}"></option>
+                            @endforeach
+                        @endif
+                    </datalist>
+                </div>
 
-<!-- ========================================================================= -->
-<!-- MODAL: UNGGAH FILE EXCEL BARU                                             -->
-<!-- ========================================================================= -->
-<div id="uploadModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="reuploadExcelForm">
-            @csrf
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h3 class="text-base font-bold text-gray-900">Unggah File FAQ Baru (Excel / CSV)</h3>
-                <button type="button" onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-            </div>
-            <div class="p-6">
-                <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center bg-gray-50/50 hover:bg-gray-50 transition">
-                    <i class="bi bi-file-earmark-spreadsheet text-4xl text-emerald-600 block mb-2"></i>
-                    <div class="text-sm font-semibold text-gray-800 mb-1">Tarik & lepas file Excel di sini</div>
-                    <div class="text-xs text-gray-500 mb-4">Mendukung format .XLSX, .XLS, atau .CSV hingga 10MB</div>
-                    <label class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-xl cursor-pointer shadow-xs">
-                        <span>Pilih Dokumen Excel</span>
-                        <input type="file" name="file_faq" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleNewExcelUpload(this)">
-                    </label>
+                <div class="mb-1">
+                    <label class="form-label-custom">Bagian / Keterangan Sumber Pustaka</label>
+                    <input type="text" id="modalEditBagian" class="form-control fs-13 rounded-3" placeholder="contoh: Bagian Cuti Akademik">
                 </div>
             </div>
-            <div class="px-6 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
-                <button type="button" onclick="closeUploadModal()" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-xl">
-                    Batal
-                </button>
-                <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-maroon-500 hover:bg-maroon-600 rounded-xl">
-                    Unggah & Tinjau
-                </button>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-sm btn-maroon px-3" onclick="saveEditedFaq()">Simpan Perubahan</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<!-- SweetAlert2 -->
+<!-- Modal Unggah File Baru -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="reuploadExcelForm">
+                @csrf
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold fs-16">Unggah File FAQ Baru (Excel / CSV / PDF)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="upload-dropzone mb-3">
+                        <i class="bi bi-file-earmark-spreadsheet fs-1 text-success mb-2 d-block"></i>
+                        <div class="fw-semibold text-dark fs-14 mb-1">Tarik & lepas file di sini</div>
+                        <div class="text-muted fs-12 mb-3">Mendukung format .XLSX, .CSV, atau .PDF hingga 10MB</div>
+                        <label class="btn btn-sm btn-white-outline">
+                            <i class="bi bi-folder2-open"></i> Pilih Dokumen
+                            <input type="file" name="file_faq" accept=".xlsx,.xls,.csv,.pdf" class="d-none" onchange="handleNewExcelUpload(this)">
+                        </label>
+                    </div>
+
+                    <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format Kolom:</span>
+                            <a href="{{ route('dataentry.template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                                <i class="bi bi-download me-1"></i>Unduh Template
+                            </a>
+                        </div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong> &middot; Kolom D: <strong>Sumber Pustaka</strong> &middot; Kolom E: <strong>Bagian Sumber</strong></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-maroon px-3">Unggah & Tinjau</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5.3 JS & SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    /* ---- Toggle Mobile Sidebar ---- */
+    let currentFilter = 'all';
+
     function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebarBackdrop');
-        sidebar.classList.toggle('-translate-x-full');
-        backdrop.classList.toggle('hidden');
+        document.getElementById('sidebar').classList.toggle('show');
+        document.getElementById('sidebarBackdrop').classList.toggle('d-none');
     }
 
-    /* ---- Logout Confirm ---- */
     function confirmLogout() {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Konfirmasi Keluar',
-                text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#85172C',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: '<i class="bi bi-box-arrow-right me-1"></i> Ya, Keluar',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('logout-form').submit();
-                }
-            });
-        } else {
-            if (confirm('Apakah Anda yakin ingin keluar?')) {
-                document.getElementById('logout-form').submit();
-            }
-        }
+        Swal.fire({
+            title: 'Konfirmasi Keluar',
+            text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#85172C',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Keluar',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((res) => {
+            if (res.isConfirmed) document.getElementById('logout-form').submit();
+        });
     }
 
-    /* ---- State Management ---- */
-    let currentFilter = 'ready'; // Sesuai screenshot tombol aktif default: 'Siap diajukan'
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
     function updateCounters() {
         const rows = document.querySelectorAll('.faq-row');
@@ -609,178 +441,78 @@
         let visibleCount = 0;
 
         rows.forEach(row => {
-            const status = row.getAttribute('data-status');
-            const checkbox = row.querySelector('.row-checkbox');
-
-            if (status === 'ready') readyCount++;
-            if (status === 'incomplete') incompleteCount++;
-            if (checkbox && checkbox.checked) selectedCount++;
+            const st = row.getAttribute('data-status');
+            const cb = row.querySelector('.row-checkbox');
+            if (st === 'ready') readyCount++;
+            if (st === 'incomplete') incompleteCount++;
+            if (cb && cb.checked) selectedCount++;
             if (row.style.display !== 'none') visibleCount++;
         });
 
-        // Update Pill Counts
-        const badgeAll = document.getElementById('badgeCountAll');
-        const badgeReady = document.getElementById('badgeCountReady');
-        const badgeInc = document.getElementById('badgeCountIncomplete');
-        if (badgeAll) badgeAll.textContent = total;
-        if (badgeReady) badgeReady.textContent = readyCount;
-        if (badgeInc) badgeInc.textContent = incompleteCount;
+        document.getElementById('badgeCountAll').textContent = total;
+        document.getElementById('badgeCountReady').textContent = readyCount;
+        document.getElementById('badgeCountIncomplete').textContent = incompleteCount;
 
-        // Update Bottom Sticky Counters
         const selectedText = `${selectedCount} dipilih`;
-        const bottomPill = document.getElementById('bottomPillCount');
-        const selectedCounter = document.getElementById('selectedCounterText');
-        const btnSubmitText = document.getElementById('btnSubmitValidationText');
-        const totalCounter = document.getElementById('totalCounter');
-        const visibleCounter = document.getElementById('visibleCounter');
-
-        if (bottomPill) bottomPill.textContent = selectedText;
-        if (selectedCounter) selectedCounter.textContent = selectedText;
-        if (btnSubmitText) btnSubmitText.textContent = `Ajukan Validasi (${selectedCount})`;
-        if (totalCounter) totalCounter.textContent = total;
-        if (visibleCounter) visibleCounter.textContent = visibleCount;
+        document.getElementById('bottomPillCount').textContent = selectedText;
+        document.getElementById('selectedCounterText').textContent = selectedText;
+        document.getElementById('btnSubmitValidationText').textContent = `Ajukan Validasi (${selectedCount})`;
+        document.getElementById('totalCounter').textContent = total;
+        document.getElementById('visibleCounter').textContent = visibleCount;
     }
 
-    /* ---- Filter Handler ---- */
     function setFilter(filterType, element) {
         currentFilter = filterType;
-
-        // Update Pill Button Classes
-        document.querySelectorAll('.filter-pill').forEach(btn => {
-            btn.className = 'filter-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition';
-            const badge = btn.querySelector('span:last-child');
-            if (badge) {
-                badge.className = 'w-5 h-5 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-[11px] font-bold';
-            }
-        });
-
-        // Set Active Pill Style (Border-2 slate-700 & dark badge)
-        if (element) {
-            element.className = 'filter-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border-2 border-slate-700 text-slate-800 bg-slate-100 shadow-2xs transition';
-            const activeBadge = element.querySelector('span:last-child');
-            if (activeBadge) {
-                activeBadge.className = 'w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[11px] font-bold';
-            }
-        }
-
+        document.querySelectorAll('.preview-filter-pill').forEach(btn => btn.classList.remove('active'));
+        if (element) element.classList.add('active');
         filterFaqs();
     }
 
     function filterFaqs() {
         const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-        const rows = document.querySelectorAll('.faq-row');
-
-        rows.forEach(row => {
-            const status = row.getAttribute('data-status');
-            const textContent = row.textContent.toLowerCase();
-
-            const matchFilter = (currentFilter === 'all') || (status === currentFilter);
-            const matchSearch = !query || textContent.includes(query);
-
-            if (matchFilter && matchSearch) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+        document.querySelectorAll('.faq-row').forEach(row => {
+            const st = row.getAttribute('data-status');
+            const text = row.textContent.toLowerCase();
+            const matchFilter = (currentFilter === 'all') || (st === currentFilter);
+            const matchSearch = !query || text.includes(query);
+            row.style.display = (matchFilter && matchSearch) ? '' : 'none';
         });
-
         updateCounters();
     }
 
-    /* ---- Checkbox Handlers ---- */
-    function toggleSelectAll(masterCheckbox) {
-        const isChecked = masterCheckbox.checked;
-        const visibleRows = document.querySelectorAll('.faq-row:not([style*="display: none"])');
-
-        visibleRows.forEach(row => {
+    function toggleSelectAll(masterCb) {
+        const isChecked = masterCb.checked;
+        document.querySelectorAll('.faq-row:not([style*="display: none"])').forEach(row => {
             const cb = row.querySelector('.row-checkbox');
             if (cb) {
                 cb.checked = isChecked;
-                if (isChecked) {
-                    row.classList.add('bg-blue-50/20');
-                } else {
-                    row.classList.remove('bg-blue-50/20');
-                }
+                row.classList.toggle('preview-row-selected', isChecked);
             }
         });
-
         updateCounters();
     }
 
     function handleRowCheckboxChange(cb, rowId) {
         const row = document.getElementById('row-' + rowId);
-        if (cb.checked) {
-            row?.classList.add('bg-blue-50/20');
-        } else {
-            row?.classList.remove('bg-blue-50/20');
-            const selectAll = document.getElementById('selectAllCheckbox');
-            if (selectAll) selectAll.checked = false;
-        }
-
+        if (row) row.classList.toggle('preview-row-selected', cb.checked);
         updateCounters();
     }
 
-    /* ---- Delete Action ---- */
-    function deleteRow(rowId) {
-        Swal.fire({
-            title: `Hapus ${rowId}?`,
-            text: 'Data baris pratinjau ini akan dihapus dari daftar unggahan.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#85172C',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Hapus',
-            cancelButtonText: 'Batal',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const row = document.getElementById('row-' + rowId);
-                if (row) {
-                    row.remove();
-                    updateCounters();
-                    filterFaqs();
-                }
-
-                Swal.fire({
-                    toast: true,
-                    position: 'bottom-end',
-                    icon: 'success',
-                    title: `${rowId} berhasil dihapus`,
-                    showConfirmButton: false,
-                    timer: 2000
-                });
-            }
-        });
-    }
-
-    /* ---- Edit Modal Action ---- */
+    // Edit Modal
     function openEditModal(rowId) {
         const row = document.getElementById('row-' + rowId);
         if (!row) return;
 
         document.getElementById('editRowId').value = rowId;
-        document.getElementById('modalEditTitle').textContent = `Edit FAQ - ${rowId}`;
+        document.getElementById('modalEditTitle').textContent = 'Edit FAQ - ' + rowId;
+        document.getElementById('modalEditPertanyaan').value = row.getAttribute('data-pertanyaan') || '';
+        document.getElementById('modalEditJawaban').value = row.getAttribute('data-jawaban') || '';
+        document.getElementById('modalEditTags').value = row.getAttribute('data-tags') || '';
+        document.getElementById('modalEditJudulPustaka').value = row.getAttribute('data-pustaka-judul') || '';
+        document.getElementById('modalEditBagian').value = row.getAttribute('data-pustaka-bagian') || '';
 
-        const pertanyaan = row.querySelector('.faq-pertanyaan')?.textContent.trim() || '';
-        const jawaban = row.querySelector('.faq-jawaban')?.textContent.trim() || '';
-        const bagian = row.querySelector('.faq-pustaka-bagian')?.textContent.trim() || '';
-
-        const tags = [];
-        row.querySelectorAll('.faq-tags-container span').forEach(el => {
-            const text = el.textContent.trim();
-            if (text && text !== 'Belum diisi') tags.push(text);
-        });
-
-        document.getElementById('modalEditPertanyaan').value = pertanyaan;
-        document.getElementById('modalEditJawaban').value = jawaban;
-        document.getElementById('modalEditTags').value = tags.join(', ');
-        document.getElementById('modalEditBagian').value = bagian;
-
-        document.getElementById('editModal').classList.remove('hidden');
-    }
-
-    function closeEditModal() {
-        document.getElementById('editModal').classList.add('hidden');
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
     }
 
     function saveEditedFaq() {
@@ -788,181 +520,241 @@
         const row = document.getElementById('row-' + rowId);
         if (!row) return;
 
-        const newPertanyaan = document.getElementById('modalEditPertanyaan').value.trim();
-        const newJawaban = document.getElementById('modalEditJawaban').value.trim();
-        const newTagsStr = document.getElementById('modalEditTags').value.trim();
-        const newBagian = document.getElementById('modalEditBagian').value.trim();
+        const pertanyaan = document.getElementById('modalEditPertanyaan').value.trim();
+        const jawaban = document.getElementById('modalEditJawaban').value.trim();
+        const tagsRaw = document.getElementById('modalEditTags').value.trim();
+        const pustakaJudul = document.getElementById('modalEditJudulPustaka').value.trim();
+        const pustakaBagian = document.getElementById('modalEditBagian').value.trim() || 'Dokumen Rujukan Resmi';
 
-        if (newPertanyaan) {
-            const pEl = row.querySelector('.faq-pertanyaan');
-            if (pEl) pEl.textContent = newPertanyaan;
-        }
+        const tagsArr = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const isReady = (pertanyaan !== '' && jawaban !== '' && tagsArr.length > 0 && pustakaJudul !== '');
+        const newStatus = isReady ? 'ready' : 'incomplete';
 
-        if (newJawaban) {
-            const jEl = row.querySelector('.faq-jawaban');
-            if (jEl) jEl.textContent = newJawaban;
-        }
+        // Update atribut data pada baris DOM
+        row.setAttribute('data-pertanyaan', pertanyaan);
+        row.setAttribute('data-jawaban', jawaban);
+        row.setAttribute('data-tags', tagsArr.join(', '));
+        row.setAttribute('data-pustaka-judul', pustakaJudul);
+        row.setAttribute('data-pustaka-bagian', pustakaBagian);
+        row.setAttribute('data-status', newStatus);
 
-        if (newBagian) {
-            const bEl = row.querySelector('.faq-pustaka-bagian');
-            if (bEl) bEl.textContent = newBagian;
-        }
+        row.querySelector('.faq-pertanyaan').textContent = pertanyaan;
+        row.querySelector('.faq-jawaban').textContent = jawaban;
 
-        // Update Tags Container
         const tagsContainer = row.querySelector('.faq-tags-container');
-        if (tagsContainer) {
-            const tagsArr = newTagsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            if (tagsArr.length > 0) {
-                tagsContainer.innerHTML = tagsArr.map(t =>
-                    `<span class="inline-block px-2.5 py-0.5 bg-blue-50/90 text-blue-700 border border-blue-100 rounded-md text-[11px] font-medium">${escHtml(t)}</span>`
-                ).join(' ');
-            } else {
-                tagsContainer.innerHTML = `<span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-400 rounded-md text-[11px] italic">Belum diisi</span>`;
+        if (tagsArr.length > 0) {
+            tagsContainer.innerHTML = tagsArr.map(t => `<span class="keyword-pill-blue">${escHtml(t)}</span>`).join('');
+        } else {
+            tagsContainer.innerHTML = `<span class="keyword-pill-empty">Belum diisi</span>`;
+        }
+
+        const judulEl = row.querySelector('.faq-pustaka-judul');
+        const bagianEl = row.querySelector('.faq-pustaka-bagian');
+        if (pustakaJudul) {
+            judulEl.textContent = pustakaJudul;
+            judulEl.classList.remove('text-danger');
+            judulEl.classList.add('text-dark');
+            bagianEl.textContent = pustakaBagian;
+        } else {
+            judulEl.textContent = 'Belum diisi';
+            judulEl.classList.add('text-danger');
+            bagianEl.textContent = 'Pilih / ketik sumber';
+        }
+
+        const statusCell = row.querySelector('.faq-status-cell');
+        if (isReady) {
+            statusCell.innerHTML = `<span class="badge-ready">Siap diajukan</span>`;
+            const cb = row.querySelector('.row-checkbox');
+            if (cb) {
+                cb.checked = true;
+                row.classList.add('preview-row-selected');
             }
+        } else {
+            statusCell.innerHTML = `<span class="badge-incomplete">Belum lengkap</span>`;
         }
 
-        closeEditModal();
+        // Kirim juga ke session backend via AJAX
+        fetch(`{{ route('dataentry.pratinjau.updateItem') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                id: rowId,
+                pertanyaan: pertanyaan,
+                jawaban: jawaban,
+                tags: tagsArr.join(','),
+                pustaka_judul: pustakaJudul,
+                pustaka_bagian: pustakaBagian
+            })
+        }).catch(() => {});
 
+        bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();
+        filterFaqs();
+    }
+
+    function deleteRow(rowId) {
         Swal.fire({
-            toast: true,
-            position: 'bottom-end',
-            icon: 'success',
-            title: `Perubahan ${rowId} disimpan`,
-            showConfirmButton: false,
-            timer: 2000
-        });
-    }
-
-    /* ---- Upload Modal Action ---- */
-    function openUploadModal() {
-        document.getElementById('uploadModal').classList.remove('hidden');
-    }
-
-    function closeUploadModal() {
-        document.getElementById('uploadModal').classList.add('hidden');
-    }
-
-    function handleNewExcelUpload(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            Swal.fire({
-                title: 'Memproses File Baru...',
-                text: `Memuat ${file.name} untuk pratinjau data FAQ.`,
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            document.getElementById('reuploadExcelForm').submit();
-        }
-    }
-
-    /* ---- Action Bar (Simpan Draft & Ajukan Validasi) ---- */
-    function saveAsDraft() {
-        const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
-        Swal.fire({
-            title: 'Simpan sebagai Draft?',
-            text: `${checkedCount > 0 ? checkedCount : 'Seluruh'} FAQ dari file unggahan akan disimpan ke database sebagai draft.`,
-            icon: 'question',
+            title: 'Hapus ' + rowId + ' dari Pratinjau?',
+            text: 'Baris ini akan dihapus dari daftar unggahan.',
+            icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#85172C',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Simpan Draft',
+            confirmButtonText: 'Ya, Hapus',
             cancelButtonText: 'Batal',
             reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                submitFormAction('draft');
+        }).then((res) => {
+            if (res.isConfirmed) {
+                document.getElementById('row-' + rowId)?.remove();
+                fetch(`{{ route('dataentry.pratinjau.deleteItem') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ id: rowId })
+                }).catch(() => {});
+                updateCounters();
             }
         });
     }
 
-    function submitSelectedForValidation() {
-        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-        const count = checkedBoxes.length;
+    function collectCurrentItemsState() {
+        const items = [];
+        document.querySelectorAll('.faq-row').forEach(row => {
+            const tagsStr = row.getAttribute('data-tags') || '';
+            const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+            items.push({
+                id: row.getAttribute('data-id'),
+                version: 'Versi 1',
+                pertanyaan: row.getAttribute('data-pertanyaan') || '',
+                jawaban: row.getAttribute('data-jawaban') || '',
+                tags: tags,
+                pustaka_judul: row.getAttribute('data-pustaka-judul') || '',
+                pustaka_bagian: row.getAttribute('data-pustaka-bagian') || '',
+                status: row.getAttribute('data-status') || 'incomplete'
+            });
+        });
+        return items;
+    }
 
-        if (count === 0) {
+    function submitFormWithAction(actionType) {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Tidak Ada Item Dipilih',
-                text: 'Silakan centang minimal 1 FAQ yang berstatus siap diajukan.',
+                title: 'Belum Ada FAQ Dipilih',
+                text: 'Centang minimal 1 baris FAQ pada tabel terlebih dahulu.',
                 confirmButtonColor: '#85172C'
             });
             return;
         }
 
+        // Jika ingin mengajukan validasi, cek apakah ada yang masih 'Belum lengkap'
+        if (actionType === 'submit') {
+            let hasIncomplete = false;
+            checkedBoxes.forEach(cb => {
+                const r = cb.closest('.faq-row');
+                if (r && r.getAttribute('data-status') !== 'ready') {
+                    hasIncomplete = true;
+                }
+            });
+
+            if (hasIncomplete) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Ada FAQ Belum Lengkap',
+                    text: 'Beberapa FAQ yang Anda pilih masih berstatus "Belum lengkap". Klik tombol Edit pada baris tersebut untuk melengkapi Kata Kunci / Sumber Pustaka, atau simpan sebagai Draft.',
+                    confirmButtonColor: '#85172C'
+                });
+                return;
+            }
+        }
+
+        const container = document.getElementById('selectedIdsContainer');
+        container.innerHTML = '';
+        checkedBoxes.forEach(cb => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'selected_ids[]';
+            inp.value = cb.value;
+            container.appendChild(inp);
+        });
+
+        document.getElementById('submitActionInput').value = actionType;
+        document.getElementById('itemsJsonInput').value = JSON.stringify(collectCurrentItemsState());
+        document.getElementById('submitPratinjauForm').submit();
+    }
+
+    function saveAsDraft() {
+        submitFormWithAction('draft');
+    }
+
+    function submitSelectedForValidation() {
+        const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+        if (checkedCount === 0) {
+            submitFormWithAction('submit');
+            return;
+        }
+
         Swal.fire({
-            title: `Ajukan ${count} FAQ untuk Validasi?`,
-            text: 'FAQ yang dipilih akan dikirim ke validator untuk diverifikasi sebelum diterbitkan.',
+            title: `Ajukan ${checkedCount} FAQ ke Validator?`,
+            text: 'FAQ yang dipilih akan dikirim ke ruang kerja Validator untuk diperiksa.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#85172C',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: '<i class="bi bi-send-check me-1"></i> Ya, Ajukan Validasi',
+            confirmButtonText: 'Ya, Ajukan Validasi',
             cancelButtonText: 'Batal',
             reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                submitFormAction('submit');
-            }
+        }).then((res) => {
+            if (res.isConfirmed) submitFormWithAction('submit');
         });
     }
 
-    function submitFormAction(actionType) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = "{{ route('dataentry.pratinjau.submit') }}";
-
-        const csrf = document.createElement('input');
-        csrf.type = 'hidden';
-        csrf.name = '_token';
-        csrf.value = "{{ csrf_token() }}";
-        form.appendChild(csrf);
-
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = actionType;
-        form.appendChild(actionInput);
-
-        document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-            const row = cb.closest('.faq-row');
-            if (row) {
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'selected_ids[]';
-                idInput.value = row.getAttribute('data-id');
-                form.appendChild(idInput);
-            }
-        });
-
-        Swal.fire({
-            title: 'Menyimpan ke Database...',
-            text: 'Mohon tunggu sebentar...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-    }
-
-    function escHtml(str) {
-        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    // Run initial filter on page load (matches screenshot: 'Siap diajukan' default)
-    document.addEventListener('DOMContentLoaded', function () {
-        const readyButton = document.querySelector('[data-filter="ready"]');
-        if (readyButton) {
-            setFilter('ready', readyButton);
-        } else {
-            updateCounters();
+    function handleNewExcelUpload(input) {
+        if (input.files && input.files[0]) {
+            Swal.fire({
+                title: 'Membaca & Mengonversi File...',
+                text: 'Sedang memproses ' + input.files[0].name,
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            document.getElementById('reuploadExcelForm').submit();
         }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updateCounters();
     });
+
+    @if(session('success'))
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: "{{ session('success') }}",
+            showConfirmButton: false,
+            timer: 3500
+        });
+    });
+    @endif
+
+    @if(session('error'))
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            icon: 'error',
+            title: 'Perhatian',
+            text: "{{ session('error') }}",
+            confirmButtonColor: '#85172C'
+        });
+    });
+    @endif
 </script>
 </body>
 </html>
-

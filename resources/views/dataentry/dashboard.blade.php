@@ -46,7 +46,11 @@
                     <i class="bi bi-plus-lg"></i>
                     <span>Buat FAQ</span>
                 </a>
-                <a href="#" class="nav-link-custom">
+                <a href="{{ route('dataentry.katakunci') }}" class="nav-link-custom">
+                    <i class="bi bi-tags"></i>
+                    <span>Daftar Kata Kunci</span>
+                </a>
+                <a href="{{ route('dataentry.sumberpustaka') }}" class="nav-link-custom">
                     <i class="bi bi-book"></i>
                     <span>Sumber Pustaka</span>
                 </a>
@@ -424,19 +428,29 @@
             <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="dashExcelForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold fs-16" id="uploadModalLabel">Unggah File FAQ (Excel / PDF)</h5>
+                    <h5 class="modal-title fw-bold fs-16" id="uploadModalLabel">Unggah File FAQ (Excel / CSV / PDF)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body py-4">
-                    <div class="border border-2 border-dashed rounded-3 p-4 text-center bg-light">
+                <div class="modal-body py-3">
+                    <div class="upload-dropzone mb-3">
                         <i class="bi bi-file-earmark-spreadsheet fs-1 text-success mb-2 d-block"></i>
                         <div class="fw-semibold text-dark fs-14 mb-1">Tarik & lepas file di sini</div>
-                        <div class="text-muted fs-12 mb-3">Mendukung format .XLSX, .XLS, .CSV, atau .PDF hingga 10MB</div>
+                        <div class="text-muted fs-12 mb-3">Mendukung format .XLSX, .CSV, atau .PDF hingga 10MB</div>
                         <label class="btn btn-sm btn-white-outline">
-                            Pilih Dokumen
+                            <i class="bi bi-folder2-open"></i> Pilih Dokumen
                             <input type="file" name="file_faq" accept=".xlsx,.xls,.csv,.pdf" class="d-none" onchange="submitDashExcel(this)">
                         </label>
                         <div id="dashFileNameText" class="fs-12 text-success fw-semibold mt-2" style="display:none;"></div>
+                    </div>
+
+                    <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format Kolom Excel / CSV:</span>
+                            <a href="{{ route('dataentry.template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                                <i class="bi bi-download me-1"></i>Unduh Template
+                            </a>
+                        </div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong> (pisah koma) &middot; Kolom D: <strong>Sumber Pustaka</strong> &middot; Kolom E: <strong>Bagian Sumber</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
