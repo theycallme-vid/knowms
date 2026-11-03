@@ -11,151 +11,182 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap 5.3 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Data Entry CSS -->
-    <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
-</head>
-<body>
+    <!-- Tailwind CSS (CDN with Custom Config) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        maroon: {
+                            50: '#fdf2f4',
+                            100: '#fbe6e9',
+                            200: '#f7d0d6',
+                            300: '#ef95a3',
+                            400: '#e55a71',
+                            500: '#85172C', // Brand Maroon
+                            600: '#751426',
+                            700: '#641121',
+                            800: '#530e1b',
+                            900: '#430b16',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['Lora', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-<div class="d-flex">
-    <!-- ===================== SIDEBAR ===================== -->
-    <aside class="sidebar" id="sidebar">
+    <style>
+        /* Placeholder for contenteditable */
+        [contenteditable]:empty:before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+            cursor: text;
+        }
+    </style>
+</head>
+<body class="bg-[#FAFAF9] font-sans text-gray-800 antialiased min-h-screen">
+
+<div class="flex min-h-screen">
+    <!-- ========================================================================= -->
+    <!-- SIDEBAR KIRI                                                              -->
+    <!-- ========================================================================= -->
+    <aside id="sidebar" class="w-64 bg-white border-r border-gray-200/80 fixed inset-y-0 left-0 z-40 flex flex-col justify-between p-5 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
         <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand mb-3">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="sidebar-logo-img">
+            <!-- KMS Brand Logo -->
+            <div class="mb-5 px-1">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="h-9 w-auto object-contain">
             </div>
 
             <!-- Role Badge -->
-            <div class="mb-3">
-                <span class="role-pill">Ruang Data Entry</span>
+            <div class="mb-6 px-1">
+                <span class="inline-block px-3 py-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded-full">
+                    Ruang Data Entry
+                </span>
             </div>
 
             <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-file-earmark-text"></i>
+            <nav class="space-y-1">
+                <a href="{{ route('dataentry.dashboard') }}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
+                    <i class="bi bi-file-earmark-text text-base text-gray-400"></i>
                     <span>Daftar FAQ</span>
                 </a>
-                <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom {{ !isset($isEdit) ? 'active' : '' }}">
-                    <i class="bi bi-plus-lg"></i>
+
+                <a href="{{ route('dataentry.buatfaq') }}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-maroon-500 bg-maroon-50 transition">
+                    <i class="bi bi-plus-lg text-base text-maroon-500"></i>
                     <span>Buat FAQ</span>
                 </a>
-                <a href="#" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
+
+                <a href="#"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
+                    <i class="bi bi-book text-base text-gray-400"></i>
                     <span>Sumber Pustaka</span>
                 </a>
             </nav>
         </div>
 
-        <!-- Bottom Section -->
-        <div>
-            <hr class="sidebar-divider my-3">
-            <a href="#" class="nav-link-custom mb-1">
-                <i class="bi bi-gear"></i>
+        <!-- Bottom Sidebar Section -->
+        <div class="border-t border-gray-100 pt-4 space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
+                <i class="bi bi-gear text-base text-gray-400"></i>
                 <span>Pengaturan Akun</span>
             </a>
-            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary" style="cursor: pointer;">
-                <i class="bi bi-box-arrow-right"></i>
+            <button type="button" onclick="confirmLogout()" class="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
+                <i class="bi bi-box-arrow-right text-base"></i>
                 <span>Keluar</span>
-            </a>
-
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+            </button>
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
                 @csrf
             </form>
         </div>
     </aside>
 
-    <!-- Mobile overlay -->
-    <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 z-30 bg-black/30 backdrop-blur-xs hidden lg:hidden"></div>
 
-    <!-- ===================== MAIN ===================== -->
-    <main class="flex-grow-1 min-vw-0 d-flex flex-column" style="min-height: 100vh;">
+    <!-- ========================================================================= -->
+    <!-- KONTEN UTAMA                                                              -->
+    <!-- ========================================================================= -->
+    <main class="flex-1 lg:ml-64 flex flex-col min-w-0 min-h-screen">
 
         <!-- Top Navbar -->
-        <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <header class="bg-white border-b border-gray-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-20">
             <!-- Left: Mobile Toggle & Breadcrumb -->
-            <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
-                    <i class="bi bi-list fs-5"></i>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="toggleSidebar()" class="p-2 text-gray-600 hover:text-gray-900 lg:hidden rounded-lg hover:bg-gray-100" aria-label="Toggle Menu">
+                    <i class="bi bi-list text-xl"></i>
                 </button>
-                <div class="d-flex align-items-center text-muted fs-13">
-                    <i class="bi bi-house me-2"></i>
+                <div class="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                    <i class="bi bi-house"></i>
                     <span>Ruang kerja</span>
-                    <span class="mx-2">/</span>
-                    <span class="text-dark fw-semibold">Data Entry</span>
+                    <span class="text-gray-300">/</span>
+                    <span class="font-semibold text-gray-800">Data Entry</span>
                 </div>
             </div>
 
-            <!-- Right: Search, Profile, Bell -->
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <div class="search-container">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="search-input" placeholder="Cari FAQ, pengguna, atau aktivitas...">
+            <!-- Right: Search, Profile & Notification -->
+            <div class="flex items-center gap-3 sm:gap-4 ml-auto">
+                <!-- Search bar -->
+                <div class="relative hidden sm:block w-64 lg:w-72">
+                    <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" placeholder="Cari FAQ, pengguna, atau aktivitas..."
+                           class="w-full pl-9 pr-3 py-1.5 text-xs text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white focus:border-maroon-500 transition placeholder:text-gray-400">
                 </div>
 
-                <!-- Profile Dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0"
-                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}</div>
-                        <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
-                            <div class="fs-11 text-muted">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
-                        </div>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="min-width: 200px;">
-                        <li>
-                            <div class="px-3 py-2 border-bottom">
-                                <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
-                                <div class="fs-11 text-muted">{{ Auth::user()?->email ?? 'nadiaputri@kms.ac.id' }}</div>
-                            </div>
-                        </li>
-                        <li>
-                            <a class="dropdown-item py-2 fs-13 d-flex align-items-center gap-2" href="#">
-                                <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li>
-                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2"
-                                href="javascript:void(0)" onclick="confirmLogout()">
-                                <i class="bi bi-box-arrow-right"></i> Keluar
-                            </a>
-                        </li>
-                    </ul>
+                <!-- Profile Info -->
+                <div class="flex items-center gap-2.5 pl-2 border-l border-gray-100">
+                    <div class="w-8 h-8 rounded-full bg-maroon-50 text-maroon-500 font-bold text-xs flex items-center justify-center border border-maroon-200">
+                        {{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}
+                    </div>
+                    <div class="hidden md:block text-left leading-tight">
+                        <div class="text-xs font-bold text-gray-900">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
+                        <div class="text-[11px] text-gray-500">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
+                    </div>
                 </div>
 
-                <!-- Notification Bell -->
-                <button class="btn btn-link text-secondary p-1 text-decoration-none" aria-label="Notifikasi">
-                    <i class="bi bi-bell fs-5"></i>
+                <!-- Bell Notification -->
+                <button type="button" class="text-gray-500 hover:text-gray-800 p-1 rounded-lg hover:bg-gray-100" aria-label="Notifikasi">
+                    <i class="bi bi-bell text-lg"></i>
                 </button>
             </div>
         </header>
 
-        <!-- ===================== CONTENT AREA ===================== -->
-        <div class="content-area flex-grow-1" style="padding-bottom: 0;">
+        <!-- Area Isi Halaman -->
+        <div class="flex-1 px-4 sm:px-8 py-6 max-w-6xl w-full mx-auto">
 
-            <!-- Back link -->
-            <a href="{{ route('dataentry.dashboard') }}" class="back-link mt-2 d-inline-flex">
-                <i class="bi bi-chevron-left"></i>
-                <span>Daftar FAQ</span>
-            </a>
+            <!-- Back Link -->
+            <div class="mb-3">
+                <a href="{{ route('dataentry.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 transition">
+                    <i class="bi bi-chevron-left text-xs"></i>
+                    <span>Daftar FAQ</span>
+                </a>
+            </div>
 
-            <!-- Page Title Row -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <!-- Header Konten: Judul & Tombol Unggah File (Excel/PDF) Outline Merah -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
-                    <h1 class="display-serif mb-1" style="font-size: 2rem; font-weight: 600; letter-spacing: -0.01em;">
+                    <h1 class="text-2xl sm:text-3xl font-serif font-bold text-gray-900 tracking-tight">
                         {{ isset($isEdit) && $isEdit ? 'Edit FAQ' : 'Buat FAQ' }}
                     </h1>
-                    <p class="text-muted fs-14 mb-0">
-                        {{ isset($isEdit) && $isEdit ? 'Perbarui draft FAQ Anda atau tindak lanjuti catatan validator.' : 'Susun jawaban yang jelas dan lengkapi dengan sumber pustaka resmi.' }}
+                    <p class="text-sm text-gray-500 mt-1">
+                        Susun jawaban yang jelas dan lengkapi dengan sumber pustaka resmi
                     </p>
+                </div>
+                <div>
+                    <button type="button" onclick="openUploadModal()"
+                            class="inline-flex items-center gap-2 px-4 py-2 border border-maroon-500 text-maroon-500 hover:bg-maroon-50 text-xs sm:text-sm font-semibold rounded-xl transition duration-150 shadow-xs">
+                        <i class="bi bi-upload"></i>
+                        <span>Unggah File (Excel/PDF)</span>
+                    </button>
                 </div>
             </div>
 
@@ -165,324 +196,369 @@
                 $latestVer = $isEditing ? $faq->latest_version : null;
                 $faqStatus = $latestVer ? strtolower($latestVer->status) : 'draft';
                 $formAction = $isEditing ? route('dataentry.faq.update', $faq->id) : route('dataentry.buatfaq.store');
-                $categoryName = $isEditing ? ($faq->tags->pluck('nama')->first() ?? '') : '';
             @endphp
 
             @if($isEditing && $faqStatus === 'rejected' && $latestVer && $latestVer->catatan)
                 <!-- Alert Catatan Revisi Validator -->
-                <div class="alert alert-danger border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-start gap-3" style="background-color: #FEF2F2;">
-                    <div class="flex-shrink-0 text-danger fs-4">
-                        <i class="bi bi-exclamation-octagon-fill"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h6 class="fw-bold text-danger mb-1 fs-14">Perlu Revisi (Catatan Validator)</h6>
-                        <div class="fs-13 text-dark lh-base">{{ $latestVer->catatan }}</div>
-                        <div class="fs-11 text-muted mt-1">Perubahan yang disimpan akan dibuat sebagai versi baru (Versi {{ ($faq->versions->count() + 1) }}).</div>
+                <div class="mb-6 p-4 bg-red-50/80 border border-red-200 rounded-2xl flex items-start gap-3 text-red-900 shadow-xs">
+                    <i class="bi bi-exclamation-octagon-fill text-red-600 text-xl shrink-0 mt-0.5"></i>
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-red-700 mb-1">Catatan Revisi dari Validator</div>
+                        <div class="text-sm text-gray-800">{{ $latestVer->catatan }}</div>
+                        <div class="text-xs text-red-600/80 mt-1">FAQ ini akan diajukan ulang sebagai versi baru (Versi {{ ($faq->versions->count() + 1) }}).</div>
                     </div>
                 </div>
             @endif
 
-            <!-- ===== FORM SECTION CARD ===== -->
+            <!-- ========================================================================= -->
+            <!-- CARD FORM UTAMA                                                           -->
+            <!-- ========================================================================= -->
             <form id="faqForm" method="POST" action="{{ $formAction }}" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="status" id="formStatus" value="draft">
-                <input type="hidden" name="faq_id" value="{{ $isEditing ? $faq->id : ($newFaqId ?? 'FAQ-0001') }}">
+                <input type="hidden" name="faq_id" value="{{ $isEditing ? $faq->id : ($newFaqId ?? 'FAQ-0003') }}">
                 <input type="hidden" name="tags" id="hiddenTags">
                 <input type="hidden" name="pustaka_id" id="hiddenPustakaId" value="{{ $latestVer?->tDaftarPustakas_id ?? '' }}">
 
-                <div class="form-section">
-                    <!-- Meta Bar: FAQ ID, Versi & Status Badge -->
-                    <div class="form-meta-bar">
+                <div class="bg-white border border-gray-200/90 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+
+                    <!-- Label ID FAQ & Versi beserta Badge 'Draft' di Kanan -->
+                    <div class="flex items-center justify-between pb-5 border-b border-gray-100">
                         <div>
-                            <div class="meta-id">
-                                {{ $isEditing ? $faq->id : ($newFaqId ?? 'FAQ-0001') }} &middot; Versi {{ $isEditing ? ($faqStatus === 'rejected' ? ($faq->versions->count() + 1) . ' (Revisi)' : ($faq->versions->count() ?: 1)) : '1' }}
+                            <div class="text-sm font-bold text-gray-900">
+                                {{ $isEditing ? $faq->id : ($newFaqId ?? 'FAQ-0003') }} &middot; Versi {{ $isEditing ? ($faqStatus === 'rejected' ? ($faq->versions->count() + 1) . ' (Revisi)' : ($faq->versions->count() ?: 1)) : '1' }}
                             </div>
-                            <div class="meta-desc">
-                                {{ $isEditing ? 'Form perbaikan/pembaruan FAQ. Tersimpan di tabel tfaqs & tfaqsversion.' : 'Form manual untuk menyusun FAQ dari awal. ID di-generate otomatis sesuai urutan database.' }}
+                            <div class="text-xs text-gray-500 mt-0.5">
+                                {{ $isEditing ? 'Form perbaikan/pembaruan data FAQ yang tersimpan di sistem.' : 'Form manual untuk menyusun FAQ dari awal. ID di-generate otomatis secara berurutan.' }}
                             </div>
                         </div>
-                        <span class="badge-status {{ $isEditing && $faqStatus === 'rejected' ? 'badge-status-revisi' : 'badge-status-draft' }} flex-shrink-0">
-                            {{ $isEditing && $faqStatus === 'rejected' ? 'Revisi Versi' : 'Draft' }}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $isEditing && $faqStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
+                            {{ $isEditing && $faqStatus === 'rejected' ? 'Perlu Revisi' : 'Draft' }}
                         </span>
                     </div>
 
-                    <!-- Kategori Dropdown -->
-                    <div class="mb-4">
-                        <label class="form-label-custom form-label-required">Kategori FAQ</label>
-                        <select name="kategori" id="inputKategori" class="form-select rounded-3 fs-13 py-2" required style="border-color: #E2E8F0;">
-                            <option value="" disabled {{ empty($categoryName) && !old('kategori') ? 'selected' : '' }}>Pilih kategori klasifikasi...</option>
-                            @php
-                                $standardCats = ['Akademik', 'Keuangan', 'Kelulusan', 'Transkrip & Nilai', 'Rencana Studi', 'Administrasi'];
-                                $selectedCategory = old('kategori', $categoryName);
-                            @endphp
-                            @foreach($standardCats as $cat)
-                                <option value="{{ $cat }}" {{ $selectedCategory == $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                            @endforeach
-                            @if(isset($categories))
-                                @foreach($categories as $c)
-                                    @if(!in_array($c->nama, $standardCats))
-                                        <option value="{{ $c->nama }}" {{ $selectedCategory == $c->nama ? 'selected' : '' }}>{{ $c->nama }}</option>
-                                    @endif
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-
-                    <!-- Pertanyaan FAQ -->
-                    <div class="mb-4">
-                        <label class="form-label-custom form-label-required">Pertanyaan FAQ</label>
+                    <!-- Input Text untuk 'Pertanyaan FAQ *' -->
+                    <div>
+                        <label for="inputPertanyaan" class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2">
+                            Pertanyaan FAQ <span class="text-red-500">*</span>
+                        </label>
                         <textarea
                             id="inputPertanyaan"
                             name="pertanyaan"
-                            class="faq-question-input"
                             rows="2"
+                            class="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-maroon-500/20 focus:border-maroon-500 transition placeholder:text-gray-400"
                             placeholder="Tulis pertanyaan yang sering diajukan mahasiswa..."
                             required>{{ old('pertanyaan', $isEditing ? $faq->pertanyaan : '') }}</textarea>
 
-                        <!-- Live Check Warning Container -->
-                        <div id="duplicateWarning" class="alert alert-warning d-none mt-2 p-2.5 fs-13 d-flex align-items-start gap-2 border-0 rounded-3" style="background-color: #FEF3C7; color: #92400E;">
-                            <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 text-warning"></i>
-                            <div class="flex-grow-1">
-                                <strong class="d-block mb-1">Perhatian: Pertanyaan Serupa Terdeteksi</strong>
-                                <div id="duplicateList" class="fs-12"></div>
+                        <!-- Live Check Duplikasi Warning Alert -->
+                        <div id="duplicateWarning" class="hidden mt-2 p-3 text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-xl flex items-start gap-2.5">
+                            <i class="bi bi-exclamation-triangle-fill text-amber-500 text-base shrink-0 mt-0.5"></i>
+                            <div class="flex-1">
+                                <div class="font-bold mb-1">Perhatian: Pertanyaan Serupa Terdeteksi</div>
+                                <div id="duplicateList" class="space-y-0.5 text-gray-700"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Jawaban (Rich Text Editor) -->
-                    <div class="mb-4">
-                        <label class="form-label-custom form-label-required">Jawaban</label>
-                        <div class="rich-editor-wrapper">
-                            <!-- Toolbar -->
-                            <div class="editor-toolbar">
-                                <button type="button" class="editor-toolbar-btn" data-cmd="bold" title="Tebal"><strong>B</strong></button>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="italic" title="Miring"><em>I</em></button>
-                                <div class="editor-toolbar-divider"></div>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="createLink" title="Tautan">
+                    <!-- Area 'Jawaban *' dengan Toolbar Simpel WYSIWYG & Textarea -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2">
+                            Jawaban <span class="text-red-500">*</span>
+                        </label>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-maroon-500/20 focus-within:border-maroon-500 transition">
+                            <!-- Toolbar WYSIWYG -->
+                            <div class="flex flex-wrap items-center gap-1 bg-gray-50/90 px-3 py-2 border-b border-gray-200 text-gray-700 text-xs">
+                                <button type="button" class="toolbar-btn px-2.5 py-1.5 rounded-lg hover:bg-gray-200 font-bold" data-cmd="bold" title="Tebal">
+                                    <strong>B</strong>
+                                </button>
+                                <button type="button" class="toolbar-btn px-2.5 py-1.5 rounded-lg hover:bg-gray-200 italic font-serif" data-cmd="italic" title="Miring">
+                                    <em>I</em>
+                                </button>
+                                <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                                <button type="button" class="toolbar-btn px-2.5 py-1.5 rounded-lg hover:bg-gray-200 inline-flex items-center gap-1 font-medium" data-cmd="createLink" title="Tautan">
                                     <i class="bi bi-link-45deg"></i> Link
                                 </button>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="insertOrderedList" title="Daftar Bernomor">
+                                <button type="button" class="toolbar-btn px-2.5 py-1.5 rounded-lg hover:bg-gray-200 inline-flex items-center gap-1 font-medium" data-cmd="insertOrderedList" title="Daftar Bernomor">
                                     <i class="bi bi-list-ol"></i> List
                                 </button>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="insertImage" title="Sisipkan Gambar">
+                                <button type="button" class="toolbar-btn px-2.5 py-1.5 rounded-lg hover:bg-gray-200 inline-flex items-center gap-1 font-medium" data-cmd="insertImage" title="Sisipkan Gambar">
                                     <i class="bi bi-image"></i> Gambar
                                 </button>
                             </div>
-                            <!-- Editable content area -->
+                            <!-- Editable WYSIWYG Content Area -->
                             <div
                                 id="editorJawaban"
-                                class="editor-content"
+                                class="p-4 text-sm text-gray-900 min-h-[160px] max-h-[380px] overflow-y-auto focus:outline-none leading-relaxed"
                                 contenteditable="true"
                                 data-placeholder="Tulis jawaban lengkap di sini...">{!! old('jawaban', $isEditing && $latestVer ? $latestVer->jawaban : '') !!}</div>
                         </div>
-                        <!-- Hidden input to capture editor content -->
                         <input type="hidden" name="jawaban" id="hiddenJawaban">
                     </div>
 
-                    <!-- Kata Kunci / Tags -->
-                    <div class="mb-4">
-                        <label class="form-label-custom">Kata kunci</label>
-                        <div class="tag-container" id="tagContainer" onclick="document.getElementById('tagInput').focus()">
+                    <!-- Input 'Kata kunci' Bergaya Tag Input (Enter untuk menambah tag) -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2">
+                            Kata kunci
+                        </label>
+                        <div id="tagContainer"
+                             class="flex flex-wrap items-center gap-2 p-2.5 border border-gray-200 rounded-xl bg-white min-h-[46px] cursor-text focus-within:ring-2 focus-within:ring-maroon-500/20 focus-within:border-maroon-500 transition"
+                             onclick="document.getElementById('tagInput').focus()">
                             @if($isEditing && $faq->tags)
                                 @foreach($faq->tags as $t)
-                                    @if($t->nama !== $categoryName)
-                                        <span class="tag-chip">
-                                            {{ $t->nama }}
-                                            <button type="button" class="tag-remove" onclick="removeTag(this)">&times;</button>
-                                        </span>
-                                    @endif
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium border border-gray-200 tag-chip">
+                                        {{ $t->nama }}
+                                        <button type="button" class="text-gray-400 hover:text-gray-700 text-sm leading-none tag-remove" onclick="removeTag(this)">&times;</button>
+                                    </span>
                                 @endforeach
                             @endif
-                            <!-- Input for new tags -->
                             <input
                                 type="text"
                                 id="tagInput"
-                                class="tag-add-placeholder"
-                                placeholder="Tambah kata kunci..."
+                                class="flex-1 min-w-[140px] text-xs text-gray-800 focus:outline-none bg-transparent placeholder:text-gray-400 py-1"
+                                placeholder="Tambah kata kunci (tekan Enter)..."
                                 onkeydown="handleTagInput(event)"
                                 autocomplete="off">
                         </div>
-                        <div class="fs-12 text-muted mt-1">Tekan <kbd>Enter</kbd> atau <kbd>,</kbd> untuk menambah kata kunci.</div>
+                        <p class="text-[11px] text-gray-400 mt-1.5">
+                            Tekan <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] text-gray-600 font-sans">Enter</kbd> atau <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] text-gray-600 font-sans">,</kbd> untuk menambahkan kata kunci baru.
+                        </p>
                     </div>
 
-                    <!-- Rujukan Sumber Pustaka (Terintegrasi Pilihan & Unggah) -->
-                    <div class="mb-2">
-                        <label class="form-label-custom form-label-required">Rujukan sumber pustaka</label>
+                    <!-- Bagian 'Rujukan sumber pustaka *' dengan Dua Tombol Action -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2">
+                            Rujukan sumber pustaka <span class="text-red-500">*</span>
+                        </label>
 
-                        <!-- Buttons Group -->
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            <button type="button" class="source-add-btn" onclick="openSourceModal()">
+                        <!-- Dua Tombol Action: Pilih dari Sumber Pustaka (Teks Merah) & Unggah Dokumen (Teks Hitam) -->
+                        <div class="flex flex-wrap items-center gap-2.5 mb-3">
+                            <!-- 1. Tombol 'Pilih dari Sumber Pustaka' (Teks Merah, Ikon Buku) -->
+                            <button type="button" onclick="openSourceModal()"
+                                    class="inline-flex items-center gap-2 px-4 py-2 border border-red-200 bg-red-50/70 hover:bg-red-50 text-maroon-500 text-xs font-semibold rounded-xl transition duration-150">
                                 <i class="bi bi-book"></i>
                                 <span>Pilih dari Sumber Pustaka</span>
                             </button>
-                            <label class="btn-white-outline mb-0" style="cursor: pointer;">
+
+                            <!-- 2. Tombol 'Unggah Dokumen (PDF/DOCX)' (Teks Hitam, Ikon Upload) -->
+                            <label class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-xs font-semibold rounded-xl cursor-pointer transition duration-150 mb-0">
                                 <i class="bi bi-upload"></i>
                                 <span>Unggah Dokumen (PDF/DOCX)</span>
-                                <input type="file" name="sumber_file" id="sumberFileInput" class="d-none" onchange="handleFilePicked(this)">
+                                <input type="file" name="sumber_file" id="sumberFileInput" class="hidden" onchange="handleFilePicked(this)">
                             </label>
                         </div>
 
-                        <!-- Direct URL / Link Input -->
+                        <!-- Input URL / Tautan Resmi Cadangan -->
                         <div class="mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 text-muted fs-13" style="border-color: #E2E8F0;">
-                                    <i class="bi bi-link-45deg"></i>
-                                </span>
-                                <input type="text" name="sumber_link" id="inputSumberLink" class="form-control fs-13 border-start-0"
-                                    placeholder="Atau tautan rujukan resmi (maksimal 45 karakter)..."
+                            <div class="relative">
+                                <i class="bi bi-link-45deg absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base"></i>
+                                <input
+                                    type="text"
+                                    name="sumber_link"
+                                    id="inputSumberLink"
                                     maxlength="45"
                                     value="{{ old('sumber_link', ($isEditing && $latestVer && $latestVer->daftarPustaka && $latestVer->daftarPustaka->type === 'link') ? $latestVer->daftarPustaka->link : '') }}"
-                                    style="border-color: #E2E8F0;">
+                                    placeholder="Atau tautan rujukan resmi (maksimal 45 karakter)..."
+                                    class="w-full pl-9 pr-4 py-2 text-xs text-gray-800 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-maroon-500/20 focus:border-maroon-500 placeholder:text-gray-400 transition">
                             </div>
-                            <div class="fs-11 text-muted mt-1">Format URL atau SK resmi (disimpan di kolom link tabel tdaftarpustaka).</div>
                         </div>
 
-                        <!-- Source items list -->
-                        <div id="sourceList">
+                        <!-- List Sumber Pustaka Terpilih -->
+                        <div id="sourceList" class="space-y-2">
                             @if($isEditing && $latestVer && $latestVer->daftarPustaka)
                                 @php $dp = $latestVer->daftarPustaka; @endphp
-                                <div class="source-item" id="source-existing">
-                                    <button type="button" class="source-remove-btn" onclick="clearSelectedSource()" title="Hapus sumber">&times;</button>
-                                    <div class="d-flex align-items-center mb-1">
-                                        <span class="source-item-number">1</span>
-                                        <span class="source-item-title">{{ $dp->link ?: 'Dokumen Sumber Pustaka #' . $dp->id }}</span>
+                                <div class="flex items-start justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-xl" id="source-selected">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-red-100 text-maroon-500 font-bold text-xs flex items-center justify-center shrink-0">
+                                            1
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-bold text-gray-900">{{ $dp->link ?: 'Dokumen Sumber Pustaka #' . $dp->id }}</div>
+                                            <div class="text-[11px] text-gray-500 mt-0.5">Tipe: {{ strtoupper($dp->type) }} &middot; Tersimpan di database</div>
+                                        </div>
                                     </div>
-                                    <div class="source-item-meta">
-                                        Tipe: {{ strtoupper($dp->type) }} &middot; Tersimpan di database
-                                    </div>
+                                    <button type="button" onclick="clearSelectedSource()" class="text-gray-400 hover:text-red-500 text-lg leading-none p-1" title="Hapus sumber">&times;</button>
                                 </div>
                             @else
-                                <div class="source-item" id="source-default">
-                                    <button type="button" class="source-remove-btn" onclick="clearSelectedSource()" title="Hapus sumber">&times;</button>
-                                    <div class="d-flex align-items-center mb-1">
-                                        <span class="source-item-number">1</span>
-                                        <span class="source-item-title" id="selectedSourceTitle">Pedoman Akademik 2026/2027</span>
+                                <div class="flex items-start justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-xl" id="source-selected">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-red-100 text-maroon-500 font-bold text-xs flex items-center justify-center shrink-0">
+                                            1
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-bold text-gray-900" id="selectedSourceTitle">Pedoman Akademik 2026/2027</div>
+                                            <div class="text-[11px] text-gray-500 mt-0.5" id="selectedSourceMeta">Biro Akademik &middot; Bagian Cuti Akademik &middot; Dokumen contoh resmi</div>
+                                        </div>
                                     </div>
-                                    <div class="source-item-meta" id="selectedSourceMeta">Biro Akademik &middot; Bagian Cuti Akademik &middot; Dokumen contoh resmi</div>
+                                    <button type="button" onclick="clearSelectedSource()" class="text-gray-400 hover:text-red-500 text-lg leading-none p-1" title="Hapus sumber">&times;</button>
                                 </div>
                             @endif
                         </div>
 
-                        <div id="sourceEmptyMsg" class="fs-12 text-muted mt-2" style="display:none;">
+                        <div id="sourceEmptyMsg" class="text-xs text-gray-400 mt-2 hidden">
                             Belum ada sumber pustaka yang dipilih atau diunggah.
                         </div>
                     </div>
-                </div><!-- /form-section -->
 
-            </form><!-- /faqForm -->
-        </div><!-- /content-area -->
-
-        <!-- ===================== STICKY FOOTER ACTION BAR ===================== -->
-        <div class="form-action-bar">
-            <a href="{{ route('dataentry.dashboard') }}" class="btn-cancel">
-                Batal
-            </a>
-            <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn-draft" onclick="saveDraft()">
-                    Simpan Draft
-                </button>
-                <button type="button" class="btn-submit-validasi" onclick="submitValidasi()">
-                    <i class="bi bi-send-check"></i>
-                    Ajukan Validasi
-                </button>
-            </div>
+                </div><!-- /Card Form Utama -->
+            </form>
         </div>
+
+        <!-- ========================================================================= -->
+        <!-- FOOTER FORM (STICKY BOTTOM)                                              -->
+        <!-- ========================================================================= -->
+        <footer class="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border-t border-gray-200/90 px-4 sm:px-8 py-3.5 mt-auto">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <!-- Tombol Teks Batal di Kiri -->
+                <a href="{{ route('dataentry.dashboard') }}"
+                   class="text-sm font-semibold text-gray-500 hover:text-gray-900 transition">
+                    Batal
+                </a>
+
+                <!-- Kanan: Tombol Outline Simpan Draft & Tombol Solid Merah Marun Ajukan Validasi -->
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="saveDraft()"
+                            class="px-5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl transition shadow-xs">
+                        Simpan Draft
+                    </button>
+                    <button type="button" onclick="submitValidasi()"
+                            class="px-6 py-2.5 text-xs sm:text-sm font-semibold text-white bg-maroon-500 hover:bg-maroon-600 rounded-xl shadow-xs inline-flex items-center gap-2 transition">
+                        <i class="bi bi-send-check text-sm"></i>
+                        <span>Ajukan Validasi</span>
+                    </button>
+                </div>
+            </div>
+        </footer>
 
     </main>
 </div>
 
-
-<!-- =================== MODAL: Pilih Sumber Pustaka (tdaftarpustaka) =================== -->
-<div class="modal fade" id="sourceModal" tabindex="-1" aria-labelledby="sourceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold fs-16" id="sourceModalLabel">Pilih Sumber Pustaka dari Database</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- ========================================================================= -->
+<!-- MODAL: PILIH SUMBER PUSTAKA                                               -->
+<!-- ========================================================================= -->
+<div id="sourceModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h3 class="text-base font-bold text-gray-900">Pilih Sumber Pustaka dari Database</h3>
+            <button type="button" onclick="closeSourceModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-6">
+            <div class="relative mb-4">
+                <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="sourceSearchInput" placeholder="Cari dokumen atau tautan sumber..."
+                       class="w-full pl-9 pr-3 py-2 text-xs text-gray-800 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-500">
             </div>
-            <div class="modal-body py-3">
-                <div class="position-relative mb-3">
-                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted fs-13"></i>
-                    <input type="text" id="sourceSearchInput" class="form-control rounded-3 ps-5 fs-13"
-                        placeholder="Cari dokumen atau tautan sumber pustaka..."
-                        style="border-color: #E2E8F0; padding-top: 0.5rem; padding-bottom: 0.5rem;">
-                </div>
 
-                <div id="sourceOptionsList">
-                    @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
-                        @foreach($daftarPustaka as $p)
-                            <div class="source-option d-flex align-items-start gap-3 p-3 rounded-3 mb-2"
-                                style="border: 1px solid #E2E8F0; cursor: pointer; transition: background 0.15s;"
-                                onmouseenter="this.style.backgroundColor='#F8FAFC'" onmouseleave="this.style.backgroundColor=''"
-                                onclick="selectSource('{{ $p->id }}', '{{ addslashes($p->link ?: 'Dokumen #' . $p->id) }}', 'Tipe: {{ strtoupper($p->type) }}')">
-                                <div class="flex-shrink-0 rounded-2 d-flex align-items-center justify-content-center"
-                                    style="width:36px; height:36px; background:{{ $p->type === 'upload' ? '#EFF6FF; color:#2563EB;' : '#F0FDF4; color:#15803D;' }} font-size: 1rem;">
+            <div id="sourceOptionsList" class="max-h-72 overflow-y-auto space-y-2 pr-1">
+                @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
+                    @foreach($daftarPustaka as $p)
+                        <div class="source-option flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition"
+                             onclick="selectSource('{{ $p->id }}', '{{ addslashes($p->link ?: 'Dokumen #' . $p->id) }}', 'Tipe: {{ strtoupper($p->type) }}')">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg {{ $p->type === 'upload' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600' }} flex items-center justify-center text-base shrink-0">
                                     <i class="bi {{ $p->type === 'upload' ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
                                 </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold fs-13 text-dark">{{ $p->link ?: 'Dokumen ID #' . $p->id }}</div>
-                                    <div class="fs-12 text-muted">Tipe Sumber: {{ strtoupper($p->type) }} &middot; ID Database: {{ $p->id }}</div>
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">{{ $p->link ?: 'Dokumen ID #' . $p->id }}</div>
+                                    <div class="text-[11px] text-gray-500">ID Database: {{ $p->id }} &middot; Tipe: {{ strtoupper($p->type) }}</div>
                                 </div>
-                                <span class="badge-status {{ $p->type === 'upload' ? 'badge-status-draft' : 'badge-status-terbit' }} flex-shrink-0">
-                                    {{ strtoupper($p->type) }}
-                                </span>
                             </div>
-                        @endforeach
-                    @else
-                        <!-- Data default/dummy jika tabel tdaftarpustaka belum terisi -->
-                        <div class="source-option d-flex align-items-start gap-3 p-3 rounded-3 mb-2"
-                            style="border: 1px solid #E2E8F0; cursor: pointer; transition: background 0.15s;"
-                            onmouseenter="this.style.backgroundColor='#F8FAFC'" onmouseleave="this.style.backgroundColor=''"
-                            onclick="selectSource('', 'Pedoman Akademik 2026/2027', 'Biro Akademik · Bagian Cuti Akademik')">
-                            <div class="flex-shrink-0 rounded-2 d-flex align-items-center justify-content-center"
-                                style="width:36px; height:36px; background:#EEF2FF; color:#4338CA; font-size: 1rem;">
+                            <span class="text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full {{ $p->type === 'upload' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700' }}">
+                                {{ strtoupper($p->type) }}
+                            </span>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="source-option flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition"
+                         onclick="selectSource('', 'Pedoman Akademik 2026/2027', 'Biro Akademik · Bagian Cuti Akademik')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-base shrink-0">
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold fs-13 text-dark">Pedoman Akademik 2026/2027</div>
-                                <div class="fs-12 text-muted">Biro Akademik &middot; Bagian Cuti Akademik</div>
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Pedoman Akademik 2026/2027</div>
+                                <div class="text-[11px] text-gray-500">Biro Akademik &middot; Bagian Cuti Akademik</div>
                             </div>
-                            <span class="badge-status badge-status-draft flex-shrink-0">PDF</span>
                         </div>
+                        <span class="text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+                            PDF
+                        </span>
+                    </div>
 
-                        <div class="source-option d-flex align-items-start gap-3 p-3 rounded-3 mb-2"
-                            style="border: 1px solid #E2E8F0; cursor: pointer; transition: background 0.15s;"
-                            onmouseenter="this.style.backgroundColor='#F8FAFC'" onmouseleave="this.style.backgroundColor=''"
-                            onclick="selectSource('', 'SK Rektor No. 12/2026', 'Rektorat · Kebijakan Akademik')">
-                            <div class="flex-shrink-0 rounded-2 d-flex align-items-center justify-content-center"
-                                style="width:36px; height:36px; background:#F0FDF4; color:#15803D; font-size: 1rem;">
+                    <div class="source-option flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition"
+                         onclick="selectSource('', 'SK Rektor No. 12/2026', 'Rektorat · Kebijakan Akademik')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center text-base shrink-0">
                                 <i class="bi bi-file-earmark-text"></i>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold fs-13 text-dark">SK Rektor No. 12/2026</div>
-                                <div class="fs-12 text-muted">Rektorat &middot; Kebijakan Akademik</div>
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">SK Rektor No. 12/2026</div>
+                                <div class="text-[11px] text-gray-500">Rektorat &middot; Kebijakan Akademik</div>
                             </div>
-                            <span class="badge-status badge-status-terbit flex-shrink-0">Resmi</span>
                         </div>
-                    @endif
-                </div>
+                        <span class="text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full bg-green-50 text-green-700">
+                            Resmi
+                        </span>
+                    </div>
+                @endif
             </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Tutup</button>
-            </div>
+        </div>
+        <div class="px-6 py-3 bg-gray-50 flex justify-end">
+            <button type="button" onclick="closeSourceModal()" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-xl">
+                Tutup
+            </button>
         </div>
     </div>
 </div>
 
-<!-- =================== SCRIPTS =================== -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ========================================================================= -->
+<!-- MODAL: UNGGAH FILE (EXCEL/PDF)                                            -->
+<!-- ========================================================================= -->
+<div id="uploadModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="excelUploadForm">
+            @csrf
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 class="text-base font-bold text-gray-900">Unggah File FAQ (Excel / PDF)</h3>
+                <button type="button" onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center bg-gray-50/50 hover:bg-gray-50 transition">
+                    <i class="bi bi-file-earmark-spreadsheet text-4xl text-emerald-600 block mb-2"></i>
+                    <div class="text-sm font-semibold text-gray-800 mb-1">Tarik & lepas file di sini</div>
+                    <div class="text-xs text-gray-500 mb-4">Mendukung format .XLSX, .XLS, .CSV, atau .PDF hingga 10MB</div>
+                    <label class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-xl cursor-pointer shadow-xs">
+                        <span>Pilih Dokumen</span>
+                        <input type="file" name="file_faq" id="modalFileInput" accept=".xlsx,.xls,.csv,.pdf" class="hidden" onchange="handleModalFileChosen(this)">
+                    </label>
+                    <div id="selectedUploadFileName" class="text-xs text-emerald-700 font-semibold mt-2.5 hidden"></div>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-100">
+                <button type="button" onclick="closeUploadModal()" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-xl">
+                    Batal
+                </button>
+                <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-maroon-500 hover:bg-maroon-600 rounded-xl inline-flex items-center gap-1.5 shadow-xs">
+                    <i class="bi bi-upload"></i>
+                    <span>Unggah & Tinjau Pratinjau</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    /* ---- Sidebar toggle ---- */
+    /* ---- Toggle Mobile Sidebar ---- */
     function toggleSidebar() {
-        const sidebar   = document.getElementById('sidebar');
-        const backdrop  = document.getElementById('sidebarBackdrop');
-        sidebar.classList.toggle('show');
-        backdrop.classList.toggle('d-none');
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        sidebar.classList.toggle('-translate-x-full');
+        backdrop.classList.toggle('hidden');
     }
 
-    /* ---- Logout confirm ---- */
+    /* ---- Logout Confirm ---- */
     function confirmLogout() {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -494,8 +570,7 @@
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: '<i class="bi bi-box-arrow-right me-1"></i> Ya, Keluar',
                 cancelButtonText: 'Batal',
-                reverseButtons: true,
-                focusCancel: true
+                reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.getElementById('logout-form').submit();
@@ -508,18 +583,18 @@
         }
     }
 
-    /* ---- Rich text editor toolbar ---- */
-    document.querySelectorAll('.editor-toolbar-btn').forEach(btn => {
+    /* ---- WYSIWYG Toolbar ---- */
+    document.querySelectorAll('.toolbar-btn').forEach(btn => {
         btn.addEventListener('click', function () {
             const cmd = this.getAttribute('data-cmd');
             if (!cmd) return;
             document.getElementById('editorJawaban').focus();
 
             if (cmd === 'createLink') {
-                const url = prompt('Masukkan URL tautan:');
+                const url = prompt('Masukkan tautan URL:');
                 if (url) document.execCommand(cmd, false, url);
             } else if (cmd === 'insertImage') {
-                const imgUrl = prompt('Masukkan URL gambar (atau tautan file gambar):');
+                const imgUrl = prompt('Masukkan URL gambar:');
                 if (imgUrl) document.execCommand('insertImage', false, imgUrl);
             } else {
                 document.execCommand(cmd, false, null);
@@ -527,12 +602,12 @@
         });
     });
 
-    /* ---- Tag / Keyword chips ---- */
+    /* ---- Tag Input (Kata Kunci) ---- */
     function handleTagInput(e) {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
             const input = document.getElementById('tagInput');
-            const val   = input.value.replace(',', '').trim();
+            const val = input.value.replace(',', '').trim();
             if (val) {
                 addTag(val);
                 input.value = '';
@@ -542,10 +617,10 @@
 
     function addTag(text) {
         const container = document.getElementById('tagContainer');
-        const input     = document.getElementById('tagInput');
+        const input = document.getElementById('tagInput');
         const chip = document.createElement('span');
-        chip.className = 'tag-chip';
-        chip.innerHTML = `${escHtml(text)} <button type="button" class="tag-remove" onclick="removeTag(this)">&times;</button>`;
+        chip.className = 'inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium border border-gray-200 tag-chip';
+        chip.innerHTML = `${escHtml(text)} <button type="button" class="text-gray-400 hover:text-gray-700 text-sm leading-none tag-remove" onclick="removeTag(this)">&times;</button>`;
         container.insertBefore(chip, input);
     }
 
@@ -553,113 +628,6 @@
         btn.closest('.tag-chip').remove();
     }
 
-    function escHtml(str) {
-        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    /* ---- Source library Modal ---- */
-    function openSourceModal() {
-        const modal = new bootstrap.Modal(document.getElementById('sourceModal'));
-        modal.show();
-    }
-
-    function selectSource(pustakaId, title, meta) {
-        document.getElementById('hiddenPustakaId').value = pustakaId;
-        const list = document.getElementById('sourceList');
-        list.innerHTML = `
-            <div class="source-item" id="source-selected">
-                <button type="button" class="source-remove-btn" onclick="clearSelectedSource()" title="Hapus sumber">&times;</button>
-                <div class="d-flex align-items-center mb-1">
-                    <span class="source-item-number">1</span>
-                    <span class="source-item-title">${escHtml(title)}</span>
-                </div>
-                <div class="source-item-meta">${escHtml(meta)}</div>
-            </div>
-        `;
-        document.getElementById('sourceEmptyMsg').style.display = 'none';
-
-        // Close modal
-        bootstrap.Modal.getInstance(document.getElementById('sourceModal')).hide();
-
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                toast: true,
-                position: 'bottom-end',
-                icon: 'success',
-                title: 'Sumber pustaka terpilih',
-                showConfirmButton: false,
-                timer: 1800,
-                timerProgressBar: true
-            });
-        }
-    }
-
-    function clearSelectedSource() {
-        document.getElementById('hiddenPustakaId').value = '';
-        document.getElementById('sourceList').innerHTML = '';
-        document.getElementById('sourceEmptyMsg').style.display = 'block';
-    }
-
-    function handleFilePicked(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            document.getElementById('hiddenPustakaId').value = '';
-            const list = document.getElementById('sourceList');
-            list.innerHTML = `
-                <div class="source-item" id="source-file">
-                    <button type="button" class="source-remove-btn" onclick="clearSelectedSource()" title="Hapus sumber">&times;</button>
-                    <div class="d-flex align-items-center mb-1">
-                        <span class="source-item-number">1</span>
-                        <span class="source-item-title">${escHtml(file.name)}</span>
-                    </div>
-                    <div class="source-item-meta">File diunggah &middot; ${(file.size / 1024).toFixed(1)} KB &middot; Disimpan sebagai BLOB di tdaftarpustaka</div>
-                </div>
-            `;
-            document.getElementById('sourceEmptyMsg').style.display = 'none';
-        }
-    }
-
-    /* ---- Real-time Duplicate Check (Live Check) ---- */
-    let duplicateTimer = null;
-    const inputPertanyaanEl = document.getElementById('inputPertanyaan');
-    const warningBox = document.getElementById('duplicateWarning');
-    const duplicateListEl = document.getElementById('duplicateList');
-
-    if (inputPertanyaanEl) {
-        inputPertanyaanEl.addEventListener('input', function () {
-            clearTimeout(duplicateTimer);
-            const query = this.value.trim();
-
-            if (query.length < 4) {
-                warningBox.classList.add('d-none');
-                return;
-            }
-
-            duplicateTimer = setTimeout(() => {
-                fetch(`{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.duplicates && data.duplicates.length > 0) {
-                            let html = '<ul class="mb-0 ps-3">';
-                            data.duplicates.forEach(d => {
-                                const badge = d.is_approved ? '<span class="badge bg-success ms-1 fs-11">Terbit</span>' : '';
-                                html += `<li><strong>${escHtml(d.id)}:</strong> ${escHtml(d.pertanyaan)} ${badge}</li>`;
-                            });
-                            html += '</ul>';
-                            duplicateListEl.innerHTML = html;
-                            warningBox.classList.remove('d-none');
-                        } else {
-                            warningBox.classList.add('d-none');
-                        }
-                    })
-                    .catch(() => {
-                        warningBox.classList.add('d-none');
-                    });
-            }, 400);
-        });
-    }
-
-    /* ---- Sync tags chips into hidden input ---- */
     function syncTags() {
         const chips = document.querySelectorAll('#tagContainer .tag-chip');
         const tags = [];
@@ -673,7 +641,156 @@
         document.getElementById('hiddenTags').value = tags.join(',');
     }
 
-    /* ---- Save Draft ---- */
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ---- Modals Handler ---- */
+    function openSourceModal() {
+        document.getElementById('sourceModal').classList.remove('hidden');
+    }
+    function closeSourceModal() {
+        document.getElementById('sourceModal').classList.add('hidden');
+    }
+
+    function openUploadModal() {
+        document.getElementById('uploadModal').classList.remove('hidden');
+    }
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.add('hidden');
+    }
+
+    function selectSource(pustakaId, title, meta) {
+        document.getElementById('hiddenPustakaId').value = pustakaId;
+        const list = document.getElementById('sourceList');
+        list.innerHTML = `
+            <div class="flex items-start justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-xl" id="source-selected">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-red-100 text-maroon-500 font-bold text-xs flex items-center justify-center shrink-0">
+                        1
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-900">${escHtml(title)}</div>
+                        <div class="text-[11px] text-gray-500 mt-0.5">${escHtml(meta)}</div>
+                    </div>
+                </div>
+                <button type="button" onclick="clearSelectedSource()" class="text-gray-400 hover:text-red-500 text-lg leading-none p-1" title="Hapus sumber">&times;</button>
+            </div>
+        `;
+        document.getElementById('sourceEmptyMsg').classList.add('hidden');
+        closeSourceModal();
+
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: 'Sumber pustaka dipilih',
+            showConfirmButton: false,
+            timer: 1800,
+            timerProgressBar: true
+        });
+    }
+
+    function clearSelectedSource() {
+        document.getElementById('hiddenPustakaId').value = '';
+        document.getElementById('sourceList').innerHTML = '';
+        document.getElementById('sourceEmptyMsg').classList.remove('hidden');
+    }
+
+    function handleFilePicked(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            document.getElementById('hiddenPustakaId').value = '';
+            const list = document.getElementById('sourceList');
+            list.innerHTML = `
+                <div class="flex items-start justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-xl" id="source-file">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-red-100 text-maroon-500 font-bold text-xs flex items-center justify-center shrink-0">
+                            1
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-gray-900">${escHtml(file.name)}</div>
+                            <div class="text-[11px] text-gray-500 mt-0.5">File diunggah &middot; ${(file.size / 1024).toFixed(1)} KB &middot; Disimpan di database</div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearSelectedSource()" class="text-gray-400 hover:text-red-500 text-lg leading-none p-1" title="Hapus sumber">&times;</button>
+                </div>
+            `;
+            document.getElementById('sourceEmptyMsg').classList.add('hidden');
+        }
+    }
+
+    function handleModalFileChosen(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const nameEl = document.getElementById('selectedUploadFileName');
+            if (nameEl) {
+                nameEl.textContent = `File terpilih: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                nameEl.classList.remove('hidden');
+            }
+
+            Swal.fire({
+                title: 'Mengunggah File...',
+                text: `Memproses ${file.name} untuk pratinjau data FAQ.`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            document.getElementById('excelUploadForm').submit();
+        }
+    }
+
+    /* ---- Real-time Duplicate Check ---- */
+    let duplicateTimer = null;
+    const inputPertanyaanEl = document.getElementById('inputPertanyaan');
+    const warningBox = document.getElementById('duplicateWarning');
+    const duplicateListEl = document.getElementById('duplicateList');
+
+    if (inputPertanyaanEl) {
+        inputPertanyaanEl.addEventListener('input', function () {
+            clearTimeout(duplicateTimer);
+            const query = this.value.trim();
+
+            if (query.length < 4) {
+                warningBox.classList.add('hidden');
+                return;
+            }
+
+            duplicateTimer = setTimeout(() => {
+                fetch(`{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.duplicates && data.duplicates.length > 0) {
+                            let html = '<ul class="list-disc pl-4 space-y-1 mt-1">';
+                            data.duplicates.forEach(d => {
+                                const badge = d.is_approved ? '<span class="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-[10px] ml-1">Terbit</span>' : '';
+                                html += `<li><span class="font-semibold">${escHtml(d.id)}:</span> ${escHtml(d.pertanyaan)} ${badge}</li>`;
+                            });
+                            html += '</ul>';
+                            duplicateListEl.innerHTML = html;
+                            warningBox.classList.remove('hidden');
+                        } else {
+                            warningBox.classList.add('hidden');
+                        }
+                    })
+                    .catch(() => {
+                        warningBox.classList.add('hidden');
+                    });
+            }, 400);
+        });
+    }
+
+    /* ---- Sync WYSIWYG Content ---- */
+    function syncEditorContent() {
+        const editor = document.getElementById('editorJawaban');
+        if (editor) {
+            document.getElementById('hiddenJawaban').value = editor.innerHTML;
+        }
+    }
+
+    /* ---- Form Submission (Save Draft & Submit Validasi) ---- */
     function saveDraft() {
         syncEditorContent();
         syncTags();
@@ -691,21 +808,15 @@
         document.getElementById('faqForm').submit();
     }
 
-    /* ---- Submit Validasi ---- */
     function submitValidasi() {
         syncEditorContent();
         syncTags();
         const pertanyaan = document.getElementById('inputPertanyaan').value.trim();
-        const kategori = document.getElementById('inputKategori') ? document.getElementById('inputKategori').value : '';
         const rawJawaban = document.getElementById('hiddenJawaban').value.trim();
         const cleanJawaban = rawJawaban.replace(/<[^>]*>/g, '').trim();
 
         if (!pertanyaan) {
             Swal.fire({ icon: 'warning', title: 'Pertanyaan Diperlukan', text: 'Mohon isi pertanyaan FAQ terlebih dahulu.', confirmButtonColor: '#85172C' });
-            return;
-        }
-        if (!kategori) {
-            Swal.fire({ icon: 'warning', title: 'Kategori Diperlukan', text: 'Mohon pilih kategori FAQ terlebih dahulu.', confirmButtonColor: '#85172C' });
             return;
         }
         if (!cleanJawaban) {
@@ -731,21 +842,15 @@
         });
     }
 
-    /* ---- Sync hidden input from contenteditable ---- */
-    function syncEditorContent() {
-        const editor = document.getElementById('editorJawaban');
-        if (editor) {
-            document.getElementById('hiddenJawaban').value = editor.innerHTML;
-        }
-    }
-
-    /* Auto-resize textarea */
+    // Modal Search Filter for Source Library
     document.addEventListener('DOMContentLoaded', function () {
-        const ta = document.getElementById('inputPertanyaan');
-        if (ta) {
-            ta.addEventListener('input', function () {
-                this.style.height = 'auto';
-                this.style.height = this.scrollHeight + 'px';
+        const searchInput = document.getElementById('sourceSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                const q = this.value.toLowerCase();
+                document.querySelectorAll('.source-option').forEach(opt => {
+                    opt.style.display = opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+                });
             });
         }
     });
@@ -754,12 +859,13 @@
     document.addEventListener('DOMContentLoaded', function () {
         Swal.fire({
             icon: 'error',
-            title: 'Gagal',
+            title: 'Perhatian',
             text: "{{ session('error') }}",
             confirmButtonColor: '#85172C'
         });
     });
     @endif
 </script>
+
 </body>
 </html>

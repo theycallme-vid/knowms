@@ -55,6 +55,9 @@ Route::middleware(['auth', 'role:Data Entry'])->group(function () {
         Route::get('/dashboard', [DataEntryFaqController::class, 'dashboard'])->name('dashboard');
         Route::get('/buat-faq', [DataEntryFaqController::class, 'create'])->name('buatfaq');
         Route::post('/buat-faq', [DataEntryFaqController::class, 'store'])->name('buatfaq.store');
+        Route::get('/pratinjau-unggah', [DataEntryFaqController::class, 'pratinjau'])->name('pratinjau');
+        Route::post('/upload-excel', [DataEntryFaqController::class, 'uploadExcel'])->name('uploadExcel');
+        Route::post('/pratinjau-unggah/submit', [DataEntryFaqController::class, 'submitPratinjau'])->name('pratinjau.submit');
         Route::get('/faq/{id}', [DataEntryFaqController::class, 'show'])->name('faq.show');
         Route::get('/faq/{id}/edit', [DataEntryFaqController::class, 'edit'])->name('faq.edit');
         Route::match(['put', 'patch', 'post'], '/faq/{id}/update', [DataEntryFaqController::class, 'update'])->name('faq.update');

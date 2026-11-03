@@ -148,6 +148,10 @@
                     <p class="text-muted fs-14 mb-0">Kelola FAQ Anda, lengkapi sumber resmi, lalu ajukan untuk divalidasi.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <button type="button" class="btn btn-outline-secondary bg-white rounded-3 px-3 py-2 text-dark fs-13 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="bi bi-upload"></i>
+                        <span>Unggah File</span>
+                    </button>
                     <a href="{{ route('dataentry.buatfaq') }}" class="btn-maroon">
                         <i class="bi bi-plus-lg"></i>
                         <span>Buat FAQ</span>
@@ -229,11 +233,13 @@
                         <input type="text" id="faqSearchInput" class="form-control rounded-3 ps-5 fs-13" placeholder="Cari judul FAQ atau kata kunci..." style="border-color: #E2E8F0; padding-top: 0.5rem; padding-bottom: 0.5rem;">
                     </div>
                     <div>
-                        <select id="categoryFilter" class="form-select rounded-3 fs-13 text-secondary" style="border-color: #E2E8F0; width: auto; padding-top: 0.5rem; padding-bottom: 0.5rem; min-width: 160px;">
-                            <option value="all" selected>Semua kategori</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat->nama }}">{{ $cat->nama }}</option>
-                            @endforeach
+                        <select id="tagFilter" class="form-select rounded-3 fs-13 text-secondary" style="border-color: #E2E8F0; width: auto; padding-top: 0.5rem; padding-bottom: 0.5rem; min-width: 160px;">
+                            <option value="all" selected>Semua kata kunci</option>
+                            @if(isset($tags))
+                                @foreach($tags as $t)
+                                    <option value="{{ $t->nama }}">{{ $t->nama }}</option>
+                                @endforeach
+                            @endif
                         </select>
                     </div>
                     <div>
@@ -258,8 +264,8 @@
                     <table class="table faq-table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 44%;">JUDUL FAQ</th>
-                                <th style="width: 16%;">KATEGORI</th>
+                                <th style="width: 40%;">JUDUL FAQ</th>
+                                <th style="width: 20%;">KATA KUNCI</th>
                                 <th style="width: 16%;">DIPERBARUI</th>
                                 <th style="width: 14%;">STATUS</th>
                                 <th style="width: 10%; text-align: right;">TINDAKAN</th>
@@ -299,11 +305,11 @@
                                             'approved'  => ['label' => 'Terbit', 'badge' => 'badge-status-terbit', 'rowClass' => ''],
                                         ];
                                         $meta = $statusMap[$st] ?? ['label' => ucfirst($st), 'badge' => 'badge-status-draft', 'rowClass' => ''];
-                                        $categoryName = $faq->tags->pluck('nama')->first() ?? 'Umum';
                                         $versionCount = $faq->versions->count() ?: 1;
                                         $updatedTime = $latest && $latest->updated_at ? $latest->updated_at : $faq->updated_at;
+                                        $tagString = $faq->tags->pluck('nama')->implode(',');
                                     @endphp
-                                    <tr class="{{ $meta['rowClass'] }}" data-status="{{ $meta['label'] }}" data-category="{{ $categoryName }}">
+                                    <tr class="{{ $meta['rowClass'] }}" data-status="{{ $meta['label'] }}" data-tags="{{ strtolower($tagString) }}">
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 <div>
@@ -321,7 +327,17 @@
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="text-secondary fs-12">{{ $categoryName }}</td>
+                                        <td>
+                                            @if($faq->tags->isNotEmpty())
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @foreach($faq->tags as $t)
+                                                        <span class="badge bg-light text-secondary border fs-11 fw-normal px-2 py-0.5 rounded-pill">{{ $t->nama }}</span>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span class="text-muted fs-12">-</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             <div class="text-secondary fs-12 lh-sm">{{ $updatedTime ? $updatedTime->translatedFormat('d M Y') : '-' }}</div>
                                             <div class="fs-11 text-muted">{{ $updatedTime ? $updatedTime->format('H.i') . ' WIB' : '' }}</div>
@@ -401,29 +417,33 @@
     </main>
 </div>
 
-<!-- Modal Unggah File -->
+<!-- Modal Unggah File FAQ -->
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold fs-16" id="uploadModalLabel">Unggah Dokumen / Sumber Resmi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-4">
-                <div class="border border-2 border-dashed rounded-3 p-4 text-center bg-light">
-                    <i class="bi bi-cloud-arrow-up fs-1 text-muted mb-2 d-block"></i>
-                    <div class="fw-semibold text-dark fs-14 mb-1">Tarik & lepas file di sini</div>
-                    <div class="text-muted fs-12 mb-3">Mendukung format PDF, DOCX, atau Gambar hingga 10MB</div>
-                    <label class="btn btn-sm btn-white-outline">
-                        Pilih Dokumen
-                        <input type="file" class="d-none">
-                    </label>
+            <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="dashExcelForm">
+                @csrf
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold fs-16" id="uploadModalLabel">Unggah File FAQ (Excel / PDF)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-sm btn-maroon px-3" data-bs-dismiss="modal">Unggah Sekarang</button>
-            </div>
+                <div class="modal-body py-4">
+                    <div class="border border-2 border-dashed rounded-3 p-4 text-center bg-light">
+                        <i class="bi bi-file-earmark-spreadsheet fs-1 text-success mb-2 d-block"></i>
+                        <div class="fw-semibold text-dark fs-14 mb-1">Tarik & lepas file di sini</div>
+                        <div class="text-muted fs-12 mb-3">Mendukung format .XLSX, .XLS, .CSV, atau .PDF hingga 10MB</div>
+                        <label class="btn btn-sm btn-white-outline">
+                            Pilih Dokumen
+                            <input type="file" name="file_faq" accept=".xlsx,.xls,.csv,.pdf" class="d-none" onchange="submitDashExcel(this)">
+                        </label>
+                        <div id="dashFileNameText" class="fs-12 text-success fw-semibold mt-2" style="display:none;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-maroon px-3">Unggah & Tinjau</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -469,6 +489,29 @@
         }
     }
 
+    // Upload Excel Auto-submit Handler
+    function submitDashExcel(input) {
+        if (input.files && input.files[0]) {
+            const fileName = input.files[0].name;
+            const textEl = document.getElementById('dashFileNameText');
+            if (textEl) {
+                textEl.textContent = 'File: ' + fileName;
+                textEl.style.display = 'block';
+            }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Mengunggah File...',
+                    text: `Memproses ${fileName} untuk pratinjau data FAQ.`,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+            document.getElementById('dashExcelForm').submit();
+        }
+    }
+
     // Inisialisasi Tooltip Bootstrap
     document.addEventListener('DOMContentLoaded', function () {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -477,10 +520,10 @@
         });
     });
 
-    // Dynamic Filter & Search Handler
+    // Dynamic Filter & Search Handler (Klasifikasi Kata Kunci)
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('faqSearchInput');
-        const categoryFilter = document.getElementById('categoryFilter');
+        const tagFilter = document.getElementById('tagFilter');
         const filterPills = document.querySelectorAll('.filter-pill');
         const tableRows = document.querySelectorAll('#faqTableBody tr:not(#emptyFaqRow)');
         const totalFaqCount = {{ $total }};
@@ -490,19 +533,19 @@
             if (totalFaqCount === 0) return;
 
             const query = (searchInput.value || '').toLowerCase().trim();
-            const selectedCategory = categoryFilter.value;
+            const selectedTag = tagFilter ? tagFilter.value.toLowerCase() : 'all';
             let visibleCount = 0;
 
             tableRows.forEach(row => {
                 const status = row.getAttribute('data-status');
-                const category = row.getAttribute('data-category');
+                const rowTags = (row.getAttribute('data-tags') || '').split(',').map(t => t.trim().toLowerCase());
                 const textContent = row.textContent.toLowerCase();
 
                 const matchesStatus = (currentStatus === 'all') || (status === currentStatus);
-                const matchesCategory = (selectedCategory === 'all') || (category === selectedCategory);
+                const matchesTag = (selectedTag === 'all') || rowTags.includes(selectedTag);
                 const matchesSearch = !query || textContent.includes(query);
 
-                if (matchesStatus && matchesCategory && matchesSearch) {
+                if (matchesStatus && matchesTag && matchesSearch) {
                     row.style.display = '';
                     visibleCount++;
                 } else {
@@ -531,11 +574,100 @@
             searchInput.addEventListener('input', filterTable);
         }
 
-        // Category Filter
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', filterTable);
+        // Kata Kunci Filter
+        if (tagFilter) {
+            tagFilter.addEventListener('change', filterTable);
         }
     });
+
+    // Helper: Konfirmasi Hapus FAQ
+    function confirmDeleteFaq(faqId) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Hapus FAQ ' + faqId + '?',
+                text: 'FAQ dan riwayat versinya akan dihapus permanen dari sistem.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#85172C',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-faq-' + faqId).submit();
+                }
+            });
+        } else {
+            if (confirm('Yakin ingin menghapus FAQ ' + faqId + '?')) {
+                document.getElementById('delete-faq-' + faqId).submit();
+            }
+        }
+    }
+
+    // Helper: Lihat Detail FAQ via AJAX
+    function viewFaqDetail(faqId) {
+        fetch(`{{ url('/data-entry/faq') }}/${faqId}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                const d = res.data;
+                const latest = d.latest_version || {};
+                let tagsHtml = '';
+                if (d.tags && d.tags.length > 0) {
+                    tagsHtml = d.tags.map(t => `<span class="badge bg-light text-secondary border fs-12 px-2 py-1 rounded-pill me-1 mb-1">${t}</span>`).join('');
+                } else {
+                    tagsHtml = '<span class="text-muted fs-12">Tidak ada kata kunci</span>';
+                }
+
+                let catatanHtml = '';
+                if (latest.catatan) {
+                    catatanHtml = `
+                        <div class="alert alert-danger p-2.5 rounded-3 fs-13 mb-3">
+                            <strong>Catatan Validator:</strong><br>${latest.catatan}
+                        </div>
+                    `;
+                }
+
+                let statusBadge = `<span class="badge bg-secondary">${latest.status || 'Draft'}</span>`;
+                if (latest.status === 'approved') statusBadge = '<span class="badge bg-success">Terbit</span>';
+                else if (latest.status === 'submitted') statusBadge = '<span class="badge bg-primary">Menunggu Validasi</span>';
+                else if (latest.status === 'rejected') statusBadge = '<span class="badge bg-danger">Perlu Revisi</span>';
+
+                Swal.fire({
+                    title: `<div class="fs-18 fw-bold text-start text-dark">${d.id}: ${d.pertanyaan}</div>`,
+                    html: `
+                        <div class="text-start fs-13 text-secondary">
+                            <div class="mb-2 d-flex align-items-center gap-2">
+                                <span>Status: ${statusBadge}</span>
+                                <span>&middot;</span>
+                                <span>Dibuat: ${d.created_at || '-'}</span>
+                            </div>
+                            ${catatanHtml}
+                            <div class="mb-3">
+                                <label class="fw-bold text-dark d-block mb-1">Kata Kunci:</label>
+                                <div>${tagsHtml}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-dark d-block mb-1">Jawaban:</label>
+                                <div class="p-3 bg-light rounded-3 text-dark border fs-13" style="max-height: 220px; overflow-y: auto;">
+                                    ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    width: '650px',
+                    confirmButtonColor: '#85172C',
+                    confirmButtonText: 'Tutup'
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+        });
+    }
 
     @if(session('success'))
     document.addEventListener('DOMContentLoaded', function () {
@@ -548,6 +680,19 @@
                 showConfirmButton: false,
                 timer: 3500,
                 timerProgressBar: true
+            });
+        }
+    });
+    @endif
+
+    @if(session('error'))
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Perhatian',
+                text: "{{ session('error') }}",
+                confirmButtonColor: '#85172C'
             });
         }
     });

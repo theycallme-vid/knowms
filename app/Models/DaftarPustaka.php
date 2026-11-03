@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 class DaftarPustaka extends Model
 {
     protected $table = 'tdaftarpustaka';
+    public $timestamps = false;
 
     protected $fillable = [
         'type',

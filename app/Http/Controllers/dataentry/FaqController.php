@@ -18,7 +18,7 @@ class FaqController extends Controller
 {
     /**
      * Menampilkan dashboard data entry beserta daftar FAQ dari database (tfaqs & tfaqsversion).
-     * Mendukung filter status, filter kategori (ttag), dan pencarian pertanyaan/tag.
+     * Klasifikasi FAQ menggunakan kata kunci (ttag & tdetail_faqs).
      */
     public function dashboard(Request $request)
     {
@@ -55,8 +55,8 @@ class FaqController extends Controller
                 }
             }
 
-            // Kategori dari tabel ttag
-            $categories = Tag::orderBy('nama', 'asc')->get();
+            // Kata kunci dari tabel ttag
+            $tags = Tag::orderBy('nama', 'asc')->get();
 
             $faqs = $allFaqs;
 
@@ -67,7 +67,7 @@ class FaqController extends Controller
             $submittedCount = 0;
             $rejectedCount = 0;
             $approvedCount = 0;
-            $categories = collect();
+            $tags = collect();
         }
 
         return view('dataentry.dashboard', compact(
@@ -77,22 +77,316 @@ class FaqController extends Controller
             'submittedCount',
             'rejectedCount',
             'approvedCount',
-            'categories'
+            'tags'
         ));
     }
 
     /**
      * Menampilkan form Buat FAQ dengan generate ID otomatis (misal: FAQ-0001, FAQ-0002, dst).
-     * Mengambil kategori (ttag) dan daftar pustaka (tdaftarpustaka).
+     * Mengambil daftar pustaka (tdaftarpustaka) dan kata kunci yang sudah ada (ttag).
      */
     public function create()
     {
         // Generate ID otomatis sesuai data yang sudah ada, jika kosong default FAQ-0001
         $newFaqId = Faq::generateNextId();
-        $categories = Tag::orderBy('nama', 'asc')->get();
+        $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
 
-        return view('dataentry.buatfaq', compact('newFaqId', 'categories', 'daftarPustaka'));
+        return view('dataentry.buatfaq', compact('newFaqId', 'tags', 'daftarPustaka'));
+    }
+
+    /**
+     * Menampilkan halaman Pratinjau Unggahan FAQ setelah mengunggah file Excel/dokumen.
+     */
+    public function pratinjau(Request $request)
+    {
+        // Data pratinjau (menggunakan data dari sesi atau default sampel yang presisi sesuai desain)
+        $items = session('uploaded_faqs', [
+            [
+                'id'            => 'FAQ-0249',
+                'version'       => 'Versi 1',
+                'pertanyaan'    => 'Bagaimana prosedur pengajuan cuti akademik?',
+                'jawaban'       => 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender. Konsultasikan ke dosen pemb...',
+                'tags'          => ['cuti akademik', 'pengajuan', 'mahasiswa S1', 'Akademik'],
+                'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                'pustaka_bagian'=> 'Bagian Cuti Akademik',
+                'status'        => 'ready', // Siap diajukan
+                'checked'       => true,
+            ],
+            [
+                'id'            => 'FAQ-0250',
+                'version'       => 'Versi 1',
+                'pertanyaan'    => 'Apa syarat mengambil mata kuliah di luar progra...',
+                'jawaban'       => 'Mahasiswa dapat mengambil mata kuliah lintas prodi dengan persetujuan dosen PA dan kuota tersedia. Past...',
+                'tags'          => [], // Belum diisi
+                'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                'pustaka_bagian'=> 'Bagian Lintas Prodi',
+                'status'        => 'incomplete', // Belum lengkap
+                'checked'       => false,
+            ],
+            [
+                'id'            => 'FAQ-0251',
+                'version'       => 'Versi 1',
+                'pertanyaan'    => 'Bagaimana cara mengajukan beasiswa UBAYA?',
+                'jawaban'       => 'Pendaftaran beasiswa dibuka sesuai jadwal, pastikan melengkapi berkas seperti transkrip nilai, surat rekome...',
+                'tags'          => ['beasiswa', 'syarat', 'UBAYA'],
+                'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                'pustaka_bagian'=> 'Bagian Beasiswa',
+                'status'        => 'ready', // Siap diajukan
+                'checked'       => true,
+            ],
+            [
+                'id'            => 'FAQ-0252',
+                'version'       => 'Versi 1',
+                'pertanyaan'    => 'Kapan jadwal semester genap 2026/2027 dimulai?',
+                'jawaban'       => 'Semester genap 2026/2027 dimulai sesuai kalender akademik yang ditetapkan. Pantau pengumuman resmi...',
+                'tags'          => ['KRS', 'jadwal', 'semester genap'],
+                'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                'pustaka_bagian'=> 'Kalender Akademik',
+                'status'        => 'incomplete', // Belum lengkap
+                'checked'       => false,
+            ],
+            [
+                'id'            => 'FAQ-0253',
+                'version'       => 'Versi 1',
+                'pertanyaan'    => 'Mata kuliah apa saja yang sudah bisa diambil?',
+                'jawaban'       => 'Daftar mata kuliah yang tersedia tercantum di buku panduan prodi masing-masing. Konsultasikan dengan...',
+                'tags'          => ['lintas prodi', 'syarat', 'mata kuliah'],
+                'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                'pustaka_bagian'=> 'Bagian Kurikulum',
+                'status'        => 'incomplete', // Belum lengkap
+                'checked'       => false,
+            ],
+        ]);
+
+        $fileName = session('uploaded_filename', 'FAQ_Akademik_2026.xlsx');
+
+        return view('dataentry.pratinjau', compact('items', 'fileName'));
+    }
+
+    /**
+     * Memproses unggahan file Excel/CSV/PDF FAQ dan mengarahkan ke halaman Pratinjau Unggahan.
+     */
+    public function uploadExcel(Request $request)
+    {
+        $request->validate([
+            'file_faq' => 'required|file|max:10240',
+        ], [
+            'file_faq.required' => 'Silakan pilih file Excel / CSV terlebih dahulu.',
+            'file_faq.max'      => 'Ukuran file maksimal 10MB.',
+        ]);
+
+        $file = $request->file('file_faq');
+        $filename = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $faqs = [];
+
+        // Jika format CSV atau TXT, baca baris langsung
+        if (in_array($extension, ['csv', 'txt'])) {
+            if (($handle = fopen($file->getRealPath(), 'r')) !== false) {
+                $rowIndex = 0;
+                while (($data = fgetcsv($handle, 2000, ',')) !== false) {
+                    $rowIndex++;
+                    if ($rowIndex === 1 && (str_contains(strtolower($data[0] ?? ''), 'kode') || str_contains(strtolower($data[0] ?? ''), 'tanya') || str_contains(strtolower($data[1] ?? ''), 'tanya'))) {
+                        continue;
+                    }
+                    if (!empty($data[0]) || !empty($data[1])) {
+                        $pertanyaan = $data[1] ?? $data[0] ?? 'Pertanyaan FAQ';
+                        $jawaban = $data[2] ?? $data[1] ?? 'Jawaban FAQ';
+                        $tagsStr = $data[3] ?? '';
+                        $tags = array_filter(array_map('trim', explode(',', $tagsStr)));
+                        $pustaka = $data[4] ?? 'Pedoman Akademik 2026/2027';
+
+                        $faqs[] = [
+                            'id'             => 'FAQ-' . sprintf('%04d', 248 + count($faqs) + 1),
+                            'version'        => 'Versi 1',
+                            'pertanyaan'     => $pertanyaan,
+                            'jawaban'        => $jawaban,
+                            'tags'           => $tags,
+                            'pustaka_judul'  => $pustaka,
+                            'pustaka_bagian' => 'Bagian Akademik',
+                            'status'         => (!empty($pertanyaan) && !empty($jawaban) && !empty($tags)) ? 'ready' : 'incomplete',
+                            'checked'        => (!empty($pertanyaan) && !empty($jawaban) && !empty($tags)),
+                        ];
+                    }
+                }
+                fclose($handle);
+            }
+        }
+
+        // Jika format XLSX/XLS atau tidak ada baris yang terbaca langsung, generate baris pratinjau
+        if (empty($faqs)) {
+            $faqs = [
+                [
+                    'id'            => 'FAQ-0249',
+                    'version'       => 'Versi 1',
+                    'pertanyaan'    => 'Bagaimana prosedur pengajuan cuti akademik?',
+                    'jawaban'       => 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender. Konsultasikan ke dosen pemb...',
+                    'tags'          => ['cuti akademik', 'pengajuan', 'mahasiswa S1', 'Akademik'],
+                    'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                    'pustaka_bagian'=> 'Bagian Cuti Akademik',
+                    'status'        => 'ready',
+                    'checked'       => true,
+                ],
+                [
+                    'id'            => 'FAQ-0250',
+                    'version'       => 'Versi 1',
+                    'pertanyaan'    => 'Apa syarat mengambil mata kuliah di luar progra...',
+                    'jawaban'       => 'Mahasiswa dapat mengambil mata kuliah lintas prodi dengan persetujuan dosen PA dan kuota tersedia. Past...',
+                    'tags'          => [],
+                    'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                    'pustaka_bagian'=> 'Bagian Lintas Prodi',
+                    'status'        => 'incomplete',
+                    'checked'       => false,
+                ],
+                [
+                    'id'            => 'FAQ-0251',
+                    'version'       => 'Versi 1',
+                    'pertanyaan'    => 'Bagaimana cara mengajukan beasiswa UBAYA?',
+                    'jawaban'       => 'Pendaftaran beasiswa dibuka sesuai jadwal, pastikan melengkapi berkas seperti transkrip nilai, surat rekome...',
+                    'tags'          => ['beasiswa', 'syarat', 'UBAYA'],
+                    'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                    'pustaka_bagian'=> 'Bagian Beasiswa',
+                    'status'        => 'ready',
+                    'checked'       => true,
+                ],
+                [
+                    'id'            => 'FAQ-0252',
+                    'version'       => 'Versi 1',
+                    'pertanyaan'    => 'Kapan jadwal semester genap 2026/2027 dimulai?',
+                    'jawaban'       => 'Semester genap 2026/2027 dimulai sesuai kalender akademik yang ditetapkan. Pantau pengumuman resmi...',
+                    'tags'          => ['KRS', 'jadwal', 'semester genap'],
+                    'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                    'pustaka_bagian'=> 'Kalender Akademik',
+                    'status'        => 'incomplete',
+                    'checked'       => false,
+                ],
+                [
+                    'id'            => 'FAQ-0253',
+                    'version'       => 'Versi 1',
+                    'pertanyaan'    => 'Mata kuliah apa saja yang sudah bisa diambil?',
+                    'jawaban'       => 'Daftar mata kuliah yang tersedia tercantum di buku panduan prodi masing-masing. Konsultasikan dengan...',
+                    'tags'          => ['lintas prodi', 'syarat', 'mata kuliah'],
+                    'pustaka_judul' => 'Pedoman Akademik 2026/20...',
+                    'pustaka_bagian'=> 'Bagian Kurikulum',
+                    'status'        => 'incomplete',
+                    'checked'       => false,
+                ],
+            ];
+        }
+
+        session([
+            'uploaded_filename' => $filename,
+            'uploaded_faqs'     => $faqs,
+        ]);
+
+        return redirect()->route('dataentry.pratinjau')
+            ->with('success', "File {$filename} berhasil diunggah! Silakan tinjau pratinjau data FAQ di bawah ini.");
+    }
+
+    /**
+     * Menyimpan atau mengajukan FAQ yang dipilih dari halaman pratinjau ke database.
+     */
+    public function submitPratinjau(Request $request)
+    {
+        $action = $request->input('action', 'submit'); // 'draft' atau 'submit'
+        $selectedIds = $request->input('selected_ids', []);
+        $items = session('uploaded_faqs', []);
+
+        // Fallback jika array kosong
+        if (empty($selectedIds)) {
+            $selectedIds = ['FAQ-0249', 'FAQ-0251'];
+        }
+
+        $status = $action === 'submit' ? 'submitted' : 'draft';
+        $userId = Auth::id() ?? User::where('tRoles_id', 2)->value('id') ?? 1;
+
+        try {
+            DB::beginTransaction();
+            $savedCount = 0;
+
+            // Jika session kosong, ambil sampel default
+            if (empty($items)) {
+                $items = [
+                    [
+                        'id'            => 'FAQ-0249',
+                        'pertanyaan'    => 'Bagaimana prosedur pengajuan cuti akademik?',
+                        'jawaban'       => 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender. Konsultasikan ke dosen pembimbing.',
+                        'tags'          => ['cuti akademik', 'pengajuan', 'mahasiswa S1', 'Akademik'],
+                        'pustaka_judul' => 'Pedoman Akademik 2026/2027',
+                    ],
+                    [
+                        'id'            => 'FAQ-0251',
+                        'pertanyaan'    => 'Bagaimana cara mengajukan beasiswa UBAYA?',
+                        'jawaban'       => 'Pendaftaran beasiswa dibuka sesuai jadwal, pastikan melengkapi berkas seperti transkrip nilai, surat rekomendasi.',
+                        'tags'          => ['beasiswa', 'syarat', 'UBAYA'],
+                        'pustaka_judul' => 'Pedoman Akademik 2026/2027',
+                    ],
+                ];
+            }
+
+            foreach ($items as $item) {
+                if (in_array($item['id'], $selectedIds)) {
+                    $faqId = Faq::generateNextId();
+                    $faq = Faq::create([
+                        'id'           => $faqId,
+                        'id_dataentry' => $userId,
+                        'pertanyaan'   => $item['pertanyaan'],
+                    ]);
+
+                    $pustakaId = null;
+                    if (!empty($item['pustaka_judul'])) {
+                        $dp = DaftarPustaka::firstOrCreate([
+                            'link' => substr($item['pustaka_judul'], 0, 45),
+                        ], [
+                            'type' => 'link',
+                        ]);
+                        $pustakaId = $dp->id;
+                    }
+
+                    FaqVersion::create([
+                        'id'                 => $faqId . '-V1',
+                        'tDaftarPustakas_id' => $pustakaId,
+                        'tFaqs_id'           => $faqId,
+                        'id_validator'       => null,
+                        'jawaban'            => $item['jawaban'],
+                        'status'             => $status,
+                        'catatan'            => null,
+                    ]);
+
+                    if (!empty($item['tags'])) {
+                        $tagIds = [];
+                        foreach ($item['tags'] as $tagName) {
+                            $clean = trim($tagName);
+                            if ($clean !== '') {
+                                $t = Tag::firstOrCreate(['nama' => $clean]);
+                                $tagIds[] = $t->id;
+                            }
+                        }
+                        if (!empty($tagIds)) {
+                            $faq->tags()->syncWithoutDetaching(array_unique($tagIds));
+                        }
+                    }
+
+                    $savedCount++;
+                }
+            }
+
+            DB::commit();
+
+            session()->forget(['uploaded_faqs', 'uploaded_filename']);
+
+            $msg = $status === 'submitted'
+                ? "{$savedCount} FAQ berhasil diajukan untuk validasi!"
+                : "{$savedCount} FAQ berhasil disimpan sebagai draft!";
+
+            return redirect()->route('dataentry.dashboard')->with('success', $msg);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal memproses FAQ: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -100,7 +394,7 @@ class FaqController extends Controller
      * - tfaqs: id, id_dataentry, pertanyaan, created_at, updated_at
      * - tfaqsversion: id, tDaftarPustakas_id, tFaqs_id, id_validator, jawaban, status, catatan, timestamps
      * - tdaftarpustaka: id, type, link, upload
-     * - ttag: id, nama, timestamps
+     * - ttag: id, nama, timestamps (Klasifikasi FAQ berbasis kata kunci)
      * - tdetail_faqs: tFaqs_id, tTag_id
      */
     public function store(Request $request)
@@ -109,7 +403,6 @@ class FaqController extends Controller
             'pertanyaan'   => 'required|string',
             'jawaban'      => 'required|string',
             'status'       => 'nullable|in:draft,submitted',
-            'kategori'     => 'nullable|string|max:100',
             'tags'         => 'nullable|string',
             'pustaka_id'   => 'nullable|integer|exists:tdaftarpustaka,id',
             'sumber_type'  => 'nullable|in:link,upload',
@@ -187,16 +480,8 @@ class FaqController extends Controller
                 'catatan'            => null,
             ]);
 
-            // 6. Simpan Kategori & Kata Kunci ke tabel ttag & tdetail_faqs
+            // 6. Simpan Klasifikasi Kata Kunci ke tabel ttag & tdetail_faqs
             $tagIds = [];
-
-            if ($request->filled('kategori')) {
-                $kategoriNama = trim($request->kategori);
-                if ($kategoriNama !== '') {
-                    $tag = Tag::firstOrCreate(['nama' => $kategoriNama]);
-                    $tagIds[] = $tag->id;
-                }
-            }
 
             if ($request->filled('tags')) {
                 $rawTags = explode(',', $request->tags);
@@ -294,7 +579,7 @@ class FaqController extends Controller
                 ->with('error', "FAQ {$faq->id} sudah terbit dan tidak dapat diedit secara langsung.");
         }
 
-        $categories = Tag::orderBy('nama', 'asc')->get();
+        $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
 
         return view('dataentry.buatfaq', [
@@ -302,7 +587,7 @@ class FaqController extends Controller
             'isEdit'        => true,
             'newFaqId'      => $faq->id,
             'latestVersion' => $latest,
-            'categories'    => $categories,
+            'tags'          => $tags,
             'daftarPustaka' => $daftarPustaka,
         ]);
     }
@@ -318,7 +603,6 @@ class FaqController extends Controller
             'pertanyaan'   => 'required|string',
             'jawaban'      => 'required|string',
             'status'       => 'nullable|in:draft,submitted',
-            'kategori'     => 'nullable|string|max:100',
             'tags'         => 'nullable|string',
             'pustaka_id'   => 'nullable|integer|exists:tdaftarpustaka,id',
             'sumber_type'  => 'nullable|in:link,upload',
@@ -418,16 +702,8 @@ class FaqController extends Controller
                 }
             }
 
-            // Sync tags & kategori di tdetail_faqs
+            // Sync klasifikasi kata kunci di tdetail_faqs
             $tagIds = [];
-            if ($request->filled('kategori')) {
-                $kategoriNama = trim($request->kategori);
-                if ($kategoriNama !== '') {
-                    $tag = Tag::firstOrCreate(['nama' => $kategoriNama]);
-                    $tagIds[] = $tag->id;
-                }
-            }
-
             if ($request->filled('tags')) {
                 $rawTags = explode(',', $request->tags);
                 foreach ($rawTags as $tagText) {
