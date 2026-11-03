@@ -471,7 +471,7 @@
     // =========================================================================
     // SISTEM IDLE TIMEOUT 30 DETIK & POP-UP HITUNG MUNDUR 10 DETIK
     // =========================================================================
-    const IDLE_LIMIT_SECONDS     = 30; // 30 detik tanpa aktivitas -> munculkan pop-up
+    const IDLE_LIMIT_SECONDS     = 20; // 30 detik tanpa aktivitas -> munculkan pop-up
     const POPUP_COUNTDOWN_SEC    = 10; // 10 detik waktu tunggu pada pop-up
 
     let idleTimeoutTimer         = null;

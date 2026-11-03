@@ -280,7 +280,7 @@ body {
 .camera-viewport {
     position: relative;
     width: 100%;
-    height: 270px;
+    height: 335px;
     background-color: var(--scanner-bg);
     border-radius: 14px;
     overflow: hidden;
