@@ -45,7 +45,7 @@
                     <i class="bi bi-grid"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="#" class="nav-link-custom">
+                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
@@ -156,11 +156,11 @@
         <!-- Main Content Area -->
         <div class="content-area">
             <!-- Page Header Area -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-2 mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <div class="date-badge">RABU, 21 OKTOBER 2026</div>
-                    <h1 class="display-serif fs-1 mb-1">Gambaran besar, keputusan lebih baik.</h1>
-                    <p class="text-muted fs-14 mb-0">Pantau kualitas pengetahuan dan layanan informasi kampus dalam satu ruang.</p>
+                    <h1 class="page-title mb-1">Gambaran besar, keputusan lebih baik.</h1>
+                    <p class="text-muted fs-13 mb-0">Pantau kualitas pengetahuan dan layanan informasi kampus dalam satu ruang.</p>
                 </div>
                 <div>
                     <button class="btn btn-outline-secondary bg-white rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm text-dark fs-13 fw-medium" style="border-color: #E2E8F0;">

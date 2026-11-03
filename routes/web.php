@@ -6,10 +6,18 @@ use App\Http\Controllers\superadmin\PenggunaAksesController;
 use App\Http\Controllers\validator\ValidatorFaqController;
 use Illuminate\Support\Facades\Route;
 
-// HALAMAN PUBLIK: FAQ Mahasiswa (halaman pertama). Login hanya dibuka lewat "/login"
+// HALAMAN PUBLIK: Portal & FAQ Mahasiswa
 Route::get('/', function () {
     return view('mahasiswa.faq');
 })->name('mahasiswa.faq');
+
+Route::get('/portal', function () {
+    return view('mahasiswa.faq');
+})->name('portal');
+
+Route::get('/faq', function () {
+    return view('mahasiswa.faq');
+})->name('portal.index');
 
 // GUEST ROUTES (Autentikasi)
 Route::middleware('guest')->group(function () {
@@ -30,8 +38,10 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     Route::get('/superadmin/dashboard', function () {
         return view('superadmin.dashboard');
     })->name('superadmin.dashboard');
+});
 
-    // Pengguna & Hak Akses
+// PENGGUNA & HAK AKSES (Dapat diakses Super Admin & Validator sementara disamakan)
+Route::middleware(['auth', 'role:Super Admin,Validator'])->group(function () {
     Route::get('/superadmin/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('superadmin.pengguna-akses');
     Route::get('/superadmin/pengguna&akses', [PenggunaAksesController::class, 'index']);
     Route::post('/superadmin/pengguna-akses/store', [PenggunaAksesController::class, 'store'])->name('superadmin.pengguna.store');
@@ -44,8 +54,20 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
 // VALIDATOR ROUTES
 Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('validator.')->group(function () {
     Route::get('/dashboard', [ValidatorFaqController::class, 'dashboard'])->name('dashboard');
+    Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
+
+    // Halaman Validasi FAQ (Antrean Validasi) + Aksi Approve, Reject & Massal Approve
+    Route::get('/validasi-faq', [ValidatorFaqController::class, 'validasiFaq'])->name('validasiFAQ');
+    Route::post('/validasi-faq/bulk-approve', [ValidatorFaqController::class, 'bulkApprove'])->name('validasiFAQ.bulkApprove');
+    Route::post('/validasi-faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('validasiFAQ.approve');
+    Route::post('/validasi-faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('validasiFAQ.reject');
+
+    // Alias route untuk kompatibilitas
     Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
     Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
+
+    // Halaman Pengguna & Akses untuk Validator (disamakan sementara dengan Super Admin)
+    Route::get('/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('pengguna-akses');
 });
 
 // DATA ENTRY ROUTES
