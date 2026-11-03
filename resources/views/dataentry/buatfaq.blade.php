@@ -134,7 +134,7 @@
                 <div>
                     <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#uploadModal">
                         <i class="bi bi-upload"></i>
-                        <span>Unggah File (Excel/PDF)</span>
+                        <span>Import File (Excel/PDF)</span>
                     </button>
                 </div>
             </div>
@@ -144,6 +144,24 @@
                 $latestVer = $isEditing ? $faq->latest_version : null;
                 $faqStatus = $latestVer ? strtolower($latestVer->status) : 'draft';
                 $formAction = $isEditing ? route('dataentry.faq.update', $faq->id) : route('dataentry.buatfaq.store');
+                $defaultMode = (!$isEditing && isset($selectedExistingFaq) && $selectedExistingFaq) ? 'existing' : 'new';
+
+                if ($isEditing) {
+                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['rejected', 'approved', 'active']);
+                    $displayFaqId = $faq->id;
+                    $displayVersionId = $shouldCreateNewVerByDefault
+                        ? ($nextVersionId ?? $faq->generateNextVersionId())
+                        : ($latestVer ? $latestVer->id : ($faq->id . '-V1'));
+                    $displayVerNum = (int) preg_replace('/.*-V/i', '', $displayVersionId) ?: 1;
+                } elseif ($defaultMode === 'existing' && $selectedExistingFaq) {
+                    $displayFaqId = $selectedExistingFaq->id;
+                    $displayVersionId = $selectedExistingFaq->generateNextVersionId();
+                    $displayVerNum = (int) preg_replace('/.*-V/i', '', $displayVersionId) ?: 2;
+                } else {
+                    $displayFaqId = $newFaqId ?? 'FAQ-0001';
+                    $displayVersionId = $displayFaqId . '-V1';
+                    $displayVerNum = 1;
+                }
             @endphp
 
             @if($isEditing && $faqStatus === 'rejected' && $latestVer && $latestVer->catatan)
@@ -152,7 +170,7 @@
                     <div>
                         <div class="fw-bold fs-12 text-uppercase mb-1">Catatan Revisi dari Validator</div>
                         <div class="fs-13 text-dark">{{ $latestVer->catatan }}</div>
-                        <div class="fs-11 text-danger mt-1">FAQ ini akan diajukan ulang sebagai versi baru (Versi {{ ($faq->versions->count() + 1) }}).</div>
+                        <div class="fs-11 text-danger mt-1">FAQ ini akan diajukan ulang sebagai versi jawaban baru: <strong>{{ $nextVersionId ?? $faq->generateNextVersionId() }}</strong>.</div>
                     </div>
                 </div>
             @endif
@@ -161,25 +179,103 @@
             <form id="faqForm" method="POST" action="{{ $formAction }}" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="status" id="formStatus" value="draft">
-                <input type="hidden" name="faq_id" value="{{ $isEditing ? $faq->id : ($newFaqId ?? 'FAQ-0001') }}">
+                <input type="hidden" name="faq_id" id="hiddenFaqId" value="{{ $displayFaqId }}">
+                <input type="hidden" name="mode_faq" id="hiddenModeFaq" value="{{ $defaultMode }}">
+                <input type="hidden" name="version_action" id="hiddenVersionAction" value="{{ ($isEditing && ($shouldCreateNewVerByDefault ?? false)) ? 'new_version' : 'update_draft' }}">
                 <input type="hidden" name="tags" id="hiddenTags">
                 <input type="hidden" name="pustaka_id" id="hiddenPustakaId" value="{{ $latestVer?->tDaftarPustakas_id ?? '' }}">
 
                 <div class="form-section">
-                    <!-- Meta Bar: FAQ ID & Version + Status Badge -->
+                    <!-- Meta Bar: FAQ ID & Version ID + Status Badge -->
                     <div class="form-meta-bar">
                         <div>
-                            <div class="meta-id">
-                                {{ $isEditing ? $faq->id : ($newFaqId ?? 'FAQ-0001') }} &middot; Versi {{ $isEditing ? ($faqStatus === 'rejected' ? ($faq->versions->count() + 1) . ' (Revisi)' : ($faq->versions->count() ?: 1)) : '1' }}
+                            <div class="meta-id" id="metaHeaderIdText">
+                                {{ $displayFaqId }} &middot; Versi {{ $displayVerNum }} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge">{{ $displayVersionId }}</span>
                             </div>
-                            <div class="meta-desc">
-                                {{ $isEditing ? 'Form perbaikan/pembaruan data FAQ yang tersimpan di sistem.' : 'Form manual untuk menyusun FAQ satuan. Untuk import massal, klik tombol Unggah File di kanan atas.' }}
+                            <div class="meta-desc" id="metaHeaderDesc">
+                                @if($isEditing)
+                                    Menyusun versi jawaban <strong>{{ $displayVersionId }}</strong> untuk pertanyaan <strong>{{ $faq->id }}</strong>.
+                                @else
+                                    Jawaban baru dari FAQ baru menggunakan kode <strong>{{ $newFaqId ?? 'FAQ-0001' }}-V1</strong>. Jika menambah versi jawaban dari FAQ yang dipilih, kode menjadi <strong>FAQ-XXXX-V2</strong>, dst.
+                                @endif
                             </div>
                         </div>
                         <span class="badge-status {{ $isEditing && $faqStatus === 'rejected' ? 'badge-status-revisi' : 'badge-status-draft' }}">
                             {{ $isEditing && $faqStatus === 'rejected' ? 'Perlu Revisi' : 'Draft' }}
                         </span>
                     </div>
+
+                    @if(!$isEditing)
+                        <!-- Pilihan Mode: Buat FAQ Baru (FAQ-XXXX-V1) vs Tambah Versi Jawaban dari FAQ yang Dipilih (FAQ-XXXX-V2) -->
+                        <div class="p-3 rounded-3 bg-light border mb-4">
+                            <label class="form-label-custom mb-2">Jenis Penyusunan Jawaban FAQ</label>
+                            <div class="d-flex flex-wrap gap-3 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="mode_faq_radio" id="modeFaqNew" value="new"
+                                           {{ $defaultMode === 'new' ? 'checked' : '' }} onchange="switchFaqCreationMode('new')">
+                                    <label class="form-check-label fs-13 fw-semibold text-dark" for="modeFaqNew">
+                                        Buat Pertanyaan FAQ Baru <span class="text-muted fw-normal"></span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="mode_faq_radio" id="modeFaqExisting" value="existing"
+                                           {{ $defaultMode === 'existing' ? 'checked' : '' }} onchange="switchFaqCreationMode('existing')">
+                                    <label class="form-check-label fs-13 fw-semibold text-dark" for="modeFaqExisting">
+                                        Tambah Versi Jawaban Baru dari FAQ yang Sudah Ada <span class="text-muted fw-normal"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="existingFaqSelectorBox" class="{{ $defaultMode === 'existing' ? '' : 'd-none' }} mt-2 pt-2 border-top">
+                                <label class="fs-12 fw-semibold text-secondary mb-1">Pilih FAQ yang ingin dibuatkan versi jawaban barunya:</label>
+                                <select name="existing_faq_id" id="existingFaqSelect" class="form-select fs-13 rounded-3" onchange="handleExistingFaqSelected(this)">
+                                    <option value="">-- Pilih Kode / Pertanyaan FAQ --</option>
+                                    @if(isset($allFaqs))
+                                        @foreach($allFaqs as $fItem)
+                                            @php
+                                                $nextVId = $fItem->generateNextVersionId();
+                                                $nextVNum = (int) preg_replace('/.*-V/i', '', $nextVId) ?: 2;
+                                                $fTags = $fItem->tags->pluck('nama')->implode(',');
+                                            @endphp
+                                            <option value="{{ $fItem->id }}"
+                                                    data-pertanyaan="{{ e($fItem->pertanyaan) }}"
+                                                    data-next-version-id="{{ $nextVId }}"
+                                                    data-next-version-num="{{ $nextVNum }}"
+                                                    data-tags="{{ e($fTags) }}"
+                                                    {{ (isset($selectedExistingFaq) && $selectedExistingFaq && $selectedExistingFaq->id === $fItem->id) ? 'selected' : '' }}>
+                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} (Versi baru: {{ $nextVId }})
+                                            </option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                            </div>
+                        </div>
+                    @else
+                        <!-- Pilihan Mode saat Edit FAQ yang sudah ada -->
+                        <div class="p-3 rounded-3 bg-light border mb-4">
+                            <label class="form-label-custom mb-2">Mode Penyimpanan Versi (`tfaqsversion`)</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="edit_version_radio" id="editModeNewVer" value="new_version"
+                                           {{ ($shouldCreateNewVerByDefault ?? true) ? 'checked' : '' }}
+                                           onchange="switchEditVersionMode('new_version', '{{ $faq->id }}', '{{ $nextVersionId ?? $faq->generateNextVersionId() }}')">
+                                    <label class="form-check-label fs-13 fw-semibold text-dark" for="editModeNewVer">
+                                        Simpan sebagai Versi Jawaban Baru: <span class="badge bg-dark">{{ $nextVersionId ?? $faq->generateNextVersionId() }}</span>
+                                    </label>
+                                </div>
+                                @if($faqStatus === 'draft' && $latestVer)
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="edit_version_radio" id="editModeUpdateDraft" value="update_draft"
+                                               {{ !($shouldCreateNewVerByDefault ?? true) ? 'checked' : '' }}
+                                               onchange="switchEditVersionMode('update_draft', '{{ $faq->id }}', '{{ $latestVer->id }}')">
+                                        <label class="form-check-label fs-13 fw-semibold text-dark" for="editModeUpdateDraft">
+                                            Perbarui Draft Saat Ini: <span class="badge bg-secondary">{{ $latestVer->id }}</span>
+                                        </label>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
 
                     <!-- Pertanyaan FAQ * -->
                     <div class="mb-4">
@@ -190,7 +286,7 @@
                             rows="2"
                             class="form-control rounded-3 fs-14"
                             placeholder="Tulis pertanyaan yang sering diajukan mahasiswa..."
-                            required>{{ old('pertanyaan', $isEditing ? $faq->pertanyaan : '') }}</textarea>
+                            required>{{ old('pertanyaan', $isEditing ? $faq->pertanyaan : ($selectedExistingFaq?->pertanyaan ?? '')) }}</textarea>
 
                         <!-- Live Duplicate Warning -->
                         <div id="duplicateWarning" class="alert alert-warning rounded-3 p-3 mt-2 fs-12 d-none">
@@ -370,7 +466,7 @@
             <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="excelUploadForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold fs-16">Unggah File FAQ (Excel / CSV / PDF)</h5>
+                    <h5 class="modal-title fw-bold fs-16">Import File FAQ (Excel / CSV / PDF)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
@@ -583,7 +679,81 @@
         }, 400);
     });
 
+    const defaultNewFaqId = '{{ $newFaqId ?? "FAQ-0001" }}';
+
+    function switchFaqCreationMode(mode) {
+        const hiddenMode = document.getElementById('hiddenModeFaq');
+        const selectorBox = document.getElementById('existingFaqSelectorBox');
+        const pertanyaanInput = document.getElementById('inputPertanyaan');
+        const metaIdEl = document.getElementById('metaHeaderIdText');
+
+        if (hiddenMode) hiddenMode.value = mode;
+
+        if (mode === 'existing') {
+            selectorBox?.classList.remove('d-none');
+            const sel = document.getElementById('existingFaqSelect');
+            if (sel && sel.value) {
+                handleExistingFaqSelected(sel);
+            }
+        } else {
+            selectorBox?.classList.add('d-none');
+            document.getElementById('hiddenFaqId').value = defaultNewFaqId;
+            if (metaIdEl) {
+                metaIdEl.innerHTML = `${defaultNewFaqId} &middot; Versi 1 <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge">${defaultNewFaqId}-V1</span>`;
+            }
+            if (pertanyaanInput) {
+                pertanyaanInput.readOnly = false;
+            }
+        }
+    }
+
+    function handleExistingFaqSelected(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.value) return;
+
+        const faqId = opt.value;
+        const pertanyaan = opt.getAttribute('data-pertanyaan') || '';
+        const nextVerId = opt.getAttribute('data-next-version-id') || (faqId + '-V2');
+        const nextVerNum = opt.getAttribute('data-next-version-num') || '2';
+        const tagsStr = opt.getAttribute('data-tags') || '';
+
+        document.getElementById('hiddenFaqId').value = faqId;
+        const metaIdEl = document.getElementById('metaHeaderIdText');
+        if (metaIdEl) {
+            metaIdEl.innerHTML = `${faqId} &middot; Versi ${nextVerNum} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge">${nextVerId}</span>`;
+        }
+
+        const pertanyaanInput = document.getElementById('inputPertanyaan');
+        if (pertanyaanInput) {
+            pertanyaanInput.value = pertanyaan;
+        }
+
+        if (tagsStr) {
+            tagsStr.split(',').map(t => t.trim()).filter(Boolean).forEach(t => addTag(t));
+        }
+    }
+
+    function switchEditVersionMode(actionType, faqId, versionId) {
+        const hiddenVerAction = document.getElementById('hiddenVersionAction');
+        if (hiddenVerAction) hiddenVerAction.value = actionType;
+
+        const verNum = versionId.replace(/^.*-V/i, '') || '1';
+        const metaIdEl = document.getElementById('metaHeaderIdText');
+        if (metaIdEl) {
+            metaIdEl.innerHTML = `${faqId} &middot; Versi ${verNum} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge">${versionId}</span>`;
+        }
+    }
+
     function prepareAndSubmit(statusValue) {
+        const modeFaq = document.getElementById('hiddenModeFaq')?.value;
+        if (modeFaq === 'existing') {
+            const sel = document.getElementById('existingFaqSelect');
+            if (!sel || !sel.value) {
+                Swal.fire({ icon: 'warning', title: 'Pilih FAQ Terlebih Dahulu', text: 'Silakan pilih FAQ yang ingin ditambahkan versi jawaban barunya.', confirmButtonColor: '#85172C' });
+                return;
+            }
+        }
+
         const q = document.getElementById('inputPertanyaan').value.trim();
         const ansHtml = document.getElementById('editorJawaban').innerHTML.trim();
         const ansText = document.getElementById('editorJawaban').textContent.trim();

@@ -38,23 +38,19 @@ class FileImportParser
     }
 
     /**
-     * Membaca file .xlsx secara native menggunakan ZipArchive & SimpleXMLElement.
+     * Membaca file .xlsx secara native tanpa bergantung pada ekstensi ZipArchive (menggunakan parser binary ZIP native + SimpleXMLElement).
      * Membaca xl/sharedStrings.xml dan xl/worksheets/sheet1.xml.
      */
     public static function parseXlsx(string $filePath): array
     {
-        if (!class_exists('ZipArchive')) {
-            return [];
-        }
-
-        $zip = new ZipArchive();
-        if ($zip->open($filePath) !== true) {
+        $entries = self::readZipEntries($filePath);
+        if (empty($entries)) {
             return [];
         }
 
         // 1. Baca Shared Strings (xl/sharedStrings.xml) jika ada
         $sharedStrings = [];
-        $sharedStringsXml = $zip->getFromName('xl/sharedStrings.xml');
+        $sharedStringsXml = $entries['xl/sharedStrings.xml'] ?? false;
         if ($sharedStringsXml !== false) {
             $xml = @simplexml_load_string($sharedStringsXml);
             if ($xml !== false && isset($xml->si)) {
@@ -75,8 +71,15 @@ class FileImportParser
         }
 
         // 2. Baca Worksheet pertama (xl/worksheets/sheet1.xml)
-        $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
-        $zip->close();
+        $sheetXml = $entries['xl/worksheets/sheet1.xml'] ?? false;
+        if ($sheetXml === false) {
+            foreach ($entries as $entryName => $entryContent) {
+                if (str_starts_with($entryName, 'xl/worksheets/sheet') && str_ends_with($entryName, '.xml')) {
+                    $sheetXml = $entryContent;
+                    break;
+                }
+            }
+        }
 
         if ($sheetXml === false) {
             return [];
@@ -375,21 +378,51 @@ class FileImportParser
     /**
      * Mengonversi baris mentah hasil pembacaan file menjadi struktur item Pratinjau FAQ.
      *
-     * Format Kolom yang Didukung:
-     * - Format Standar (4 atau 5 kolom):
-     *   Kolom A: Pertanyaan FAQ
-     *   Kolom B: Jawaban FAQ
-     *   Kolom C: Kata Kunci (dipisahkan koma, misal: "akademik, cuti, mahasiswa")
-     *   Kolom D: Sumber Pustaka / Link / Judul Dokumen
-     *   Kolom E (Opsional): Bagian / Keterangan Sumber Pustaka
-     *
-     * - Format Dengan Kolom No/Kode di Depan (5 atau 6 kolom):
-     *   Jika Kolom A berisi nomor urut ("1", "2") atau kode ("FAQ-0001"), otomatis bergeser membaca Kolom B sebagai Pertanyaan!
+     * Konsep ID & Versi:
+     * - Jika pertanyaan baru (atau belum ada di tabel tfaqs):
+     *   ID FAQ bertambah (FAQ-0001, FAQ-0002, dst.) dan ID Versi adalah FAQ-XXXX-V1 (Versi 1).
+     * - Jika pertanyaan sudah ada di tfaqs (atau di dalam batch file yang sama) atau menggunakan kode FAQ yang sudah ada:
+     *   ID FAQ tetap (misal FAQ-0001) dan ID Versi bertambah menjadi FAQ-0001-V2, FAQ-0001-V3, dst.!
      */
     public static function mapRowsToFaqPreview(array $rows, int $startFaqNumber = 1): array
     {
         if (empty($rows)) {
             return [];
+        }
+
+        // Ambil daftar FAQ yang sudah ada di database beserta jumlah versinya
+        $existingFaqsByCode = [];
+        $existingFaqsByQuestion = [];
+
+        try {
+            $dbFaqs = \App\Models\Faq::with('versions')->get();
+            foreach ($dbFaqs as $f) {
+                $maxV = 0;
+                foreach ($f->versions as $v) {
+                    if (preg_match('/-V(\d+)$/i', $v->id, $m)) {
+                        $num = (int) $m[1];
+                        if ($num > $maxV) {
+                            $maxV = $num;
+                        }
+                    }
+                }
+                if ($maxV === 0) {
+                    $maxV = $f->versions->count();
+                }
+
+                $codeKey = strtoupper(trim($f->id));
+                $qKey = mb_strtolower(trim($f->pertanyaan));
+
+                $existingFaqsByCode[$codeKey] = [
+                    'id'    => $f->id,
+                    'max_v' => $maxV,
+                ];
+                if ($qKey !== '') {
+                    $existingFaqsByQuestion[$qKey] = $codeKey;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Abaikan jika DB belum siap
         }
 
         $items = [];
@@ -415,10 +448,11 @@ class FileImportParser
 
             // Deteksi apakah Kolom 0 adalah Nomor Urut atau Kode FAQ
             $hasLeadingCodeOrNo = false;
-            if (
-                preg_match('/^\d+$/', $col0) ||
-                preg_match('/^FAQ-\d+/i', $col0)
-            ) {
+            $explicitFaqCode = null;
+            if (preg_match('/^FAQ-\d+/i', $col0)) {
+                $hasLeadingCodeOrNo = true;
+                $explicitFaqCode = strtoupper($col0);
+            } elseif (preg_match('/^\d+$/', $col0)) {
                 $hasLeadingCodeOrNo = true;
             }
 
@@ -449,14 +483,45 @@ class FileImportParser
                 ));
             }
 
+            // Tentukan apakah ini versi baru dari FAQ yang sudah ada atau FAQ baru
+            $qKey = mb_strtolower($pertanyaan);
+            $matchedCode = null;
+
+            if ($explicitFaqCode && isset($existingFaqsByCode[$explicitFaqCode])) {
+                $matchedCode = $explicitFaqCode;
+            } elseif ($qKey !== '' && isset($existingFaqsByQuestion[$qKey])) {
+                $matchedCode = $existingFaqsByQuestion[$qKey];
+            }
+
+            if ($matchedCode !== null) {
+                $faqId = $existingFaqsByCode[$matchedCode]['id'];
+                $nextV = $existingFaqsByCode[$matchedCode]['max_v'] + 1;
+                $existingFaqsByCode[$matchedCode]['max_v'] = $nextV;
+                $versionNum = $nextV;
+            } else {
+                $faqId = sprintf('FAQ-%04d', $counter++);
+                $versionNum = 1;
+                $codeKey = strtoupper($faqId);
+                $existingFaqsByCode[$codeKey] = [
+                    'id'    => $faqId,
+                    'max_v' => 1,
+                ];
+                if ($qKey !== '') {
+                    $existingFaqsByQuestion[$qKey] = $codeKey;
+                }
+            }
+
+            $versionId = $faqId . '-V' . $versionNum;
+
             // Status 'ready' (Siap diajukan) jika Pertanyaan, Jawaban, Kata Kunci, dan Sumber Pustaka semuanya terisi
             $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && $pustakaJudul !== '');
 
-            $faqId = sprintf('FAQ-%04d', $counter++);
-
             $items[] = [
+                'row_key'        => $versionId, // Unik per baris (misal FAQ-0001-V1, FAQ-0001-V2)
                 'id'             => $faqId,
-                'version'        => 'Versi 1',
+                'version_id'     => $versionId,
+                'version_num'    => $versionNum,
+                'version'        => 'Versi ' . $versionNum,
                 'pertanyaan'     => $pertanyaan,
                 'jawaban'        => $jawaban,
                 'tags'           => $tags,
@@ -546,6 +611,287 @@ class FileImportParser
             }
         }
         return $sources;
+    }
+
+    /**
+     * Membuat file Excel (.xlsx) asli tanpa memerlukan ekstensi php_zip (menggunakan pure-PHP ZIP builder)
+     * agar setiap kolom terpisah rapi di masing-masing sel Excel (A, B, C, D, E) di semua komputer.
+     */
+    public static function generateXlsx(array $headers, array $dataRows, string $sheetTitle = 'Template'): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'kms_xlsx_');
+        $files = [];
+
+        // 1. [Content_Types].xml
+        $files['[Content_Types].xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            . '<Default Extension="xml" ContentType="application/xml"/>'
+            . '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            . '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            . '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+            . '</Types>';
+
+        // 2. _rels/.rels
+        $files['_rels/.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            . '</Relationships>';
+
+        // 3. xl/_rels/workbook.xml.rels
+        $files['xl/_rels/workbook.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            . '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+            . '</Relationships>';
+
+        // 4. xl/workbook.xml
+        $safeTitle = htmlspecialchars(substr($sheetTitle, 0, 31), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $files['xl/workbook.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            . '<sheets><sheet name="' . $safeTitle . '" sheetId="1" r:id="rId1"/></sheets>'
+            . '</workbook>';
+
+        // 5. xl/styles.xml (Style 0 = Normal, Style 1 = Header Bold dengan background maroon KMS)
+        $files['xl/styles.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<fonts count="2">'
+            . '<font><sz val="11"/><name val="Calibri"/></font>'
+            . '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
+            . '</fonts>'
+            . '<fills count="3">'
+            . '<fill><patternFill patternType="none"/></fill>'
+            . '<fill><patternFill patternType="gray125"/></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FF85172C"/><bgColor indexed="64"/></patternFill></fill>'
+            . '</fills>'
+            . '<borders count="2">'
+            . '<border><left/><right/><top/><bottom/><diagonal/></border>'
+            . '<border>'
+            . '<left style="thin"><color rgb="FFD1D5DB"/></left>'
+            . '<right style="thin"><color rgb="FFD1D5DB"/></right>'
+            . '<top style="thin"><color rgb="FFD1D5DB"/></top>'
+            . '<bottom style="thin"><color rgb="FFD1D5DB"/></bottom>'
+            . '<diagonal/>'
+            . '</border>'
+            . '</borders>'
+            . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+            . '<cellXfs count="2">'
+            . '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+            . '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>'
+            . '</cellXfs>'
+            . '</styleSheet>';
+
+        // 6. xl/worksheets/sheet1.xml
+        $allRows = array_merge([$headers], $dataRows);
+        $colCount = count($headers);
+
+        $colsXml = '<cols>';
+        for ($c = 1; $c <= $colCount; $c++) {
+            $width = ($c === 1 || $c === 2) ? 42 : 28;
+            $colsXml .= '<col min="' . $c . '" max="' . $c . '" width="' . $width . '" customWidth="1"/>';
+        }
+        $colsXml .= '</cols>';
+
+        $sheetDataXml = '<sheetData>';
+        foreach ($allRows as $rIdx => $rowValues) {
+            $excelRowNum = $rIdx + 1;
+            $styleIndex = ($rIdx === 0) ? 1 : 0;
+            $sheetDataXml .= '<row r="' . $excelRowNum . '">';
+
+            foreach (array_values($rowValues) as $cIdx => $cellVal) {
+                $colLetter = self::columnLetterFromIndex($cIdx);
+                $cellRef = $colLetter . $excelRowNum;
+                $escapedVal = htmlspecialchars((string) $cellVal, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+                $sheetDataXml .= '<c r="' . $cellRef . '" s="' . $styleIndex . '" t="inlineStr">'
+                    . '<is><t>' . $escapedVal . '</t></is>'
+                    . '</c>';
+            }
+
+            $sheetDataXml .= '</row>';
+        }
+        $sheetDataXml .= '</sheetData>';
+
+        $files['xl/worksheets/sheet1.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . $colsXml
+            . $sheetDataXml
+            . '</worksheet>';
+
+        $zipBinary = self::buildZipBinary($files);
+        file_put_contents($tempFile, $zipBinary);
+
+        return $tempFile;
+    }
+
+    /**
+     * Membuat binary arsip ZIP valid secara native di PHP tanpa ekstensi php_zip.
+     */
+    private static function buildZipBinary(array $files): string
+    {
+        $localHeaders = '';
+        $centralDir = '';
+        $offset = 0;
+        $count = 0;
+
+        foreach ($files as $filename => $content) {
+            $filename = str_replace('\\', '/', $filename);
+            $compressed = gzdeflate($content, 6);
+            $crc = crc32($content);
+            $uncLen = strlen($content);
+            $compLen = strlen($compressed);
+            $fnLen = strlen($filename);
+
+            // Local file header (30 bytes + filename + compressed data)
+            $localHeader = pack(
+                'VvvvvvVVVvv',
+                0x04034b50, // Local file header signature
+                20,         // Version needed to extract (2.0)
+                0,          // General purpose bit flag
+                8,          // Compression method (8 = Deflate)
+                0,          // Last mod file time
+                0,          // Last mod file date
+                $crc,       // CRC-32
+                $compLen,   // Compressed size
+                $uncLen,    // Uncompressed size
+                $fnLen,     // File name length
+                0           // Extra field length
+            ) . $filename . $compressed;
+
+            // Central directory file header (46 bytes + filename)
+            $centralRecord = pack(
+                'VvvvvvvVVVvvvvvVV',
+                0x02014b50, // Central file header signature
+                20,         // Version made by
+                20,         // Version needed to extract
+                0,          // General purpose bit flag
+                8,          // Compression method (8 = Deflate)
+                0,          // Last mod file time
+                0,          // Last mod file date
+                $crc,       // CRC-32
+                $compLen,   // Compressed size
+                $uncLen,    // Uncompressed size
+                $fnLen,     // File name length
+                0,          // Extra field length
+                0,          // File comment length
+                0,          // Disk number start
+                0,          // Internal file attributes
+                32,         // External file attributes
+                $offset     // Relative offset of local header
+            ) . $filename;
+
+            $localHeaders .= $localHeader;
+            $centralDir .= $centralRecord;
+            $offset += strlen($localHeader);
+            $count++;
+        }
+
+        // End of central directory record (22 bytes)
+        $eocd = pack(
+            'VvvvvVVv',
+            0x06054b50,          // End of central dir signature
+            0,                   // Number of this disk
+            0,                   // Disk where central directory starts
+            $count,              // Number of central directory records on this disk
+            $count,              // Total number of central directory records
+            strlen($centralDir), // Size of central directory
+            $offset,             // Offset of start of central directory
+            0                    // Comment length
+        );
+
+        return $localHeaders . $centralDir . $eocd;
+    }
+
+    /**
+     * Membaca isi file ZIP (.xlsx) secara native di PHP (gunakan ZipArchive jika ada, atau binary parser via Central Directory).
+     */
+    private static function readZipEntries(string $filePath): array
+    {
+        if (!is_readable($filePath)) {
+            return [];
+        }
+
+        if (class_exists('ZipArchive')) {
+            $zip = new ZipArchive();
+            if ($zip->open($filePath) === true) {
+                $entries = [];
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $name = $zip->getNameIndex($i);
+                    $entries[$name] = $zip->getFromIndex($i);
+                }
+                $zip->close();
+                return $entries;
+            }
+        }
+
+        $data = @file_get_contents($filePath);
+        if ($data === false || strlen($data) < 22) {
+            return [];
+        }
+
+        // Cari End of Central Directory (EOCD) signature 0x06054b50 dari belakang
+        $eocdPos = strrpos($data, "\x50\x4b\x05\x06");
+        if ($eocdPos === false || strlen($data) - $eocdPos < 22) {
+            return [];
+        }
+
+        $eocd = unpack('vcdDisk/vcdStart/vcdEntriesDisk/vcdEntriesTotal/VcdSize/VcdOffset', substr($data, $eocdPos + 4, 16));
+        if (!$eocd) {
+            return [];
+        }
+
+        $entries = [];
+        $pos = $eocd['cdOffset'];
+        $total = $eocd['cdEntriesTotal'];
+        $dataLen = strlen($data);
+
+        for ($i = 0; $i < $total; $i++) {
+            if ($pos + 46 > $dataLen || substr($data, $pos, 4) !== "\x50\x4b\x01\x02") {
+                break;
+            }
+
+            $cd = unpack(
+                'vverMade/vverNeed/vflags/vmethod/vmodTime/vmodDate/Vcrc/VcompSize/VuncSize/vfnLen/vextraLen/vcommentLen/vdiskStart/vintAttr/VextAttr/VlocalOffset',
+                substr($data, $pos + 4, 42)
+            );
+            if (!$cd) {
+                break;
+            }
+
+            $filename = substr($data, $pos + 46, $cd['fnLen']);
+            $pos += 46 + $cd['fnLen'] + $cd['extraLen'] + $cd['commentLen'];
+
+            $localPos = $cd['localOffset'];
+            if ($localPos + 30 > $dataLen || substr($data, $localPos, 4) !== "\x50\x4b\x03\x04") {
+                continue;
+            }
+
+            $local = unpack('vfnLen/vextraLen', substr($data, $localPos + 26, 4));
+            $dataStart = $localPos + 30 + $local['fnLen'] + $local['extraLen'];
+            $compData = substr($data, $dataStart, $cd['compSize']);
+
+            if ($cd['method'] === 0) {
+                $entries[$filename] = $compData;
+            } elseif ($cd['method'] === 8) {
+                $inflated = @gzinflate($compData);
+                if ($inflated !== false) {
+                    $entries[$filename] = $inflated;
+                }
+            }
+        }
+
+        return $entries;
+    }
+
+    private static function columnLetterFromIndex(int $index): string
+    {
+        $letter = '';
+        $num = $index + 1;
+        while ($num > 0) {
+            $mod = ($num - 1) % 26;
+            $letter = chr(65 + $mod) . $letter;
+            $num = intdiv($num - $mod, 26);
+        }
+        return $letter;
     }
 }
 

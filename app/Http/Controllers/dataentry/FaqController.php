@@ -48,7 +48,7 @@ class FaqController extends Controller
                     $submittedCount++;
                 } elseif ($st === 'rejected') {
                     $rejectedCount++;
-                } elseif ($st === 'approved') {
+                } elseif (in_array($st, ['approved', 'active'])) {
                     $approvedCount++;
                 }
             }
@@ -78,15 +78,28 @@ class FaqController extends Controller
     }
 
     /**
-     * Menu 2 (Tampilan 1 - Input Satuan): Menampilkan form Buat FAQ dengan generate ID otomatis (FAQ-0001, dst).
+     * Menu 2 (Tampilan 1 - Input Satuan): Menampilkan form Buat FAQ dengan generate ID otomatis (FAQ-0001, dst),
+     * atau membuat versi jawaban baru (FAQ-0001-V2, dst) jika memilih FAQ yang sudah ada.
      */
-    public function create()
+    public function create(Request $request)
     {
         $newFaqId = Faq::generateNextId();
         $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
+        $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
 
-        return view('dataentry.buatfaq', compact('newFaqId', 'tags', 'daftarPustaka'));
+        $selectedExistingFaq = null;
+        if ($request->filled('faq_id')) {
+            $selectedExistingFaq = $allFaqs->firstWhere('id', $request->query('faq_id'));
+        }
+
+        return view('dataentry.buatfaq', compact(
+            'newFaqId',
+            'tags',
+            'daftarPustaka',
+            'allFaqs',
+            'selectedExistingFaq'
+        ));
     }
 
     /**
@@ -104,8 +117,11 @@ class FaqController extends Controller
 
             $items = [
                 [
+                    'row_key'        => sprintf('FAQ-%04d-V1', $startNum),
                     'id'             => sprintf('FAQ-%04d', $startNum),
+                    'version_id'     => sprintf('FAQ-%04d-V1', $startNum),
                     'version'        => 'Versi 1',
+                    'is_new_version' => false,
                     'pertanyaan'     => 'Bagaimana prosedur pengajuan cuti akademik?',
                     'jawaban'        => 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender. Konsultasikan ke dosen pembimbing akademik (PA) terlebih dahulu.',
                     'tags'           => ['cuti akademik', 'pengajuan', 'mahasiswa S1', 'Akademik'],
@@ -115,8 +131,11 @@ class FaqController extends Controller
                     'checked'        => true,
                 ],
                 [
+                    'row_key'        => sprintf('FAQ-%04d-V1', $startNum + 1),
                     'id'             => sprintf('FAQ-%04d', $startNum + 1),
+                    'version_id'     => sprintf('FAQ-%04d-V1', $startNum + 1),
                     'version'        => 'Versi 1',
+                    'is_new_version' => false,
                     'pertanyaan'     => 'Apa syarat mengambil mata kuliah di luar program studi?',
                     'jawaban'        => 'Mahasiswa dapat mengambil mata kuliah lintas prodi dengan persetujuan dosen PA dan kuota tersedia.',
                     'tags'           => [],
@@ -126,8 +145,11 @@ class FaqController extends Controller
                     'checked'        => false,
                 ],
                 [
+                    'row_key'        => sprintf('FAQ-%04d-V1', $startNum + 2),
                     'id'             => sprintf('FAQ-%04d', $startNum + 2),
+                    'version_id'     => sprintf('FAQ-%04d-V1', $startNum + 2),
                     'version'        => 'Versi 1',
+                    'is_new_version' => false,
                     'pertanyaan'     => 'Bagaimana cara mengajukan beasiswa UBAYA?',
                     'jawaban'        => 'Pendaftaran beasiswa dibuka sesuai jadwal, pastikan melengkapi berkas seperti transkrip nilai dan surat rekomendasi.',
                     'tags'           => ['beasiswa', 'syarat', 'UBAYA'],
@@ -137,8 +159,11 @@ class FaqController extends Controller
                     'checked'        => true,
                 ],
                 [
+                    'row_key'        => sprintf('FAQ-%04d-V1', $startNum + 3),
                     'id'             => sprintf('FAQ-%04d', $startNum + 3),
+                    'version_id'     => sprintf('FAQ-%04d-V1', $startNum + 3),
                     'version'        => 'Versi 1',
+                    'is_new_version' => false,
                     'pertanyaan'     => 'Kapan jadwal semester genap 2026/2027 dimulai?',
                     'jawaban'        => 'Semester genap 2026/2027 dimulai sesuai kalender akademik yang ditetapkan. Pantau pengumuman resmi universitas.',
                     'tags'           => ['KRS', 'jadwal', 'semester genap'],
@@ -148,8 +173,11 @@ class FaqController extends Controller
                     'checked'        => false,
                 ],
                 [
+                    'row_key'        => sprintf('FAQ-%04d-V1', $startNum + 4),
                     'id'             => sprintf('FAQ-%04d', $startNum + 4),
+                    'version_id'     => sprintf('FAQ-%04d-V1', $startNum + 4),
                     'version'        => 'Versi 1',
+                    'is_new_version' => false,
                     'pertanyaan'     => 'Mata kuliah apa saja yang sudah bisa diambil?',
                     'jawaban'        => 'Daftar mata kuliah yang tersedia tercantum di buku panduan prodi masing-masing. Konsultasikan dengan dosen wali.',
                     'tags'           => ['lintas prodi', 'syarat', 'mata kuliah'],
@@ -241,7 +269,8 @@ class FaqController extends Controller
         $updatedItem = null;
 
         foreach ($items as &$item) {
-            if ($item['id'] === $rowId) {
+            $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+            if ($itemKey === $rowId || $item['id'] === $rowId) {
                 $item['pertanyaan']     = $pertanyaan;
                 $item['jawaban']        = $jawaban;
                 $item['tags']           = $tags;
@@ -275,7 +304,10 @@ class FaqController extends Controller
         $rowId = $request->input('id');
         $items = session('uploaded_faqs', []);
 
-        $items = array_values(array_filter($items, fn($item) => $item['id'] !== $rowId));
+        $items = array_values(array_filter($items, function ($item) use ($rowId) {
+            $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+            return $itemKey !== $rowId && $item['id'] !== $rowId;
+        }));
         session(['uploaded_faqs' => $items]);
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -311,7 +343,7 @@ class FaqController extends Controller
             return redirect()->back()->with('error', 'Pilih minimal 1 FAQ menggunakan kotak centang terlebih dahulu.');
         }
 
-        $status = ($action === 'submit') ? 'submitted' : 'draft';
+        $status = ($action === 'submit') ? 'Submitted' : 'Draft';
         $userId = Auth::id() ?? User::where('tRoles_id', 2)->value('id') ?? 1;
 
         try {
@@ -320,14 +352,36 @@ class FaqController extends Controller
             $remainingItems = [];
 
             foreach ($items as $item) {
-                if (in_array($item['id'], $selectedIds)) {
-                    $faqId = Faq::generateNextId();
+                $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+                if (in_array($itemKey, $selectedIds) || in_array($item['id'], $selectedIds)) {
+                    $pertanyaanText = trim((string) ($item['pertanyaan'] ?? ''));
 
-                    $faq = Faq::create([
-                        'id'           => $faqId,
-                        'id_dataentry' => $userId,
-                        'pertanyaan'   => $item['pertanyaan'],
-                    ]);
+                    // Cek apakah FAQ ini sudah ada di tabel tfaqs (berdasarkan ID atau Pertanyaan yang sama)
+                    $existingFaq = null;
+                    if (!empty($item['id'])) {
+                        $existingFaq = Faq::with('versions')->find($item['id']);
+                    }
+                    if (!$existingFaq && $pertanyaanText !== '') {
+                        $existingFaq = Faq::with('versions')
+                            ->whereRaw('LOWER(TRIM(pertanyaan)) = ?', [mb_strtolower($pertanyaanText)])
+                            ->first();
+                    }
+
+                    if ($existingFaq) {
+                        // Jika FAQ sudah ada, tetap gunakan ID FAQ tersebut (misal FAQ-0001) dan tambah versi V-nya (FAQ-0001-V2, dst.)
+                        $faq = $existingFaq;
+                        $faqId = $faq->id;
+                        $versionId = $faq->generateNextVersionId();
+                    } else {
+                        // Jika FAQ baru, generate ID FAQ baru (misal FAQ-0002) dan mulai dari V1 (FAQ-0002-V1)
+                        $faqId = Faq::generateNextId();
+                        $faq = Faq::create([
+                            'id'           => $faqId,
+                            'id_dataentry' => $userId,
+                            'pertanyaan'   => $pertanyaanText,
+                        ]);
+                        $versionId = $faqId . '-V1';
+                    }
 
                     $pustakaId = null;
                     $pustakaJudul = trim((string) ($item['pustaka_judul'] ?? ''));
@@ -341,7 +395,7 @@ class FaqController extends Controller
                     }
 
                     FaqVersion::create([
-                        'id'                 => $faqId . '-V1',
+                        'id'                 => $versionId,
                         'tDaftarPustakas_id' => $pustakaId,
                         'tFaqs_id'           => $faqId,
                         'id_validator'       => null,
@@ -379,7 +433,7 @@ class FaqController extends Controller
                 session(['uploaded_faqs' => $remainingItems]);
             }
 
-            $msg = $status === 'submitted'
+            $msg = strtolower($status) === 'submitted'
                 ? "{$savedCount} FAQ berhasil diajukan ke Validator untuk diperiksa!"
                 : "{$savedCount} FAQ berhasil disimpan sebagai Draft!";
 
@@ -392,61 +446,60 @@ class FaqController extends Controller
     }
 
     /**
-     * Unduh Template CSV/Excel untuk Import FAQ.
+     * Unduh Template Excel (.xlsx) asli untuk Import FAQ (setiap kolom terpisah di sel masing-masing).
      */
     public function downloadTemplateFaq()
     {
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="Template_Import_FAQ_KMS.csv"',
-        ];
-
-        $callback = function () {
-            $out = fopen('php://output', 'w');
-            // Tambahkan BOM UTF-8 agar langsung rapi saat dibuka di Microsoft Excel
-            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['Pertanyaan', 'Jawaban', 'Kata Kunci', 'Sumber Pustaka', 'Bagian Sumber']);
-            fputcsv($out, [
+        $headers = ['Pertanyaan', 'Jawaban', 'Kata Kunci', 'Sumber Pustaka', 'Bagian Sumber'];
+        $rows = [
+            [
                 'Bagaimana prosedur pengajuan cuti akademik?',
                 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender akademik dan disetujui Dosen Wali.',
                 'cuti akademik, pengajuan, mahasiswa S1, Akademik',
                 'Pedoman Akademik 2026/2027',
-                'Bagian Cuti Akademik'
-            ]);
-            fputcsv($out, [
+                'Bagian Cuti Akademik',
+            ],
+            [
                 'Bagaimana cara mengajukan beasiswa UBAYA?',
                 'Pendaftaran beasiswa dibuka sesuai jadwal kemahasiswaan dengan melampirkan transkrip nilai dan surat rekomendasi.',
                 'beasiswa, syarat, UBAYA',
                 'Pedoman Kemahasiswaan 2026',
-                'Bagian Beasiswa'
-            ]);
-            fputcsv($out, [
+                'Bagian Beasiswa',
+            ],
+            [
                 'Apa syarat mengambil mata kuliah lintas prodi?',
                 'Mahasiswa dapat mengambil mata kuliah lintas prodi dengan persetujuan dosen PA dan kuota kelas tersedia.',
-                '',
+                'lintas prodi, syarat, mata kuliah',
                 'Pedoman Akademik 2026/2027',
-                'Bagian Lintas Prodi'
-            ]);
-            fclose($out);
-        };
+                'Bagian Lintas Prodi',
+            ],
+        ];
 
-        return response()->stream($callback, 200, $headers);
+        $filePath = FileImportParser::generateXlsx($headers, $rows, 'Template FAQ');
+
+        return response()->download(
+            $filePath,
+            'Template_Import_FAQ_KMS.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
     }
 
     /**
-     * Menyimpan FAQ baru dari form input satuan ke database sesuai ERD.
+     * Menyimpan FAQ baru (FAQ-XXXX-V1) ATAU menambah versi jawaban baru untuk FAQ yang dipilih (FAQ-XXXX-V2, dst.).
      */
     public function store(Request $request)
     {
         $request->validate([
-            'pertanyaan'  => 'required|string',
-            'jawaban'     => 'required|string',
-            'status'      => 'nullable|in:draft,submitted',
-            'tags'        => 'nullable|string',
-            'pustaka_id'  => 'nullable|integer|exists:tdaftarpustaka,id',
-            'sumber_type' => 'nullable|in:link,upload',
-            'sumber_link' => 'nullable|string|max:45',
-            'sumber_file' => 'nullable|file|max:10240',
+            'pertanyaan'      => 'required|string',
+            'jawaban'         => 'required|string',
+            'status'          => 'nullable|in:draft,submitted',
+            'tags'            => 'nullable|string',
+            'pustaka_id'      => 'nullable|integer|exists:tdaftarpustaka,id',
+            'sumber_type'     => 'nullable|in:link,upload',
+            'sumber_link'     => 'nullable|string|max:45',
+            'sumber_file'     => 'nullable|file|max:10240',
+            'mode_faq'        => 'nullable|in:new,existing',
+            'existing_faq_id' => 'nullable|string|exists:tfaqs,id',
         ], [
             'pertanyaan.required' => 'Pertanyaan FAQ wajib diisi.',
             'jawaban.required'    => 'Jawaban FAQ wajib diisi.',
@@ -457,14 +510,24 @@ class FaqController extends Controller
         try {
             DB::beginTransaction();
 
-            $faqId = Faq::generateNextId();
             $userId = Auth::id() ?? User::where('tRoles_id', 2)->value('id') ?? 1;
+            $isExistingMode = ($request->input('mode_faq') === 'existing' && $request->filled('existing_faq_id'));
 
-            $faq = Faq::create([
-                'id'           => $faqId,
-                'id_dataentry' => $userId,
-                'pertanyaan'   => $request->pertanyaan,
-            ]);
+            if ($isExistingMode) {
+                // Mode Tambah Versi Jawaban Baru pada FAQ yang sudah ada: ID FAQ tetap (misal FAQ-0001), ID Versi naik (FAQ-0001-V2)
+                $faq = Faq::with('versions')->findOrFail($request->existing_faq_id);
+                $faqId = $faq->id;
+                $versionId = $faq->generateNextVersionId();
+            } else {
+                // Mode Buat FAQ Baru: ID FAQ naik (FAQ-0001 -> FAQ-0002), ID Versi mulai dari V1 (FAQ-0002-V1)
+                $faqId = Faq::generateNextId();
+                $faq = Faq::create([
+                    'id'           => $faqId,
+                    'id_dataentry' => $userId,
+                    'pertanyaan'   => $request->pertanyaan,
+                ]);
+                $versionId = $faqId . '-V1';
+            }
 
             $pustakaId = null;
 
@@ -493,12 +556,8 @@ class FaqController extends Controller
                 $pustakaId = $pustaka->id;
             }
 
-            $status = $request->input('status', 'draft');
-            if (!in_array($status, ['draft', 'submitted'])) {
-                $status = 'draft';
-            }
-
-            $versionId = $faqId . '-V1';
+            $rawStatus = strtolower($request->input('status', 'draft'));
+            $status = ($rawStatus === 'submitted') ? 'Submitted' : 'Draft';
 
             FaqVersion::create([
                 'id'                 => $versionId,
@@ -528,9 +587,9 @@ class FaqController extends Controller
 
             DB::commit();
 
-            $statusText = $status === 'submitted' ? 'diajukan ke Validator untuk validasi' : 'disimpan sebagai draft';
+            $statusText = strtolower($status) === 'submitted' ? 'diajukan ke Validator untuk validasi' : 'disimpan sebagai draft';
             return redirect()->route('dataentry.dashboard')
-                ->with('success', "FAQ {$faqId} berhasil {$statusText}!");
+                ->with('success', "Versi {$versionId} berhasil {$statusText}!");
 
         } catch (Throwable $e) {
             DB::rollBack();
@@ -586,9 +645,10 @@ class FaqController extends Controller
     }
 
     /**
-     * Menampilkan form edit FAQ (hanya diizinkan jika status draft atau rejected/perlu revisi).
+     * Menampilkan form edit FAQ atau tambah versi baru (FAQ-XXXX-V2, dst.).
+     * Dikunci hanya ketika sedang ditinjau validator ('submitted').
      */
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
         $faq = Faq::with(['versions.daftarPustaka', 'tags'])->findOrFail($id);
         $latest = $faq->latest_version;
@@ -599,38 +659,39 @@ class FaqController extends Controller
                 ->with('error', "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.");
         }
 
-        if ($st === 'approved') {
-            return redirect()->route('dataentry.dashboard')
-                ->with('error', "FAQ {$faq->id} sudah terbit dan tidak dapat diedit secara langsung.");
-        }
-
         $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
+        $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
+        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['rejected', 'approved', 'active']);
 
         return view('dataentry.buatfaq', [
-            'faq'           => $faq,
-            'isEdit'        => true,
-            'newFaqId'      => $faq->id,
-            'latestVersion' => $latest,
-            'tags'          => $tags,
-            'daftarPustaka' => $daftarPustaka,
+            'faq'             => $faq,
+            'isEdit'          => true,
+            'forceNewVersion' => $forceNewVersion,
+            'newFaqId'        => $faq->id,
+            'nextVersionId'   => $faq->generateNextVersionId(),
+            'latestVersion'   => $latest,
+            'tags'            => $tags,
+            'daftarPustaka'   => $daftarPustaka,
+            'allFaqs'         => $allFaqs,
         ]);
     }
 
     /**
-     * Memperbarui FAQ di database.
+     * Memperbarui FAQ di database atau membuat versi jawaban baru (misal FAQ-0001-V2).
      */
     public function update(Request $request, $id)
     {
         $request->validate([
-            'pertanyaan'  => 'required|string',
-            'jawaban'     => 'required|string',
-            'status'      => 'nullable|in:draft,submitted',
-            'tags'        => 'nullable|string',
-            'pustaka_id'  => 'nullable|integer|exists:tdaftarpustaka,id',
-            'sumber_type' => 'nullable|in:link,upload',
-            'sumber_link' => 'nullable|string|max:45',
-            'sumber_file' => 'nullable|file|max:10240',
+            'pertanyaan'     => 'required|string',
+            'jawaban'        => 'required|string',
+            'status'         => 'nullable|in:draft,submitted',
+            'version_action' => 'nullable|in:update_draft,new_version',
+            'tags'           => 'nullable|string',
+            'pustaka_id'     => 'nullable|integer|exists:tdaftarpustaka,id',
+            'sumber_type'    => 'nullable|in:link,upload',
+            'sumber_link'    => 'nullable|string|max:45',
+            'sumber_file'    => 'nullable|file|max:10240',
         ]);
 
         try {
@@ -640,10 +701,10 @@ class FaqController extends Controller
             $latest = $faq->latest_version;
             $currentStatus = $latest ? strtolower($latest->status) : 'draft';
 
-            if ($currentStatus === 'submitted' || $currentStatus === 'approved') {
+            if ($currentStatus === 'submitted') {
                 DB::rollBack();
                 return redirect()->route('dataentry.dashboard')
-                    ->with('error', "FAQ {$faq->id} tidak dapat diubah pada status ini.");
+                    ->with('error', "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.");
             }
 
             $faq->update([
@@ -677,16 +738,18 @@ class FaqController extends Controller
                 $pustakaId = $pustaka->id;
             }
 
-            $targetStatus = $request->input('status', 'draft');
-            if (!in_array($targetStatus, ['draft', 'submitted'])) {
-                $targetStatus = 'draft';
-            }
+            $rawTargetStatus = strtolower($request->input('status', 'draft'));
+            $targetStatus = ($rawTargetStatus === 'submitted') ? 'Submitted' : 'Draft';
+            $versionAction = $request->input('version_action', 'new_version');
 
-            if ($currentStatus === 'rejected') {
-                $nextVersionId = $faq->generateNextVersionId();
+            // Buat versi baru (FAQ-0001-V2, V3, dst.) jika dipilih new_version atau jika status sebelumnya bukan draft
+            $shouldCreateNewVersion = ($versionAction === 'new_version') || in_array($currentStatus, ['rejected', 'approved', 'active']);
+
+            if ($shouldCreateNewVersion) {
+                $savedVersionId = $faq->generateNextVersionId();
 
                 FaqVersion::create([
-                    'id'                 => $nextVersionId,
+                    'id'                 => $savedVersionId,
                     'tDaftarPustakas_id' => $pustakaId,
                     'tFaqs_id'           => $faq->id,
                     'id_validator'       => null,
@@ -696,14 +759,16 @@ class FaqController extends Controller
                 ]);
             } else {
                 if ($latest) {
+                    $savedVersionId = $latest->id;
                     $latest->update([
                         'tDaftarPustakas_id' => $pustakaId,
                         'jawaban'            => $request->jawaban,
                         'status'             => $targetStatus,
                     ]);
                 } else {
+                    $savedVersionId = $faq->id . '-V1';
                     FaqVersion::create([
-                        'id'                 => $faq->id . '-V1',
+                        'id'                 => $savedVersionId,
                         'tDaftarPustakas_id' => $pustakaId,
                         'tFaqs_id'           => $faq->id,
                         'id_validator'       => null,
@@ -730,9 +795,9 @@ class FaqController extends Controller
 
             DB::commit();
 
-            $statusText = $targetStatus === 'submitted' ? 'diajukan untuk validasi' : 'disimpan sebagai draft';
+            $statusText = strtolower($targetStatus) === 'submitted' ? 'diajukan untuk validasi' : 'disimpan sebagai draft';
             return redirect()->route('dataentry.dashboard')
-                ->with('success', "FAQ {$faq->id} berhasil diperbarui dan {$statusText}!");
+                ->with('success', "Versi {$savedVersionId} berhasil diperbarui dan {$statusText}!");
 
         } catch (Throwable $e) {
             DB::rollBack();
@@ -927,24 +992,22 @@ class FaqController extends Controller
 
     public function downloadTemplateKataKunci()
     {
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="Template_Import_Kata_Kunci.csv"',
+        $headers = ['No', 'Kata Kunci'];
+        $rows = [
+            ['1', 'cuti akademik'],
+            ['2', 'beasiswa'],
+            ['3', 'KRS'],
+            ['4', 'transkrip nilai'],
+            ['5', 'wisuda'],
         ];
 
-        $callback = function () {
-            $out = fopen('php://output', 'w');
-            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['No', 'Kata Kunci']);
-            fputcsv($out, ['1', 'cuti akademik']);
-            fputcsv($out, ['2', 'beasiswa']);
-            fputcsv($out, ['3', 'KRS']);
-            fputcsv($out, ['4', 'transkrip nilai']);
-            fputcsv($out, ['5', 'wisuda']);
-            fclose($out);
-        };
+        $filePath = FileImportParser::generateXlsx($headers, $rows, 'Template Kata Kunci');
 
-        return response()->stream($callback, 200, $headers);
+        return response()->download(
+            $filePath,
+            'Template_Import_Kata_Kunci.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
     }
 
     /* =========================================================================
@@ -1078,22 +1141,20 @@ class FaqController extends Controller
 
     public function downloadTemplatePustaka()
     {
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="Template_Import_Sumber_Pustaka.csv"',
+        $headers = ['Tipe', 'Judul atau Link Sumber Pustaka'];
+        $rows = [
+            ['link', 'Pedoman Akademik 2026/2027'],
+            ['link', 'SK Rektor No. 12/2026'],
+            ['link', 'Panduan KRS & Perwalian UBAYA'],
         ];
 
-        $callback = function () {
-            $out = fopen('php://output', 'w');
-            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['Tipe', 'Judul atau Link Sumber Pustaka']);
-            fputcsv($out, ['link', 'Pedoman Akademik 2026/2027']);
-            fputcsv($out, ['link', 'SK Rektor No. 12/2026']);
-            fputcsv($out, ['link', 'Panduan KRS & Perwalian UBAYA']);
-            fclose($out);
-        };
+        $filePath = FileImportParser::generateXlsx($headers, $rows, 'Template Sumber Pustaka');
 
-        return response()->stream($callback, 200, $headers);
+        return response()->download(
+            $filePath,
+            'Template_Import_Sumber_Pustaka.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
     }
 
     /**

@@ -154,7 +154,7 @@
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                     <button type="button" class="btn btn-outline-secondary bg-white rounded-3 px-3 py-2 text-dark fs-13 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
                         <i class="bi bi-upload"></i>
-                        <span>Unggah File</span>
+                        <span>Import File</span>
                     </button>
                     <a href="{{ route('dataentry.buatfaq') }}" class="btn-maroon">
                         <i class="bi bi-plus-lg"></i>
@@ -310,6 +310,8 @@
                                         ];
                                         $meta = $statusMap[$st] ?? ['label' => ucfirst($st), 'badge' => 'badge-status-draft', 'rowClass' => ''];
                                         $versionCount = $faq->versions->count() ?: 1;
+                                        $latestVerId = $latest ? $latest->id : ($faq->id . '-V1');
+                                        $nextVerId = $faq->generateNextVersionId();
                                         $updatedTime = $latest && $latest->updated_at ? $latest->updated_at : $faq->updated_at;
                                         $tagString = $faq->tags->pluck('nama')->implode(',');
                                     @endphp
@@ -318,7 +320,7 @@
                                             <div class="d-flex align-items-center gap-2">
                                                 <div>
                                                     <div class="fw-semibold text-dark fs-13 mb-0.5">{{ $faq->pertanyaan }}</div>
-                                                    <div class="fs-11 text-muted">{{ $faq->id }} &middot; Versi {{ $versionCount }}</div>
+                                                    <div class="fs-11 text-muted">{{ $faq->id }} &middot; {{ $latestVerId }} (Versi {{ $versionCount }})</div>
                                                 </div>
                                                 @if($st === 'rejected' && $latest && $latest->catatan)
                                                     <span class="revisi-note-icon ms-1"
@@ -356,13 +358,13 @@
                                                     <i class="bi bi-eye"></i>
                                                 </button>
 
-                                                <!-- Edit FAQ -->
-                                                @if(in_array($st, ['submitted', 'approved']))
+                                                <!-- Edit FAQ / Tambah Versi Jawaban Baru -->
+                                                @if($st === 'submitted')
                                                     <button class="action-icon-btn action-icon-disabled" title="Tidak dapat diedit saat status {{ $meta['label'] }}" disabled>
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
                                                 @else
-                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="action-icon-btn text-decoration-none" title="Edit / Perbaiki">
+                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="action-icon-btn text-decoration-none" title="Edit / Buat Versi Baru ({{ $nextVerId }})">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                 @endif
@@ -375,9 +377,16 @@
                                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 py-1 fs-12">
                                                         <li>
                                                             <a class="dropdown-item py-1.5" href="javascript:void(0)" onclick="viewFaqDetail('{{ $faq->id }}')">
-                                                                <i class="bi bi-clock-history me-1.5 text-secondary"></i> Riwayat Versi
+                                                                <i class="bi bi-clock-history me-1.5 text-secondary"></i> Riwayat Versi ({{ $versionCount }})
                                                             </a>
                                                         </li>
+                                                        @if($st !== 'submitted')
+                                                            <li>
+                                                                <a class="dropdown-item py-1.5" href="{{ route('dataentry.buatfaq', ['faq_id' => $faq->id]) }}">
+                                                                    <i class="bi bi-plus-circle me-1.5 text-primary"></i> Tambah Versi Jawaban Baru ({{ $nextVerId }})
+                                                                </a>
+                                                            </li>
+                                                        @endif
                                                         @if(!in_array($st, ['submitted', 'approved']))
                                                             <li><hr class="dropdown-divider my-1"></li>
                                                             <li>
@@ -646,15 +655,48 @@
                 }
 
                 let statusBadge = `<span class="badge bg-secondary">${latest.status || 'Draft'}</span>`;
-                if (latest.status === 'approved') statusBadge = '<span class="badge bg-success">Terbit</span>';
-                else if (latest.status === 'submitted') statusBadge = '<span class="badge bg-primary">Menunggu Validasi</span>';
-                else if (latest.status === 'rejected') statusBadge = '<span class="badge bg-danger">Perlu Revisi</span>';
+                if (latest.status && latest.status.toLowerCase() === 'approved') statusBadge = '<span class="badge bg-success">Terbit</span>';
+                else if (latest.status && latest.status.toLowerCase() === 'submitted') statusBadge = '<span class="badge bg-primary">Menunggu Validasi</span>';
+                else if (latest.status && latest.status.toLowerCase() === 'rejected') statusBadge = '<span class="badge bg-danger">Perlu Revisi</span>';
+
+                let versionsHistoryHtml = '';
+                if (d.versions && d.versions.length > 0) {
+                    versionsHistoryHtml = `
+                        <div class="mt-3">
+                            <label class="fw-bold text-dark d-block mb-1">Riwayat Versi Jawaban (\`tfaqsversion\`):</label>
+                            <div class="border rounded-3 overflow-hidden">
+                                <table class="table table-sm mb-0 fs-12 align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID Versi</th>
+                                            <th>Status</th>
+                                            <th>Sumber Pustaka</th>
+                                            <th>Diperbarui</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${d.versions.map(v => `
+                                            <tr>
+                                                <td class="fw-bold text-dark">${v.id}</td>
+                                                <td><span class="badge bg-light text-dark border">${v.status}</span></td>
+                                                <td>${v.daftar_pustaka ? v.daftar_pustaka.link : '-'}</td>
+                                                <td class="text-muted">${v.updated_at || '-'}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
 
                 Swal.fire({
                     title: `<div class="fs-18 fw-bold text-start text-dark">${d.id}: ${d.pertanyaan}</div>`,
                     html: `
                         <div class="text-start fs-13 text-secondary">
-                            <div class="mb-2 d-flex align-items-center gap-2">
+                            <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                                <span>Versi Aktif: <strong class="text-dark">${latest.id || (d.id + '-V1')}</strong></span>
+                                <span>&middot;</span>
                                 <span>Status: ${statusBadge}</span>
                                 <span>&middot;</span>
                                 <span>Dibuat: ${d.created_at || '-'}</span>
@@ -665,14 +707,15 @@
                                 <div>${tagsHtml}</div>
                             </div>
                             <div class="mb-3">
-                                <label class="fw-bold text-dark d-block mb-1">Jawaban:</label>
-                                <div class="p-3 bg-light rounded-3 text-dark border fs-13" style="max-height: 220px; overflow-y: auto;">
+                                <label class="fw-bold text-dark d-block mb-1">Jawaban (${latest.id || (d.id + '-V1')}):</label>
+                                <div class="p-3 bg-light rounded-3 text-dark border fs-13" style="max-height: 180px; overflow-y: auto;">
                                     ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
                                 </div>
                             </div>
+                            ${versionsHistoryHtml}
                         </div>
                     `,
-                    width: '650px',
+                    width: '680px',
                     confirmButtonColor: '#85172C',
                     confirmButtonText: 'Tutup'
                 });

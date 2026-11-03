@@ -198,25 +198,33 @@
                         </thead>
                         <tbody id="tableBody">
                             @foreach($items as $item)
+                                @php
+                                    $rowKey = $item['row_key'] ?? $item['version_id'] ?? ($item['id'] . '-V1');
+                                    $verId = $item['version_id'] ?? ($item['id'] . '-V1');
+                                    $verLabel = $item['version'] ?? 'Versi 1';
+                                @endphp
                                 <tr class="faq-row {{ !empty($item['checked']) ? 'preview-row-selected' : '' }}"
                                     data-status="{{ $item['status'] }}"
                                     data-id="{{ $item['id'] }}"
+                                    data-row-key="{{ $rowKey }}"
+                                    data-version-id="{{ $verId }}"
+                                    data-version="{{ $verLabel }}"
                                     data-pertanyaan="{{ e($item['pertanyaan']) }}"
                                     data-jawaban="{{ e($item['jawaban']) }}"
                                     data-tags="{{ e(implode(', ', $item['tags'] ?? [])) }}"
                                     data-pustaka-judul="{{ e($item['pustaka_judul'] ?? '') }}"
                                     data-pustaka-bagian="{{ e($item['pustaka_bagian'] ?? '') }}"
-                                    id="row-{{ $item['id'] }}">
+                                    id="row-{{ $rowKey }}">
                                     <td class="text-center">
                                         <input type="checkbox"
                                                class="form-check-input row-checkbox"
-                                               value="{{ $item['id'] }}"
+                                               value="{{ $rowKey }}"
                                                {{ !empty($item['checked']) ? 'checked' : '' }}
-                                               onchange="handleRowCheckboxChange(this, '{{ $item['id'] }}')">
+                                               onchange="handleRowCheckboxChange(this, '{{ $rowKey }}')">
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark fs-12">{{ $item['id'] }}</div>
-                                        <div class="fs-11 text-muted">{{ $item['version'] ?? 'Versi 1' }}</div>
+                                        <div class="fs-11 text-muted">{{ $verId }} ({{ $verLabel }})</div>
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark fs-13 line-clamp-1 mb-0.5 faq-pertanyaan">{{ $item['pertanyaan'] }}</div>
@@ -251,10 +259,10 @@
                                     </td>
                                     <td style="text-align: right;" class="text-nowrap">
                                         <div class="d-inline-flex align-items-center gap-1">
-                                            <button type="button" class="btn-table-edit" onclick="openEditModal('{{ $item['id'] }}')">
+                                            <button type="button" class="btn-table-edit" onclick="openEditModal('{{ $rowKey }}')">
                                                 <i class="bi bi-pencil"></i> Edit
                                             </button>
-                                            <button type="button" class="btn-table-delete" onclick="deleteRow('{{ $item['id'] }}')">
+                                            <button type="button" class="btn-table-delete" onclick="deleteRow('{{ $rowKey }}')">
                                                 <i class="bi bi-trash3"></i> Hapus
                                             </button>
                                         </div>
@@ -308,12 +316,12 @@
 
 <!-- Modal Edit Baris Pratinjau FAQ -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 rounded-4 shadow">
             <div class="modal-header border-bottom">
                 <div>
                     <h5 class="modal-title fw-bold fs-16" id="modalEditTitle">Edit FAQ</h5>
-                    <div class="fs-12 text-muted">Lengkapi pertanyaan, jawaban, kata kunci, dan sumber pustaka agar siap diajukan.</div>
+                    <div class="fs-12 text-muted">Lengkapi pertanyaan, jawaban, pilih kata kunci, dan sumber pustaka agar siap diajukan.</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -331,20 +339,65 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label-custom form-label-required">Kata Kunci (Pisahkan dengan koma)</label>
-                    <input type="text" id="modalEditTags" class="form-control fs-13 rounded-3" placeholder="contoh: akademik, cuti, mahasiswa S1">
+                    <label class="form-label-custom form-label-required">Kata Kunci</label>
+                    <div class="row g-2 mb-2">
+                        <div class="col-12 col-md-5">
+                            <select id="modalSelectExistingTag" class="form-select fs-13 rounded-3" onchange="pickExistingTagFromDropdown(this)">
+                                <option value="">+ Pilih dari kata kunci yang sudah ada...</option>
+                                @if(isset($tags) && $tags->isNotEmpty())
+                                    @foreach($tags as $t)
+                                        <option value="{{ $t->nama }}">{{ $t->nama }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-7">
+                            <input type="text" id="modalEditTags" class="form-control fs-13 rounded-3" placeholder="contoh: akademik, cuti, mahasiswa S1 (pisah dengan koma)">
+                        </div>
+                    </div>
+
+                    @if(isset($tags) && $tags->isNotEmpty())
+                        <div class="p-2.5 bg-light border rounded-3">
+                            <div class="fs-11 text-muted mb-1.5">Klik untuk menambahkan/melepas pilihan kata kunci dari database:</div>
+                            <div class="d-flex flex-wrap gap-1" style="max-height: 95px; overflow-y: auto;">
+                                @foreach($tags as $t)
+                                    <button type="button"
+                                            class="btn btn-sm btn-white border rounded-pill fs-11 py-0.5 px-2.5 modal-tag-choice"
+                                            data-tag-name="{{ $t->nama }}"
+                                            onclick="appendExistingTagToModal('{{ addslashes($t->nama) }}')">
+                                        + {{ $t->nama }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label-custom form-label-required">Judul / Link Sumber Pustaka</label>
-                    <input type="text" id="modalEditJudulPustaka" class="form-control fs-13 rounded-3" maxlength="45" list="existingPustakaList" placeholder="contoh: Pedoman Akademik 2026/2027">
-                    <datalist id="existingPustakaList">
-                        @if(isset($daftarPustaka))
-                            @foreach($daftarPustaka as $dp)
-                                <option value="{{ $dp->link }}"></option>
-                            @endforeach
-                        @endif
-                    </datalist>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-5">
+                            <select id="modalSelectExistingPustaka" class="form-select fs-13 rounded-3" onchange="pickExistingPustakaFromDropdown(this)">
+                                <option value="">-- Pilih dari Sumber Pustaka yang Ada --</option>
+                                @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
+                                    @foreach($daftarPustaka as $dp)
+                                        <option value="{{ $dp->link }}">{{ $dp->link ?: ('Dokumen #' . $dp->id) }} ({{ strtoupper($dp->type) }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-7">
+                            <input type="text" id="modalEditJudulPustaka" class="form-control fs-13 rounded-3" maxlength="45" list="existingPustakaList" placeholder="Atau ketik judul/link sumber pustaka baru...">
+                            <datalist id="existingPustakaList">
+                                @if(isset($daftarPustaka))
+                                    @foreach($daftarPustaka as $dp)
+                                        <option value="{{ $dp->link }}"></option>
+                                    @endforeach
+                                @endif
+                            </datalist>
+                        </div>
+                    </div>
+                    <div class="fs-11 text-muted mt-1">Pilih dari daftar sumber pustaka yang sudah ada di kiri, atau ketik sumber pustaka baru di kanan.</div>
                 </div>
 
                 <div class="mb-1">
@@ -503,16 +556,97 @@
         const row = document.getElementById('row-' + rowId);
         if (!row) return;
 
+        const faqCode = row.getAttribute('data-id') || rowId;
+        const verId = row.getAttribute('data-version-id') || rowId;
+        const currentPustaka = row.getAttribute('data-pustaka-judul') || '';
+
         document.getElementById('editRowId').value = rowId;
-        document.getElementById('modalEditTitle').textContent = 'Edit FAQ - ' + rowId;
+        document.getElementById('modalEditTitle').textContent = `Edit FAQ - ${faqCode} (${verId})`;
         document.getElementById('modalEditPertanyaan').value = row.getAttribute('data-pertanyaan') || '';
         document.getElementById('modalEditJawaban').value = row.getAttribute('data-jawaban') || '';
         document.getElementById('modalEditTags').value = row.getAttribute('data-tags') || '';
-        document.getElementById('modalEditJudulPustaka').value = row.getAttribute('data-pustaka-judul') || '';
+        document.getElementById('modalEditJudulPustaka').value = currentPustaka;
         document.getElementById('modalEditBagian').value = row.getAttribute('data-pustaka-bagian') || '';
+
+        const tagSelect = document.getElementById('modalSelectExistingTag');
+        if (tagSelect) tagSelect.value = '';
+
+        const pustakaSelect = document.getElementById('modalSelectExistingPustaka');
+        if (pustakaSelect) {
+            let matched = false;
+            Array.from(pustakaSelect.options).forEach(opt => {
+                if (opt.value && opt.value.toLowerCase() === currentPustaka.toLowerCase()) {
+                    pustakaSelect.value = opt.value;
+                    matched = true;
+                }
+            });
+            if (!matched) pustakaSelect.value = '';
+        }
+
+        highlightModalTagChoices();
 
         const modal = new bootstrap.Modal(document.getElementById('editModal'));
         modal.show();
+    }
+
+    function pickExistingTagFromDropdown(selectEl) {
+        const val = (selectEl.value || '').trim();
+        if (val) {
+            appendExistingTagToModal(val, true);
+            selectEl.value = '';
+        }
+    }
+
+    function appendExistingTagToModal(tagName, forceAddOnly = false) {
+        const input = document.getElementById('modalEditTags');
+        if (!input) return;
+
+        const currentTags = input.value
+            ? input.value.split(',').map(t => t.trim()).filter(Boolean)
+            : [];
+
+        const existingIndex = currentTags.findIndex(t => t.toLowerCase() === tagName.trim().toLowerCase());
+        if (existingIndex === -1) {
+            currentTags.push(tagName.trim());
+        } else if (!forceAddOnly) {
+            currentTags.splice(existingIndex, 1);
+        }
+
+        input.value = currentTags.join(', ');
+        highlightModalTagChoices();
+    }
+
+    function highlightModalTagChoices() {
+        const input = document.getElementById('modalEditTags');
+        if (!input) return;
+
+        const activeTags = input.value
+            ? input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+            : [];
+
+        document.querySelectorAll('.modal-tag-choice').forEach(btn => {
+            const name = (btn.getAttribute('data-tag-name') || '').trim();
+            const isSelected = activeTags.includes(name.toLowerCase());
+            if (isSelected) {
+                btn.classList.remove('btn-white', 'border');
+                btn.classList.add('btn-primary', 'text-white');
+                btn.textContent = '✓ ' + name;
+            } else {
+                btn.classList.add('btn-white', 'border');
+                btn.classList.remove('btn-primary', 'text-white');
+                btn.textContent = '+ ' + name;
+            }
+        });
+    }
+
+    document.getElementById('modalEditTags')?.addEventListener('input', highlightModalTagChoices);
+
+    function pickExistingPustakaFromDropdown(selectEl) {
+        const val = (selectEl.value || '').trim();
+        if (val) {
+            const input = document.getElementById('modalEditJudulPustaka');
+            if (input) input.value = val;
+        }
     }
 
     function saveEditedFaq() {
@@ -629,8 +763,10 @@
             const tagsStr = row.getAttribute('data-tags') || '';
             const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
             items.push({
+                row_key: row.getAttribute('data-row-key') || row.getAttribute('data-version-id') || row.getAttribute('data-id'),
                 id: row.getAttribute('data-id'),
-                version: 'Versi 1',
+                version_id: row.getAttribute('data-version-id') || (row.getAttribute('data-id') + '-V1'),
+                version: row.getAttribute('data-version') || 'Versi 1',
                 pertanyaan: row.getAttribute('data-pertanyaan') || '',
                 jawaban: row.getAttribute('data-jawaban') || '',
                 tags: tags,
