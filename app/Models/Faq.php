@@ -13,6 +13,7 @@ class Faq extends Model
     protected $fillable = [
         'id',
         'id_dataentry',
+        'id_riwayat_import',
         'pertanyaan',
     ];
 
@@ -20,6 +21,12 @@ class Faq extends Model
     public function dataEntry()
     {
         return $this->belongsTo(User::class, 'id_dataentry');
+    }
+
+    /** Riwayat import asal FAQ (jika dibuat melalui import Excel) */
+    public function riwayatImport()
+    {
+        return $this->belongsTo(RiwayatImport::class, 'id_riwayat_import');
     }
 
     /** Versi-versi dari FAQ ini */
