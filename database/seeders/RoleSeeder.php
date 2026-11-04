@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class RoleSeeder extends Seeder
 {
@@ -18,5 +17,18 @@ class RoleSeeder extends Seeder
             ['id' => 2, 'nama' => 'Data Entry'],
             ['id' => 3, 'nama' => 'Validator'],
         ];
+
+        $now = now();
+
+        foreach ($roles as $r) {
+            DB::table('troles')->updateOrInsert(
+                ['id' => $r['id']],
+                [
+                    'nama'       => $r['nama'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
+        }
     }
 }
