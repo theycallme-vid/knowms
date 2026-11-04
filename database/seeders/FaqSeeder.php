@@ -21,14 +21,19 @@ class FaqSeeder extends Seeder
         $deNadia  = User::where('email', 'nadia.putri@campus.ac.id')->first();
         $deAditya = User::where('email', 'aditya.pratama@campus.ac.id')->first();
         $deDewi   = User::where('email', 'dewi.lestari@campus.ac.id')->first();
-        $deMain   = User::where('tRoles_id', 2)->first() ?? User::first();
+        $deMain   = User::where('tRoles_id', 2)->first();
 
-        $validator = User::where('tRoles_id', 3)->first() ?? User::first();
-        $validatorId = $validator?->id ?? 1;
+        $validator = User::where('tRoles_id', 3)->first();
 
-        $nadiaId  = $deNadia?->id ?? $deMain?->id ?? 1;
-        $adityaId = $deAditya?->id ?? $deMain?->id ?? 1;
-        $dewiId   = $deDewi?->id ?? $deMain?->id ?? 1;
+        if (!$deMain || !$validator) {
+            throw new \RuntimeException('UserSeeder harus dijalankan lebih dulu (user Data Entry / Validator belum ada).');
+        }
+
+        $validatorId = $validator->id;
+
+        $nadiaId  = $deNadia?->id  ?? $deMain->id;
+        $adityaId = $deAditya?->id ?? $deMain->id;
+        $dewiId   = $deDewi?->id   ?? $deMain->id;
 
         // 1. Buat Daftar Pustaka Dummy
         $pustakaAkademik = DaftarPustaka::firstOrCreate(

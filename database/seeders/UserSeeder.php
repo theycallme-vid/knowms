@@ -65,5 +65,13 @@ class UserSeeder extends Seeder
                 'is_active' => 1,
             ],
         ];
+
+        // updateOrCreate: aman dijalankan berulang (tidak error duplikat email)
+        foreach ($users as $u) {
+            User::updateOrCreate(
+                ['email' => $u['email']],
+                $u
+            );
+        }
     }
 }
