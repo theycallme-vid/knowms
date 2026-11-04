@@ -91,7 +91,7 @@ body {
 }
 
 .navbar-logo-img {
-    height: 44px;
+    height: 50px;
     width: auto;
     object-fit: contain;
     display: block;
@@ -165,8 +165,8 @@ body {
     background:
         linear-gradient(90deg, 
             rgba(248, 249, 251, 0.93) 0%, 
-            rgba(248, 249, 251, 0.88) 36%, 
-            rgba(248, 249, 251, 0.68) 55%, 
+            rgba(248, 249, 251, 0.88) 0%, 
+            rgba(248, 249, 251, 0.68) 63%, 
             rgba(248, 249, 251, 0.20) 80%, 
             rgba(248, 249, 251, 0.02) 100%),
         url('/images/mahasiswa/banner-faq.jpg') no-repeat right center / cover;

@@ -20,10 +20,16 @@ class RoleSeeder extends Seeder
 
         // Query builder dipakai agar kolom id bisa diisi eksplisit
         // (id tidak ada di $fillable model Role).
+        $now = now();
+
         foreach ($roles as $r) {
             DB::table('troles')->updateOrInsert(
                 ['id' => $r['id']],
-                ['nama' => $r['nama']]
+                [
+                    'nama'       => $r['nama'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
             );
         }
     }

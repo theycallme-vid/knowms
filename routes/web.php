@@ -1,23 +1,22 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\dataentry\FaqController as DataEntryFaqController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
 use App\Http\Controllers\validator\ValidatorFaqController;
 use Illuminate\Support\Facades\Route;
 
-// HALAMAN PUBLIK: Portal & FAQ Mahasiswa
-Route::get('/', function () {
-    return view('mahasiswa.faq');
-})->name('mahasiswa.faq');
 
-Route::get('/portal', function () {
-    return view('mahasiswa.faq');
-})->name('portal');
+// HALAMAN PUBLIK: FAQ Mahasiswa
+Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
 
-Route::get('/faq', function () {
-    return view('mahasiswa.faq');
-})->name('portal.index');
+// HALAMAN PORTAL MAHASISWA & PROSES SIMPAN / AKHIRI SESSION FAKULTAS
+Route::get('/', [PortalController::class, 'index'])->name('portal');
+Route::get('/portal', [PortalController::class, 'index']);
+Route::post('/portal/session', [PortalController::class, 'storeSession'])->name('portal.session');
+Route::post('/portal/end-session', [PortalController::class, 'endSession'])->name('portal.end-session');
+Route::get('/portal/end-session', [PortalController::class, 'endSession']);
 
 // GUEST ROUTES (Autentikasi)
 Route::middleware('guest')->group(function () {
