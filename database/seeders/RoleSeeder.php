@@ -18,6 +18,8 @@ class RoleSeeder extends Seeder
             ['id' => 3, 'nama' => 'Validator'],
         ];
 
+        // Query builder dipakai agar kolom id bisa diisi eksplisit
+        // (id tidak ada di $fillable model Role).
         $now = now();
 
         foreach ($roles as $r) {

@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             DirektoratSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
-            // FaqSeeder::class,
+            FaqSeeder::class,
         ]);
     }
 }

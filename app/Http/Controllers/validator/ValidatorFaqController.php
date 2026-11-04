@@ -5,18 +5,66 @@ namespace App\Http\Controllers\validator;
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\FaqVersion;
+use App\Models\Tag;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ValidatorFaqController extends Controller
 {
     /**
-     * Daftar semua FAQ dengan filter opsional berdasarkan fakultas/kategori, pencarian, dan status.
+     * Menampilkan Dashboard Utama Validator (/validator/dashboard).
+     */
+    public function dashboard(Request $request)
+    {
+        if (auth()->check()) {
+            auth()->user()->loadMissing('role');
+        }
+
+        try {
+            $queueFaqs = Faq::with([
+                'dataEntry',
+                'tags',
+                'versions' => fn ($q) => $q->latest('created_at'),
+                'versions.daftarPustaka',
+            ])->whereHas('versions', function ($q) {
+                $q->whereIn('status', ['Submitted', 'submitted']);
+            })->latest('updated_at')->get();
+
+            $submittedCount = $queueFaqs->count();
+            $approvedCount  = FaqVersion::whereIn('status', ['Approved', 'approved', 'Active'])->distinct('tFaqs_id')->count('tFaqs_id');
+            $rejectedCount  = FaqVersion::whereIn('status', ['Rejected', 'rejected'])->distinct('tFaqs_id')->count('tFaqs_id');
+
+            // Pilih FAQ yang sedang aktif ditampilkan di panel kanan dashboard
+            $selectedId  = $request->query('faq_id');
+            $selectedFaq = $selectedId
+                ? $queueFaqs->firstWhere('id', $selectedId)
+                : $queueFaqs->first();
+
+        } catch (Throwable $e) {
+            $queueFaqs      = collect();
+            $submittedCount = 0;
+            $approvedCount  = 0;
+            $rejectedCount  = 0;
+            $selectedFaq    = null;
+        }
+
+        return view('validator.dashboard', compact(
+            'queueFaqs',
+            'selectedFaq',
+            'submittedCount',
+            'approvedCount',
+            'rejectedCount'
+        ));
+    }
+
+    /**
+     * Daftar semua FAQ dengan filter opsional berdasarkan fakultas/kategori, pencarian, dan status (/validator/daftar-faq).
      */
     public function index(Request $request)
     {
@@ -24,7 +72,6 @@ class ValidatorFaqController extends Controller
             auth()->user()->loadMissing('role');
         }
 
-        // Daftar fakultas / direktorat yang tersedia sebagai opsi filter
         $fakultasOptions = [
             'Umum',
             'Teknik',
@@ -43,7 +90,6 @@ class ValidatorFaqController extends Controller
                 'versions' => fn ($q) => $q->latest('updated_at'),
             ]);
 
-            // Filter pencarian pertanyaan atau kode
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
@@ -52,17 +98,14 @@ class ValidatorFaqController extends Controller
                 });
             }
 
-            // Filter fakultas via tag (nama tag mengandung nama fakultas)
             if ($request->filled('fakultas') && $request->fakultas !== 'Semua') {
                 $query->whereHas('tags', fn ($q) => $q->where('nama', 'like', '%' . $request->fakultas . '%'));
             }
 
-            // Filter status versi terbaru
             if ($request->filled('status') && $request->status !== 'Semua') {
                 $query->whereHas('versions', fn ($q) => $q->where('status', $request->status));
             }
 
-            // Urutkan
             $sort = $request->get('sort', 'terbaru');
             match ($sort) {
                 'terlama' => $query->oldest(),
@@ -72,7 +115,6 @@ class ValidatorFaqController extends Controller
 
             $faqs = $query->paginate(6)->withQueryString();
 
-            // ── Statistik: ikut filter fakultas yang aktif ──────────────────
             $aktivFakultas = $request->get('fakultas', 'Semua');
 
             $statBase = Faq::query();
@@ -108,7 +150,7 @@ class ValidatorFaqController extends Controller
     }
 
     /**
-     * Halaman Validasi FAQ (Antrean Validasi) — mengambil data dari database hasil seeder/input Data Entry.
+     * Halaman Validasi FAQ (Antrean Validasi) — mengambil data dari database hasil seeder/input Data Entry (/validator/validasi-faq).
      */
     public function validasiFaq(Request $request)
     {
@@ -117,9 +159,8 @@ class ValidatorFaqController extends Controller
         }
 
         try {
-            // Hitung total seluruh antrean yang berstatus Submitted
             $totalWaiting = Faq::whereHas('versions', function ($q) {
-                $q->where('status', 'Submitted');
+                $q->whereIn('status', ['Submitted', 'submitted']);
             })->count();
 
             $query = Faq::with([
@@ -128,10 +169,9 @@ class ValidatorFaqController extends Controller
                 'versions' => fn ($q) => $q->latest('created_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
-                $q->where('status', 'Submitted');
+                $q->whereIn('status', ['Submitted', 'submitted']);
             });
 
-            // Filter pencarian kode atau pertanyaan
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
@@ -140,12 +180,10 @@ class ValidatorFaqController extends Controller
                 });
             }
 
-            // Filter Data Entry
             if ($request->filled('data_entry') && $request->data_entry !== 'all') {
                 $query->whereHas('dataEntry', fn ($q) => $q->where('nama', $request->data_entry));
             }
 
-            // Urutkan
             $sort = $request->get('sort', 'terbaru');
             if ($sort === 'terlama') {
                 $query->oldest('created_at');
@@ -155,9 +193,9 @@ class ValidatorFaqController extends Controller
 
             $paginatedFaqs = $query->paginate(6)->withQueryString();
 
-            // Transform setiap item untuk tampilan tabel
             $paginatedFaqs->getCollection()->transform(function ($faq) {
-                $submittedVersion = $faq->versions->where('status', 'Submitted')->first() ?? $faq->versions->first();
+                $submittedVersion = $faq->versions->first(fn ($v) => strtolower($v->status) === 'submitted')
+                    ?? $faq->versions->first();
                 $versionNumber    = max(1, $faq->versions->count());
                 $deName           = $faq->dataEntry?->nama ?? 'Data Entry';
                 $words            = explode(' ', trim($deName));
@@ -185,7 +223,6 @@ class ValidatorFaqController extends Controller
                 ];
             });
 
-            // Daftar nama staf Data Entry dari database untuk dropdown filter
             $dataEntryUsers = User::where('tRoles_id', 2)->orderBy('nama')->pluck('nama');
         } catch (Throwable $e) {
             Log::error('Gagal memuat antrean validasi FAQ dari database: ' . $e->getMessage());
@@ -207,11 +244,13 @@ class ValidatorFaqController extends Controller
     public function approve(Request $request, $id)
     {
         try {
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+
             FaqVersion::where('tFaqs_id', $id)
-                ->where('status', 'Submitted')
+                ->whereIn('status', ['Submitted', 'submitted'])
                 ->update([
                     'status'       => 'Approved',
-                    'id_validator' => Auth::id(),
+                    'id_validator' => $validatorId,
                     'updated_at'   => now(),
                 ]);
 
@@ -231,11 +270,13 @@ class ValidatorFaqController extends Controller
         $catatan = $request->input('catatan');
 
         try {
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+
             FaqVersion::where('tFaqs_id', $id)
-                ->where('status', 'Submitted')
+                ->whereIn('status', ['Submitted', 'submitted'])
                 ->update([
                     'status'       => 'Rejected',
-                    'id_validator' => Auth::id(),
+                    'id_validator' => $validatorId,
                     'catatan'      => $catatan ?: 'Perlu revisi oleh Data Entry.',
                     'updated_at'   => now(),
                 ]);
@@ -261,11 +302,13 @@ class ValidatorFaqController extends Controller
         }
 
         try {
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+
             FaqVersion::whereIn('tFaqs_id', $faqIds)
-                ->where('status', 'Submitted')
+                ->whereIn('status', ['Submitted', 'submitted'])
                 ->update([
                     'status'       => 'Approved',
-                    'id_validator' => Auth::id(),
+                    'id_validator' => $validatorId,
                     'updated_at'   => now(),
                 ]);
 

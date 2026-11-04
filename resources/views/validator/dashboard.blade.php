@@ -28,6 +28,9 @@
         $authUser->load('role');
     }
     $roleName = $authUser ? $authUser->getRoleName() : 'Validator';
+    $queueFaqs = $queueFaqs ?? collect();
+    $selectedFaq = $selectedFaq ?? $queueFaqs->first();
+    $selectedVer = $selectedFaq ? ($selectedFaq->versions->first(fn($v) => strtolower($v->status) === 'submitted') ?? $selectedFaq->versions->first()) : null;
 @endphp
 
 <div class="d-flex">
@@ -154,7 +157,20 @@
 
         <!-- Main Content Area -->
         <div class="content-area">
-            <!-- Page Header Area (Ukuran & Warna Seragam) -->
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show rounded-3 fs-13 mb-3" role="alert">
+                    <i class="bi bi-check-circle-fill me-1"></i> {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show rounded-3 fs-13 mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <!-- Page Header Area -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <div class="date-badge">RUANG PENELAAH &middot; VALIDATOR</div>
@@ -179,7 +195,7 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Menunggu validasi</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">8</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $submittedCount ?? 8 }}</div>
                             <div class="fs-12 text-muted">Antrean seluruh tim validator</div>
                         </div>
                     </div>
@@ -193,8 +209,8 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Perlu diprioritaskan</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">4</div>
-                            <div class="fs-12" style="color: #DC2626;">Menunggu lebih dari 3 hari</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $rejectedCount ?? 4 }}</div>
+                            <div class="fs-12" style="color: #DC2626;">Perlu revisi / tindak lanjut</div>
                         </div>
                     </div>
                 </div>
@@ -206,9 +222,9 @@
                             <i class="bi bi-check2-circle"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Ditinjau minggu ini</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">38</div>
-                            <div class="fs-12 text-muted">32 terbit &middot; 6 dikembalikan</div>
+                            <div class="fs-12 text-muted fw-medium mb-1">Telah disetujui</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $approvedCount ?? 32 }}</div>
+                            <div class="fs-12 text-muted">{{ $approvedCount ?? 32 }} terbit &middot; {{ $rejectedCount ?? 0 }} dikembalikan</div>
                         </div>
                     </div>
                 </div>
@@ -236,56 +252,44 @@
                         <div>
                             <div class="mb-3">
                                 <h2 class="fw-bold fs-16 text-dark mb-0">Antrean validasi</h2>
-                                <div class="text-muted fs-12">8 FAQ menunggu penelaahan</div>
+                                <div class="text-muted fs-12">{{ $queueFaqs->count() }} FAQ menunggu penelaahan</div>
                             </div>
 
                             <!-- Sort Dropdown -->
                             <div class="mb-3">
                                 <div class="position-relative">
                                     <select class="form-select rounded-3 fs-13 text-secondary" style="border-color: #E2E8F0; padding-top: 0.45rem; padding-bottom: 0.45rem;">
-                                        <option selected>&#8645; Terlama menunggu</option>
-                                        <option value="1">Terbaru diajukan</option>
-                                        <option value="2">Kategori A - Z</option>
+                                        <option selected>&#8645; Terbaru diajukan</option>
+                                        <option value="1">Terlama menunggu</option>
                                     </select>
                                 </div>
                             </div>
 
                             <!-- Queue Items List -->
                             <div class="queue-list">
-                                <!-- Item 1 (Selected) -->
-                                <a href="{{ route('validator.validasiFAQ') }}" class="queue-item active">
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <span class="fs-11 fw-semibold" style="color: #DC2626;">4 hari menunggu</span>
-                                        <i class="bi bi-record-circle" style="color: #DC2626; font-size: 0.75rem;"></i>
+                                @forelse($queueFaqs->take(5) as $qFaq)
+                                    <a href="{{ route('validator.dashboard', ['faq_id' => $qFaq->id]) }}"
+                                       class="queue-item {{ ($selectedFaq && $selectedFaq->id === $qFaq->id) ? 'active' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="fs-11 fw-semibold" style="color: #2563EB;">{{ $qFaq->id }}</span>
+                                            <i class="bi bi-record-circle" style="color: #2563EB; font-size: 0.75rem;"></i>
+                                        </div>
+                                        <div class="fw-bold fs-13 text-dark mb-1">{{ $qFaq->pertanyaan }}</div>
+                                        <div class="fs-11 text-muted">{{ $qFaq->dataEntry?->nama ?? 'Data Entry' }} &middot; {{ $qFaq->created_at?->translatedFormat('d M Y') }}</div>
+                                    </a>
+                                @empty
+                                    <div class="text-center py-4 text-muted fs-12">
+                                        Tidak ada antrean FAQ yang menunggu validasi saat ini.
                                     </div>
-                                    <div class="fw-bold fs-13 text-dark mb-1">Persyaratan yudisium Fakultas Teknik</div>
-                                    <div class="fs-11 text-muted">Nadia Putri &middot; 21 Okt 2026</div>
-                                </a>
-
-                                <!-- Item 2 -->
-                                <a href="{{ route('validator.validasiFAQ') }}" class="queue-item">
-                                    <div class="fs-11 text-muted mb-1">4 hari menunggu</div>
-                                    <div class="fw-bold fs-13 text-dark mb-1">Bagaimana cara melakukan pengisian KRS?</div>
-                                    <div class="fs-11 text-muted">Aditya Pratama &middot; 21 Okt 2026</div>
-                                </a>
-
-                                <!-- Item 3 -->
-                                <a href="{{ route('validator.validasiFAQ') }}" class="queue-item">
-                                    <div class="fs-11 text-muted mb-1">3 hari menunggu</div>
-                                    <div class="fw-bold fs-13 text-dark mb-1">Bagaimana cara mengajukan legalisasi transkrip nilai?</div>
-                                    <div class="fs-11 text-muted">Dewi Lestari &middot; 20 Okt 2026</div>
-                                </a>
+                                @endforelse
                             </div>
                         </div>
 
                         <!-- Queue List Footer & Notice -->
                         <div>
                             <div class="d-flex align-items-center justify-content-between pt-2 pb-2 text-muted fs-11">
-                                <span>1-3 dari 8 pengajuan</span>
-                                <div class="d-flex gap-1">
-                                    <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none"><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none"><i class="bi bi-chevron-right"></i></button>
-                                </div>
+                                <span>Menampilkan {{ min(5, $queueFaqs->count()) }} dari {{ $queueFaqs->count() }} pengajuan</span>
+                                <a href="{{ route('validator.validasiFAQ') }}" class="text-decoration-none fw-semibold" style="color: #85172C;">Lihat Semua</a>
                             </div>
 
                             <!-- Notification Box -->
@@ -302,132 +306,133 @@
                 <!-- Right Column: Detail & Verification Workspace -->
                 <div class="col-12 col-lg-8 col-xl-9">
                     <div class="card-custom">
-                        <div class="row g-4">
-                            <!-- Left Sub-column: Content Details -->
-                            <div class="col-12 col-lg-7 col-xl-8 pe-lg-4 border-end-lg">
-                                <!-- Header Badge & Version Link -->
-                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge rounded-pill fw-medium fs-12 px-3 py-1" style="background-color: #DBEAFE; color: #1D4ED8;">
-                                            Menunggu Validasi
-                                        </span>
-                                        <span class="fs-12 text-muted">FAQ-0244 &middot; Versi 2.0</span>
-                                    </div>
-                                    <a href="{{ route('validator.validasiFAQ') }}" class="fs-12 fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2563EB;">
-                                        <span>Lihat di Validasi FAQ</span>
-                                        <i class="bi bi-box-arrow-up-right fs-11"></i>
-                                    </a>
-                                </div>
-
-                                <!-- Question Title -->
-                                <h2 class="display-serif fs-20 fw-bold text-dark mb-3">
-                                    Apa persyaratan dan alur pengajuan cuti akademik?
-                                </h2>
-
-                                <!-- Metadata Box -->
-                                <div class="rounded-3 p-3 mb-4" style="background-color: #F8FAFC; border: 1px solid #F1F5F9;">
-                                    <div class="row g-2 fs-12">
-                                        <div class="col-sm-6">
-                                            <div class="text-secondary mb-1">
-                                                <span class="text-muted">Kategori :</span> Akademik / Cuti
-                                            </div>
-                                            <div class="text-secondary">
-                                                <span class="text-muted">Diajukan</span> Nadia Putri &middot; Data Entry
-                                            </div>
+                        @if($selectedFaq)
+                            <div class="row g-4">
+                                <!-- Left Sub-column: Content Details -->
+                                <div class="col-12 col-lg-7 col-xl-8 pe-lg-4 border-end-lg">
+                                    <!-- Header Badge & Version Link -->
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge rounded-pill fw-medium fs-12 px-3 py-1" style="background-color: #DBEAFE; color: #1D4ED8;">
+                                                Menunggu Validasi
+                                            </span>
+                                            <span class="fs-12 text-muted">{{ $selectedFaq->id }} &middot; Versi {{ $selectedFaq->versions->count() ?: 1 }}</span>
                                         </div>
-                                        <div class="col-sm-6 text-sm-end">
-                                            <div class="text-muted mb-1">Diajukan 17 Okt 2026, 09.10</div>
-                                            <div class="text-muted">Diperbarui 20 Okt 2026, 15.45</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Answer Section -->
-                                <div class="mb-4">
-                                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #64748B; letter-spacing: 0.06em;">
-                                        JAWABAN UNTUK MAHASISWA
-                                    </div>
-                                    <p class="fs-13 text-secondary lh-base mb-3">
-                                        Cuti akademik dapat diajukan oleh mahasiswa aktif yang telah memenuhi ketentuan masa studi. Pengajuan dilakukan sebelum batas waktu pada kalender akademik dan harus mendapat persetujuan fakultas.
-                                    </p>
-                                    <ol class="fs-13 text-secondary ps-3 mb-3 lh-base" style="list-style-type: decimal;">
-                                        <li class="mb-2">Konsultasikan alasan dan rencana cuti dengan dosen wali untuk memastikan kelayakan pengajuan.</li>
-                                        <li class="mb-2">Lengkapi formulir cuti, surat permohonan, serta dokumen pendukung sesuai ketentuan fakultas.</li>
-                                        <li class="mb-2">Ajukan berkas melalui layanan administrasi fakultas. Pantau persetujuan dan selesaikan kewajiban administrasi yang ditetapkan.</li>
-                                    </ol>
-                                    <p class="fs-13 text-secondary lh-base mb-0">
-                                        Setelah disetujui, simpan bukti cuti. Ajukan aktif kembali sebelum periode registrasi berikutnya; cuti tidak otomatis memperpanjang batas masa studi.
-                                    </p>
-                                </div>
-
-                                <!-- Official Source Attachment -->
-                                <div class="rounded-3 p-3 d-flex align-items-center gap-3" style="background-color: #EFF6FF; border: 1px solid #DBEAFE;">
-                                    <div class="stat-icon" style="width: 38px; height: 38px; background-color: #DBEAFE; color: #2563EB;">
-                                        <i class="bi bi-file-earmark-text fs-5"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-bold fs-13 text-dark">Pedoman Akademik 2026/2027 &middot; Bab Cuti Akademik</div>
-                                        <div class="fs-11 text-muted">Biro Administrasi Akademik &middot; Dokumen resmi &middot; Hal. 42-44</div>
-                                        <a href="#" class="fs-11 fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 mt-0.5" style="color: #2563EB;">
-                                            <span>pedoman-akademik-2026.pdf &middot; Buka sumber</span>
-                                            <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
+                                        <a href="{{ route('validator.validasiFAQ') }}" class="fs-12 fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2563EB;">
+                                            <span>Lihat di Validasi FAQ</span>
+                                            <i class="bi bi-box-arrow-up-right fs-11"></i>
                                         </a>
+                                    </div>
+
+                                    <!-- Question Title -->
+                                    <h2 class="display-serif fs-20 fw-bold text-dark mb-3">
+                                        {{ $selectedFaq->pertanyaan }}
+                                    </h2>
+
+                                    <!-- Metadata Box -->
+                                    <div class="rounded-3 p-3 mb-4" style="background-color: #F8FAFC; border: 1px solid #F1F5F9;">
+                                        <div class="row g-2 fs-12">
+                                            <div class="col-sm-6">
+                                                <div class="text-secondary mb-1">
+                                                    <span class="text-muted">Kata Kunci :</span> {{ $selectedFaq->tags->pluck('nama')->implode(', ') ?: '-' }}
+                                                </div>
+                                                <div class="text-secondary">
+                                                    <span class="text-muted">Diajukan :</span> {{ $selectedFaq->dataEntry?->nama ?? 'Data Entry' }}
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6 text-sm-end">
+                                                <div class="text-muted mb-1">Dibuat {{ $selectedFaq->created_at?->translatedFormat('d M Y, H.i') }}</div>
+                                                <div class="text-muted">Diperbarui {{ $selectedVer?->updated_at?->translatedFormat('d M Y, H.i') }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Answer Section -->
+                                    <div class="mb-4">
+                                        <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #64748B; letter-spacing: 0.06em;">
+                                            JAWABAN UNTUK MAHASISWA
+                                        </div>
+                                        <div class="fs-13 text-secondary lh-base">
+                                            {!! $selectedVer?->jawaban ?? '-' !!}
+                                        </div>
+                                    </div>
+
+                                    <!-- Official Source Attachment -->
+                                    <div class="rounded-3 p-3 d-flex align-items-center gap-3" style="background-color: #EFF6FF; border: 1px solid #DBEAFE;">
+                                        <div class="stat-icon" style="width: 38px; height: 38px; background-color: #DBEAFE; color: #2563EB;">
+                                            <i class="bi bi-file-earmark-text fs-5"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold fs-13 text-dark">{{ $selectedVer?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus' }}</div>
+                                            <div class="fs-11 text-muted">Tipe: {{ strtoupper($selectedVer?->daftarPustaka?->type ?? 'LINK') }} &middot; Rujukan Resmi</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right Sub-column: Review & Actions -->
+                                <div class="col-12 col-lg-5 col-xl-4 ps-lg-3">
+                                    <div>
+                                        <h3 class="fw-bold fs-14 text-dark mb-1">Daftar pemeriksaan</h3>
+                                        <p class="fs-11 text-muted mb-3">Periksa seluruh aspek sebelum menerbitkan.</p>
+
+                                        <!-- 4 Checklist Items -->
+                                        <div class="d-flex flex-column gap-2 mb-4">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="checklist-icon"><i class="bi bi-check"></i></span>
+                                                <span class="fs-12 text-secondary">Jawaban sesuai dokumen resmi</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="checklist-icon"><i class="bi bi-check"></i></span>
+                                                <span class="fs-12 text-secondary">Sumber masih berlaku dan dapat diakses</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="checklist-icon"><i class="bi bi-check"></i></span>
+                                                <span class="fs-12 text-secondary">Alur dan persyaratan sudah lengkap</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="checklist-icon"><i class="bi bi-check"></i></span>
+                                                <span class="fs-12 text-secondary">Bahasa jelas, tanpa data pribadi</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Form Reject / Revisi -->
+                                        <form id="dashboardRejectForm" action="{{ route('validator.validasiFAQ.reject', $selectedFaq->id) }}" method="POST">
+                                            @csrf
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold fs-12 text-dark mb-1">Catatan revisi</label>
+                                                <textarea name="catatan" class="form-control rounded-3 fs-12 text-secondary" rows="3" placeholder="Tulis bagian yang perlu diperbaiki dan arahan untuk penulis..." style="border-color: #E2E8F0;" required></textarea>
+                                                <div class="fs-11 text-muted mt-1">Wajib diisi jika meminta revisi.</div>
+                                            </div>
+                                        </form>
+
+                                        <!-- Actions Buttons -->
+                                        <div class="d-flex flex-column gap-2 mt-4">
+                                            <form action="{{ route('validator.validasiFAQ.approve', $selectedFaq->id) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="btn-maroon w-100 justify-content-center shadow-2xs">
+                                                    <i class="bi bi-check2"></i>
+                                                    <span>Setujui &amp; terbitkan</span>
+                                                </button>
+                                            </form>
+                                            <button type="submit" form="dashboardRejectForm" class="btn-pill-light w-100 justify-content-center shadow-2xs">
+                                                <i class="bi bi-chat-left-text"></i>
+                                                <span>Minta revisi</span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Footer Disclaimer -->
+                                        <div class="fs-11 text-muted text-center mt-3 lh-sm">
+                                            Keputusan dan identitas penelaah akan tersimpan dalam riwayat FAQ.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Right Sub-column: Review & Actions -->
-                            <div class="col-12 col-lg-5 col-xl-4 ps-lg-3">
-                                <div>
-                                    <h3 class="fw-bold fs-14 text-dark mb-1">Daftar pemeriksaan</h3>
-                                    <p class="fs-11 text-muted mb-3">Periksa seluruh aspek sebelum menerbitkan.</p>
-
-                                    <!-- 4 Checklist Items -->
-                                    <div class="d-flex flex-column gap-2 mb-4">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="checklist-icon"><i class="bi bi-check"></i></span>
-                                            <span class="fs-12 text-secondary">Jawaban sesuai dokumen resmi</span>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="checklist-icon"><i class="bi bi-check"></i></span>
-                                            <span class="fs-12 text-secondary">Sumber masih berlaku dan dapat diakses</span>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="checklist-icon"><i class="bi bi-check"></i></span>
-                                            <span class="fs-12 text-secondary">Alur dan persyaratan sudah lengkap</span>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="checklist-icon"><i class="bi bi-check"></i></span>
-                                            <span class="fs-12 text-secondary">Bahasa jelas, tanpa data pribadi</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Revision Notes Textarea -->
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold fs-12 text-dark mb-1">Catatan revisi</label>
-                                        <textarea class="form-control rounded-3 fs-12 text-secondary" rows="3" placeholder="Tulis bagian yang perlu diperbaiki dan arahan untuk penulis..." style="border-color: #E2E8F0;"></textarea>
-                                        <div class="fs-11 text-muted mt-1">Wajib diisi jika meminta revisi.</div>
-                                    </div>
-
-                                    <!-- Actions Buttons -->
-                                    <div class="d-flex flex-column gap-2 mt-4">
-                                        <a href="{{ route('validator.validasiFAQ') }}" class="btn-maroon shadow-2xs">
-                                            <i class="bi bi-check2"></i>
-                                            <span>Setujui & terbitkan</span>
-                                        </a>
-                                        <a href="{{ route('validator.validasiFAQ') }}" class="btn-pill-light shadow-2xs">
-                                            <i class="bi bi-chat-left-text"></i>
-                                            <span>Minta revisi</span>
-                                        </a>
-                                    </div>
-
-                                    <!-- Footer Disclaimer -->
-                                    <div class="fs-11 text-muted text-center mt-3 lh-sm">
-                                        Keputusan dan identitas penelaah akan tersimpan dalam riwayat FAQ.
-                                    </div>
-                                </div>
+                        @else
+                            <div class="text-center py-5 text-muted fs-14">
+                                <i class="bi bi-check2-all fs-1 d-block mb-2 text-success"></i>
+                                Semua pengajuan FAQ telah selesai ditinjau!
                             </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
