@@ -8,12 +8,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 
-// HALAMAN PUBLIK: Portal & FAQ Mahasiswa
-Route::get('/', [PortalController::class, 'showPortal'])->name('portal');
-Route::get('/portal', [PortalController::class, 'showPortal'])->name('portal.index');
+// HALAMAN PUBLIK: FAQ Mahasiswa
+Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
+
+// HALAMAN PORTAL MAHASISWA & PROSES SIMPAN / AKHIRI SESSION FAKULTAS
+Route::get('/', [PortalController::class, 'index'])->name('portal');
+Route::get('/portal', [PortalController::class, 'index']);
 Route::post('/portal/session', [PortalController::class, 'storeSession'])->name('portal.session');
-Route::post('/portal/end-session', [PortalController::class, 'endSession'])->name('portal.endSession');
-Route::get('/faq', [PortalController::class, 'showFaq'])->name('mahasiswa.faq');
+Route::post('/portal/end-session', [PortalController::class, 'endSession'])->name('portal.end-session');
+Route::get('/portal/end-session', [PortalController::class, 'endSession']);
 
 // GUEST ROUTES (Autentikasi)
 Route::middleware('guest')->group(function () {
