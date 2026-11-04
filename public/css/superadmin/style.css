@@ -31,12 +31,23 @@ body {
     color: var(--text-heading);
 }
 
+.page-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1.75rem !important;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--text-heading);
+}
+
 .fs-11 { font-size: 0.6875rem !important; }
 .fs-12 { font-size: 0.75rem !important; }
 .fs-13 { font-size: 0.8125rem !important; }
 .fs-14 { font-size: 0.875rem !important; }
 .fs-15 { font-size: 0.9375rem !important; }
+.fs-20 { font-size: 1.25rem !important; }
 .fs-24 { font-size: 1.5rem !important; }
+.fs-28 { font-size: 1.75rem !important; }
 
 /* Brand / Logo (Identik dengan Dashboard Data Entry) */
 .sidebar-brand {

@@ -22,6 +22,11 @@ class RoleMiddleware
             abort(403, 'Akun Anda tidak aktif atau Anda belum login.');
         }
 
+        // Super Admin memiliki akses ke semua halaman tanpa terkecuali (hierarki tertinggi)
+        if ($user->getRoleName() === 'Super Admin') {
+            return $next($request);
+        }
+
         // Cek apakah role user ada di dalam daftar role yang diizinkan
         // Contoh: $roles = ['Admin', 'Validator']
         if (!in_array($user->getRoleName(), $roles)) {

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
+use App\Http\Controllers\validator\ValidatorFaqController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -36,8 +37,10 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     Route::get('/superadmin/dashboard', function () {
         return view('superadmin.dashboard');
     })->name('superadmin.dashboard');
+});
 
-    // Pengguna & Hak Akses
+// PENGGUNA & HAK AKSES (Dapat diakses Super Admin & Validator sementara disamakan)
+Route::middleware(['auth', 'role:Super Admin,Validator'])->group(function () {
     Route::get('/superadmin/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('superadmin.pengguna-akses');
     Route::get('/superadmin/pengguna&akses', [PenggunaAksesController::class, 'index']);
     Route::post('/superadmin/pengguna-akses/store', [PenggunaAksesController::class, 'store'])->name('superadmin.pengguna.store');
@@ -52,6 +55,17 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
     Route::get('/dashboard', function () {
         return view('validator.dashboard');
     })->name('dashboard');
+
+    Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
+
+    // Halaman Validasi FAQ (Antrean Validasi) + Aksi Approve, Reject & Massal Approve
+    Route::get('/validasi-faq', [ValidatorFaqController::class, 'validasiFaq'])->name('validasiFAQ');
+    Route::post('/validasi-faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('validasiFAQ.approve');
+    Route::post('/validasi-faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('validasiFAQ.reject');
+    Route::post('/validasi-faq/bulk-approve', [ValidatorFaqController::class, 'bulkApprove'])->name('validasiFAQ.bulkApprove');
+
+    // Halaman Pengguna & Akses untuk Validator (disamakan sementara dengan Super Admin)
+    Route::get('/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('pengguna-akses');
 });
 
 // DATA ENTRY ROUTES
