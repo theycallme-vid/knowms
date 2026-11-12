@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KMS — Daftar FAQ</title>
+    <title>Daftar FAQ - Ruang Validator | KMS</title>
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
     <!-- Google Fonts -->
@@ -26,6 +26,14 @@
     <!-- ══════════════════════════════════════
          SIDEBAR
     ══════════════════════════════════════ -->
+    @php
+                $authUser = auth()->user();
+                if ($authUser && !$authUser->relationLoaded('role')) {
+                    $authUser->load('role');
+                }
+                $roleName = $authUser ? $authUser->getRoleName() : 'Validator';
+            @endphp
+    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div>
             <!-- KMS Brand Header -->
@@ -33,75 +41,43 @@
                 <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
             </div>
 
-            <!-- Role Pill: dinamis sesuai role user yang login -->
-            @php
-                $authUser = auth()->user();
-                if ($authUser && !$authUser->relationLoaded('role')) {
-                    $authUser->load('role');
-                }
-                $roleName = $authUser ? $authUser->getRoleName() : 'Validator';
-            @endphp
-            <div><span class="role-pill">Ruang {{ $roleName ?: 'Validator' }}</span></div>
+            <!-- Role Badge -->
+            <div>
+                <span class="role-pill">Ruang Validator</span>
+            </div>
 
-            <!-- Navigation: tampilkan nav sesuai role -->
+            <!-- Navigation Links -->
             <nav class="nav flex-column">
-                @if($roleName === 'Super Admin')
-                    {{-- Super Admin: pakai nav superadmin --}}
-                    <a href="{{ route('superadmin.dashboard') }}" class="nav-link-custom">
-                        <i class="bi bi-grid"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom active">
-                        <i class="bi bi-journal-text"></i>
-                        <span>Daftar FAQ</span>
-                    </a>
-                    <a href="{{ route('superadmin.pengguna-akses') }}" class="nav-link-custom">
-                        <i class="bi bi-people"></i>
-                        <span>Pengguna &amp; Akses</span>
-                    </a>
-                    <a href="#" class="nav-link-custom">
-                        <i class="bi bi-diagram-3"></i>
-                        <span>Kategori</span>
-                    </a>
-                    <a href="#" class="nav-link-custom">
-                        <i class="bi bi-bar-chart"></i>
-                        <span>Laporan Pencarian</span>
-                    </a>
-                @else
-                    {{-- Validator --}}
-                    <a href="{{ route('validator.dashboard') }}" class="nav-link-custom">
-                        <i class="bi bi-grid"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom active">
-                        <i class="bi bi-journal-text"></i>
-                        <span>Daftar FAQ</span>
-                    </a>
-                    <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                        <i class="bi bi-list-check"></i>
-                        <span>Validasi FAQ</span>
-                    </a>
-                    <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                        <i class="bi bi-people"></i>
-                        <span>Pengguna &amp; Akses</span>
-                    </a>
-                @endif
+                <a href="{{ route('validator.dashboard') }}" class="nav-link-custom">
+                    <i class="bi bi-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom active">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Daftar FAQ</span>
+                </a>
+                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
+                    <i class="bi bi-list-check"></i>
+                    <span>Validasi FAQ</span>
+                </a>
+                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
+                    <i class="bi bi-people"></i>
+                    <span>Pengguna &amp; Akses</span>
+                </a>
             </nav>
         </div>
 
-        <!-- Bottom -->
+        <!-- Bottom Section of Sidebar -->
         <div>
-            <a href="#" class="nav-link-custom mb-1">
+            <hr class="sidebar-divider">
+            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan Akun</span>
             </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom text-secondary" style="cursor:pointer;">
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
             </a>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
-                @csrf
-            </form>
         </div>
     </aside>
 
@@ -114,59 +90,67 @@
     ══════════════════════════════════════ -->
     <main class="flex-grow-1 min-vw-0">
 
-        <!-- Top Navbar -->
+        <!-- Top Navbar (Tanpa Pencarian) -->
+        @php
+            $tbUser = auth()->user();
+            if ($tbUser && !$tbUser->relationLoaded('role')) {
+                $tbUser->load('role');
+            }
+            $tbRole = $tbUser?->getRoleName() ?: 'Validator';
+            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $tbUser?->email ?? '';
+            $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('') ?: 'KM';
+        @endphp
         <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- Left: Mobile Toggle & Breadcrumb -->
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3"
-                        onclick="toggleSidebar()" aria-label="Toggle Navigation">
+                <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-5"></i>
                 </button>
-                <div class="d-flex align-items-center text-muted fs-13">
+                <div class="top-breadcrumb d-flex align-items-center">
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
-                    <span class="mx-2 text-secondary">/</span>
-                    <span>{{ $roleName ?: 'Validator' }}</span>
-                    <span class="mx-2 text-secondary">/</span>
-                    <strong class="text-dark">Daftar FAQ</strong>
+                    <span class="crumb-sep">/</span>
+                    <span>{{ $tbRole }}</span>
+                    <span class="crumb-sep">/</span>
+                    <span class="crumb-current">Daftar FAQ</span>
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <div class="search-container">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="search-input" placeholder="Cari FAQ, pengguna, atau aktivitas...">
-                </div>
-                <button class="btn btn-link text-secondary p-1 position-relative text-decoration-none" aria-label="Notifikasi">
+            <!-- Right: Notification & Profile -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="top-icon-btn" aria-label="Notifikasi">
                     <i class="bi bi-bell fs-5"></i>
                 </button>
 
-                <!-- User Profile Dropdown -->
                 <div class="dropdown">
                     <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="avatar-circle">
-                            {{ strtoupper(substr($authUser->nama ?? 'V', 0, 2)) }}
-                        </div>
+                        <div class="avatar-circle">{{ $tbInitials }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ $authUser->nama ?? '-' }}</div>
-                            <div class="fs-11 text-muted">{{ $roleName ?: 'Validator' }}</div>
+                            <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
                         </div>
                         <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="min-width: 200px;">
+                    <ul class="dropdown-menu dropdown-menu-end profile-dropdown mt-2">
                         <li>
-                            <div class="px-3 py-2 border-bottom">
-                                <div class="fw-bold fs-13 text-dark">{{ $authUser->nama ?? '-' }}</div>
-                                <div class="fs-11 text-muted">{{ $authUser->email ?? '' }}</div>
+                            <div class="px-3 py-2 mb-1 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                                <div class="fs-11 text-muted">{{ $tbEmail }}</div>
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 fs-13 d-flex align-items-center gap-2" href="#">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
+                            <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
                                 <i class="bi bi-box-arrow-right"></i> Keluar
                             </a>
                         </li>
@@ -409,18 +393,87 @@
 
                                     <!-- Status Badge -->
                                     <td>
+                                        @php
+                                            $schedInfoDaftar = ($status === 'Approved' && $latestVersion) ? $latestVersion->getPublishScheduleInfo() : null;
+                                        @endphp
                                         <span class="badge-status {{ $statusClass }}">
                                             <i class="bi {{ $statusIcon }}"></i>
                                             {{ $statusLabel }}
                                         </span>
+                                        @if($schedInfoDaftar && !empty($schedInfoDaftar['label']))
+                                            <div class="mt-1">
+                                                <span class="publish-wait-badge {{ ($schedInfoDaftar['mode'] ?? '') === 'routine' ? 'is-routine' : 'is-scheduled-date' }}" style="font-size: 0.68rem;">
+                                                    <i class="bi {{ ($schedInfoDaftar['mode'] ?? '') === 'routine' ? 'bi-clock-history' : 'bi-calendar-event' }}"></i>
+                                                    <span>{{ $schedInfoDaftar['label'] }}</span>
+                                                </span>
+                                            </div>
+                                        @endif
                                     </td>
 
                                     <!-- Aksi -->
                                     <td class="text-end pe-4">
-                                        <div class="d-flex align-items-center justify-content-end gap-1 flex-wrap">
-                                            <a href="{{ route('validator.validasiFAQ', ['search' => $faq->id]) }}" class="btn-action btn-action-view">
+                                        <div class="d-inline-flex align-items-center justify-content-end gap-1.5">
+                                            <button type="button" class="btn-action btn-action-view" onclick="viewValidatorFaqDetail('{{ $faq->id }}')">
                                                 <i class="bi bi-eye"></i> View
-                                            </a>
+                                            </button>
+
+                                            <!-- Menu Opsi Titik 3 (Dipindahkan dari Daftar FAQ Data Entry ke Validator) -->
+                                            <div class="dropdown d-inline-block">
+                                                <button class="btn-action btn-action-view px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Opsi Lainnya">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border rounded-3 py-1 fs-12" style="min-width: 210px;">
+                                                    <li>
+                                                        <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="javascript:void(0)" onclick="viewValidatorFaqDetail('{{ $faq->id }}')">
+                                                            <i class="bi bi-clock-history text-secondary"></i>
+                                                            <span>Riwayat Versi ({{ $versionCount }})</span>
+                                                        </a>
+                                                    </li>
+                                                    @if(strtolower($status) === 'submitted')
+                                                        <li>
+                                                            <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="{{ route('validator.validasiFAQ', ['search' => $faq->id]) }}">
+                                                                <i class="bi bi-check2-square text-primary"></i>
+                                                                <span>Buka di Antrean Validasi</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+                                                    @if(strtolower($status) !== 'active')
+                                                        <li>
+                                                            <form action="{{ route('validator.faq.updateStatus', $faq->id) }}" method="POST" class="d-inline">
+                                                                @csrf
+                                                                <input type="hidden" name="status" value="Active">
+                                                                <button type="submit" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-success">
+                                                                    <i class="bi bi-lightning-fill"></i>
+                                                                    <span>Set Active (Publish)</span>
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    @endif
+                                                    @if(strtolower($status) !== 'inactive')
+                                                        <li>
+                                                            <form action="{{ route('validator.faq.updateStatus', $faq->id) }}" method="POST" class="d-inline">
+                                                                @csrf
+                                                                <input type="hidden" name="status" value="InActive">
+                                                                <button type="submit" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-secondary">
+                                                                    <i class="bi bi-dash-circle"></i>
+                                                                    <span>Nonaktifkan FAQ</span>
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    @endif
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                    <li>
+                                                        <form action="{{ route('validator.faq.destroy', $faq->id) }}" method="POST" id="validator-delete-faq-{{ $faq->id }}" class="d-inline">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="button" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-danger" onclick="confirmDeleteValidatorFaq('{{ $faq->id }}')">
+                                                                <i class="bi bi-trash3"></i>
+                                                                <span>Hapus FAQ</span>
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -483,10 +536,26 @@
     </main>
 </div>
 
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <!-- ══════════════════════════════════════════════════════════════════
      MODAL KONFIRMASI KELUAR (LOGOUT)
 ══════════════════════════════════════════════════════════════════ -->
-<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-hidden="true">
+@php
+    $lmUser = auth()->user();
+    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
+    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
+        ->filter()
+        ->take(2)
+        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+        ->implode('') ?: 'KM';
+@endphp
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-labelledby="modalLogoutTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
         <div class="modal-content kms-modal-content">
             <div class="kms-modal-header">
@@ -494,16 +563,23 @@
                     <span class="kms-modal-badge-icon" style="background-color: #FEF2F2; color: #DC2626;">
                         <i class="bi bi-box-arrow-right"></i>
                     </span>
-                    <h5 class="kms-modal-title">Konfirmasi Keluar</h5>
+                    <h5 class="kms-modal-title" id="modalLogoutTitle">Konfirmasi Keluar</h5>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.75rem;"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
             </div>
             <div class="kms-modal-body">
                 Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
+                <div class="logout-user-card">
+                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="lh-sm">
+                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
+                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                    </div>
+                </div>
             </div>
             <div class="kms-modal-footer">
                 <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn-kms-primary" onclick="document.getElementById('logout-form').submit()">
+                <button type="button" class="btn-kms-primary" id="btnConfirmLogout" onclick="submitLogout(this)">
                     <i class="bi bi-box-arrow-right"></i>
                     <span>Ya, Keluar</span>
                 </button>
@@ -512,9 +588,30 @@
     </div>
 </div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function openLogoutModal() {
+        const el = document.getElementById('modalLogoutConfirm');
+        if (window.bootstrap && el) {
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+            document.getElementById('logout-form').submit();
+        }
+    }
 
+    function confirmLogout() {
+        openLogoutModal();
+    }
+
+    function submitLogout(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Memproses...</span>';
+        }
+        document.getElementById('logout-form').submit();
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     function toggleSidebar() {
         const sidebar  = document.getElementById('sidebar');
@@ -523,10 +620,128 @@
         backdrop.classList.toggle('d-none');
     }
 
-    function openLogoutModal() {
-        const modal = new bootstrap.Modal(document.getElementById('modalLogoutConfirm'));
-        modal.show();
+    function confirmDeleteValidatorFaq(faqId) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Hapus FAQ ' + faqId + '?',
+                text: 'FAQ dan seluruh riwayat versinya akan dihapus permanen dari sistem.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#85172C',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    document.getElementById('validator-delete-faq-' + faqId)?.submit();
+                }
+            });
+        } else if (confirm('Yakin ingin menghapus FAQ ' + faqId + '?')) {
+            document.getElementById('validator-delete-faq-' + faqId)?.submit();
+        }
     }
+
+    function viewValidatorFaqDetail(faqId) {
+        fetch(`{{ url('/validator/faq') }}/${faqId}/detail`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                const d = res.data;
+                const latest = d.latest_version || {};
+                const tagsHtml = (d.tags && d.tags.length > 0)
+                    ? d.tags.map(t => `<span class="badge bg-light text-secondary border fs-12 px-2 py-1 rounded-pill me-1 mb-1">${t}</span>`).join('')
+                    : '<span class="text-muted fs-12">Tidak ada kata kunci</span>';
+
+                let versionsHistoryHtml = '';
+                if (d.versions && d.versions.length > 0) {
+                    versionsHistoryHtml = `
+                        <div class="mt-3">
+                            <label class="fw-bold text-dark d-block mb-1">Riwayat Versi Jawaban (\`tfaqsversion\`):</label>
+                            <div class="border rounded-3 overflow-hidden">
+                                <table class="table table-sm mb-0 fs-12 align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID Versi</th>
+                                            <th>Status</th>
+                                            <th>Sumber Pustaka</th>
+                                            <th>Diperbarui</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${d.versions.map(v => `
+                                            <tr>
+                                                <td class="fw-bold text-dark">${v.id}</td>
+                                                <td><span class="badge bg-light text-dark border">${v.status}</span></td>
+                                                <td>${v.daftar_pustaka ? (v.daftar_pustaka.link + ' (' + v.daftar_pustaka.type + ')') : '-'}</td>
+                                                <td class="text-muted">${v.updated_at || '-'}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                Swal.fire({
+                    title: `<div class="fs-18 fw-bold text-start text-dark">${d.id}: ${d.pertanyaan}</div>`,
+                    html: `
+                        <div class="text-start fs-13 text-secondary">
+                            <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                                <span>Versi Aktif: <strong class="text-dark">${latest.id || (d.id + '-V1')}</strong></span>
+                                <span>&middot;</span>
+                                <span>Penulis: <strong class="text-dark">${d.data_entry || '-'}</strong></span>
+                                <span>&middot;</span>
+                                <span>Dibuat: ${d.created_at || '-'}</span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-dark d-block mb-1">Kata Kunci:</label>
+                                <div>${tagsHtml}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold text-dark d-block mb-1">Jawaban (${latest.id || (d.id + '-V1')}):</label>
+                                <div class="p-3 bg-light rounded-3 text-dark border fs-13" style="max-height: 180px; overflow-y: auto;">
+                                    ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
+                                </div>
+                            </div>
+                            ${versionsHistoryHtml}
+                        </div>
+                    `,
+                    width: '680px',
+                    confirmButtonColor: '#85172C',
+                    confirmButtonText: 'Tutup'
+                });
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    @if(session('success'))
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: "{{ session('success') }}",
+            showConfirmButton: false,
+            timer: 3500
+        });
+    });
+    @endif
+
+    @if(session('error'))
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            icon: 'error',
+            title: 'Perhatian',
+            text: "{{ session('error') }}",
+            confirmButtonColor: '#85172C'
+        });
+    });
+    @endif
 </script>
 </body>
 </html>

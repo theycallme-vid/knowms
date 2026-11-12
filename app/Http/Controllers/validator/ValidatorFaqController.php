@@ -27,6 +27,8 @@ class ValidatorFaqController extends Controller
         }
 
         try {
+            FaqVersion::processDueScheduledPublications();
+
             $queueFaqs = Faq::with([
                 'dataEntry',
                 'tags',
@@ -84,10 +86,14 @@ class ValidatorFaqController extends Controller
         ];
 
         try {
+            FaqVersion::processDueScheduledPublications();
+
             $query = Faq::with([
                 'dataEntry',
                 'tags',
                 'versions' => fn ($q) => $q->latest('updated_at'),
+                'versions.daftarPustaka',
+                'versions.validator',
             ]);
 
             if ($request->filled('search')) {
@@ -159,8 +165,14 @@ class ValidatorFaqController extends Controller
         }
 
         try {
+            FaqVersion::processDueScheduledPublications();
+
             $totalWaiting = Faq::whereHas('versions', function ($q) {
                 $q->whereIn('status', ['Submitted', 'submitted']);
+            })->count();
+
+            $totalApprovedQueue = Faq::whereHas('versions', function ($q) {
+                $q->whereIn('status', ['Approved', 'approved']);
             })->count();
 
             $query = Faq::with([
@@ -169,7 +181,7 @@ class ValidatorFaqController extends Controller
                 'versions' => fn ($q) => $q->latest('created_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
-                $q->whereIn('status', ['Submitted', 'submitted']);
+                $q->whereIn('status', ['Submitted', 'submitted', 'Approved', 'approved']);
             });
 
             if ($request->filled('search')) {
@@ -194,7 +206,7 @@ class ValidatorFaqController extends Controller
             $paginatedFaqs = $query->paginate(6)->withQueryString();
 
             $paginatedFaqs->getCollection()->transform(function ($faq) {
-                $submittedVersion = $faq->versions->first(fn ($v) => strtolower($v->status) === 'submitted')
+                $targetVersion = $faq->versions->first(fn ($v) => in_array(strtolower($v->status), ['submitted', 'approved'], true))
                     ?? $faq->versions->first();
                 $versionNumber    = max(1, $faq->versions->count());
                 $deName           = $faq->dataEntry?->nama ?? 'Data Entry';
@@ -203,8 +215,11 @@ class ValidatorFaqController extends Controller
                     ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1))
                     : strtoupper(substr($deName, 0, 2));
 
-                $tagNames  = $faq->tags->pluck('nama')->implode(' · ');
-                $createdAt = $faq->created_at ?? $submittedVersion?->created_at ?? now();
+                $tagNames     = $faq->tags->pluck('nama')->implode(' · ');
+                $createdAt    = $faq->created_at ?? $targetVersion?->created_at ?? now();
+                $rawStatus    = strtolower($targetVersion?->status ?? 'submitted');
+                $status       = $rawStatus === 'approved' ? 'Approved' : 'Submitted';
+                $scheduleInfo = $targetVersion?->getPublishScheduleInfo();
 
                 return (object) [
                     'id'                  => $faq->id,
@@ -212,29 +227,38 @@ class ValidatorFaqController extends Controller
                     'versi'               => 'Versi ' . $versionNumber,
                     'pertanyaan'          => $faq->pertanyaan,
                     'kategori'            => $tagNames ?: 'Akademik · Layanan Mahasiswa',
-                    'jawaban'             => $submittedVersion?->jawaban ?? '-',
-                    'sumber'              => $submittedVersion?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus',
+                    'jawaban'             => $targetVersion?->jawaban ?? '-',
+                    'sumber'              => $targetVersion?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus',
                     'data_entry_nama'     => $deName,
                     'data_entry_initials' => $initials,
                     'data_entry_role'     => 'Data Entry',
                     'created_at'          => $createdAt,
                     'tanggal_indo'        => Carbon::parse($createdAt)->translatedFormat('d M Y'),
                     'default_checked'     => false,
+                    'status'              => $status,
+                    'is_approved'         => $status === 'Approved',
+                    'is_scheduled'        => !empty($scheduleInfo['is_scheduled']),
+                    'schedule_mode'       => $scheduleInfo['mode'] ?? null,
+                    'schedule_date'       => $scheduleInfo['date'] ?? '',
+                    'schedule_time'       => $scheduleInfo['time'] ?? '',
+                    'schedule_label'      => $scheduleInfo['label'] ?? null,
                 ];
             });
 
             $dataEntryUsers = User::where('tRoles_id', 2)->orderBy('nama')->pluck('nama');
         } catch (Throwable $e) {
             Log::error('Gagal memuat antrean validasi FAQ dari database: ' . $e->getMessage());
-            $paginatedFaqs  = new LengthAwarePaginator([], 0, 6);
-            $totalWaiting   = 0;
-            $dataEntryUsers = collect();
+            $paginatedFaqs      = new LengthAwarePaginator([], 0, 6);
+            $totalWaiting       = 0;
+            $totalApprovedQueue = 0;
+            $dataEntryUsers     = collect();
         }
 
         return view('validator.validasiFAQ', [
-            'queueItems'     => $paginatedFaqs,
-            'totalWaiting'   => $totalWaiting,
-            'dataEntryUsers' => $dataEntryUsers,
+            'queueItems'         => $paginatedFaqs,
+            'totalWaiting'       => $totalWaiting,
+            'totalApprovedQueue' => $totalApprovedQueue ?? 0,
+            'dataEntryUsers'     => $dataEntryUsers,
         ]);
     }
 
@@ -273,7 +297,7 @@ class ValidatorFaqController extends Controller
             $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
 
             FaqVersion::where('tFaqs_id', $id)
-                ->whereIn('status', ['Submitted', 'submitted'])
+                ->whereIn('status', ['Submitted', 'submitted', 'Approved', 'approved'])
                 ->update([
                     'status'       => 'Rejected',
                     'id_validator' => $validatorId,
@@ -316,10 +340,214 @@ class ValidatorFaqController extends Controller
             $listKode = implode(', ', $faqIds);
 
             return redirect()->route('validator.validasiFAQ')
-                ->with('success', "{$count} FAQ ({$listKode}) berhasil disetujui (Approved) secara massal.");
+                ->with('success', "{$count} FAQ ({$listKode}) berhasil disetujui (Approved). Silakan pilih Publish untuk menerbitkan.");
         } catch (Throwable $e) {
             return redirect()->route('validator.validasiFAQ')
                 ->with('error', 'Gagal menyetujui FAQ secara massal: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Publikasikan FAQ yang telah berstatus Approved (Publikasi Rutin, Jadwalkan Publikasi, atau Publikasikan Sekarang).
+     */
+    public function publish(Request $request)
+    {
+        $request->validate([
+            'faq_ids'      => 'required|array|min:1',
+            'faq_ids.*'    => 'required|string',
+            'publish_mode' => 'required|in:routine,scheduled,now',
+            'publish_date' => 'nullable|required_if:publish_mode,scheduled|date',
+            'publish_time' => 'nullable|required_if:publish_mode,scheduled',
+        ], [
+            'faq_ids.required'         => 'Pilih setidaknya satu FAQ berstatus Approved untuk dipublikasikan.',
+            'publish_date.required_if' => 'Tanggal publikasi wajib diisi untuk publikasi terjadwal.',
+            'publish_time.required_if' => 'Jam publikasi wajib diisi untuk publikasi terjadwal.',
+        ]);
+
+        $faqIds      = array_values(array_unique((array) $request->input('faq_ids', [])));
+        $publishMode = $request->input('publish_mode', 'routine');
+        $publishDate = $request->input('publish_date');
+        $publishTime = $request->input('publish_time');
+
+        try {
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+
+            $versions = FaqVersion::whereIn('tFaqs_id', $faqIds)
+                ->whereIn('status', ['Approved', 'approved'])
+                ->get();
+
+            if ($versions->isEmpty()) {
+                return redirect()->route('validator.validasiFAQ')
+                    ->with('error', 'Hanya FAQ yang sudah berstatus Approved yang dapat dipublikasikan.');
+            }
+
+            $listKode = implode(', ', $versions->pluck('tFaqs_id')->unique()->toArray());
+            $count    = $versions->pluck('tFaqs_id')->unique()->count();
+
+            // Jika memilih Jadwalkan Publikasi namun waktunya sudah lewat/sama dengan sekarang, langsung aktifkan
+            if ($publishMode === 'scheduled' && $publishDate && $publishTime) {
+                $targetDt = Carbon::parse($publishDate . ' ' . $publishTime);
+                if (now()->gte($targetDt)) {
+                    $publishMode = 'now';
+                }
+            }
+
+            if ($publishMode === 'now') {
+                foreach ($versions as $ver) {
+                    // Nonaktifkan versi Active sebelumnya pada FAQ yang sama
+                    FaqVersion::where('tFaqs_id', $ver->tFaqs_id)
+                        ->where('id', '!=', $ver->id)
+                        ->whereIn('status', ['Active', 'active'])
+                        ->update([
+                            'status'     => 'InActive',
+                            'updated_at' => now(),
+                        ]);
+
+                    $ver->update([
+                        'status'       => 'Active',
+                        'catatan'      => null,
+                        'id_validator' => $validatorId,
+                        'updated_at'   => now(),
+                    ]);
+                }
+
+                return redirect()->route('validator.validasiFAQ')
+                    ->with('success', "{$count} FAQ ({$listKode}) berhasil dipublikasikan sekarang dan statusnya telah berubah menjadi Active!");
+            }
+
+            if ($publishMode === 'scheduled') {
+                $scheduleNote = FaqVersion::encodePublishSchedule('scheduled', $publishDate, $publishTime);
+                $dtFormatted  = Carbon::parse($publishDate . ' ' . $publishTime);
+
+                foreach ($versions as $ver) {
+                    $ver->update([
+                        'status'       => 'Approved',
+                        'catatan'      => $scheduleNote,
+                        'id_validator' => $validatorId,
+                        'updated_at'   => now(),
+                    ]);
+                }
+
+                return redirect()->route('validator.validasiFAQ')
+                    ->with('success', "{$count} FAQ ({$listKode}) telah dijadwalkan untuk publikasi pada " . $dtFormatted->translatedFormat('d M Y') . " pukul " . $dtFormatted->format('H.i') . " WIB.");
+            }
+
+            // Default: routine (Publikasi Rutin)
+            $scheduleNote = FaqVersion::encodePublishSchedule('routine');
+            foreach ($versions as $ver) {
+                $ver->update([
+                    'status'       => 'Approved',
+                    'catatan'      => $scheduleNote,
+                    'id_validator' => $validatorId,
+                    'updated_at'   => now(),
+                ]);
+            }
+
+            return redirect()->route('validator.validasiFAQ')
+                ->with('success', "{$count} FAQ ({$listKode}) telah masuk antrean Publikasi Rutin (menunggu jam 11 / 23.00–01.00 WIB).");
+        } catch (Throwable $e) {
+            return redirect()->route('validator.validasiFAQ')
+                ->with('error', 'Gagal memproses publikasi FAQ: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Menampilkan detail lengkap & riwayat versi FAQ (JSON untuk modal di Daftar FAQ Validator).
+     */
+    public function show($id, Request $request)
+    {
+        $faq = Faq::with([
+            'versions.daftarPustaka',
+            'versions.validator',
+            'tags',
+            'dataEntry',
+        ])->findOrFail($id);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'id'             => $faq->id,
+                'pertanyaan'     => $faq->pertanyaan,
+                'created_at'     => $faq->created_at?->translatedFormat('d M Y H:i'),
+                'data_entry'     => $faq->dataEntry?->nama,
+                'tags'           => $faq->tags->pluck('nama'),
+                'latest_version' => $faq->latest_version,
+                'versions'       => $faq->versions->map(function ($v) {
+                    return [
+                        'id'             => $v->id,
+                        'status'         => $v->status,
+                        'jawaban'        => $v->jawaban,
+                        'catatan'        => $v->catatan,
+                        'validator'      => $v->validator?->nama,
+                        'daftar_pustaka' => $v->daftarPustaka ? [
+                            'id'   => $v->daftarPustaka->id,
+                            'type' => $v->daftarPustaka->type,
+                            'link' => $v->daftarPustaka->link,
+                        ] : null,
+                        'created_at'     => $v->created_at?->translatedFormat('d M Y H:i'),
+                        'updated_at'     => $v->updated_at?->translatedFormat('d M Y H:i'),
+                    ];
+                }),
+            ],
+        ]);
+    }
+
+    /**
+     * Ubah status FAQ dari menu titik 3 di Daftar FAQ Validator (Active, Approved, InActive, Rejected).
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status'  => 'required|in:Active,Approved,InActive,Rejected',
+            'catatan' => 'nullable|string',
+        ]);
+
+        try {
+            $faq = Faq::with('versions')->findOrFail($id);
+            $latest = $faq->latest_version;
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+
+            if ($latest) {
+                $updateData = [
+                    'status'       => $request->status,
+                    'id_validator' => $validatorId,
+                    'updated_at'   => now(),
+                ];
+                if ($request->filled('catatan')) {
+                    $updateData['catatan'] = $request->catatan;
+                }
+                $latest->update($updateData);
+            }
+
+            return redirect()->back()
+                ->with('success', "Status FAQ {$id} berhasil diperbarui menjadi {$request->status}.");
+        } catch (Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal memperbarui status FAQ: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Hapus FAQ beserta versinya dari menu titik 3 pada Daftar FAQ Validator.
+     */
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $faq = Faq::findOrFail($id);
+            $faq->tags()->detach();
+            $faq->versions()->delete();
+            $faq->delete();
+
+            DB::commit();
+
+            return redirect()->back()
+                ->with('success', "FAQ {$id} beserta riwayat versinya berhasil dihapus.");
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Gagal menghapus FAQ: ' . $e->getMessage());
         }
     }
 }
