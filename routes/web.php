@@ -3,10 +3,18 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\dataentry\FaqController as DataEntryFaqController;
+use App\Http\Controllers\dataentry\PengaturanAkunController as DataEntryPengaturanAkunController;
 use App\Http\Controllers\superadmin\PenggunaAksesController;
+use App\Http\Controllers\superadmin\PengaturanAkunController as SuperAdminPengaturanAkunController;
+use App\Http\Controllers\validator\PengaturanAkunController as ValidatorPengaturanAkunController;
 use App\Http\Controllers\validator\ValidatorFaqController;
 use Illuminate\Support\Facades\Route;
 
+
+// SIMULATOR PROTOTYPE STATIS (index.php)
+Route::get('/simulator', function () {
+    return response()->file(base_path('index.php'));
+})->name('simulator');
 
 // HALAMAN PUBLIK: FAQ Mahasiswa
 Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
@@ -37,6 +45,11 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     Route::get('/superadmin/dashboard', function () {
         return view('superadmin.dashboard');
     })->name('superadmin.dashboard');
+
+    // Pengaturan Akun Super Admin
+    Route::get('/superadmin/pengaturan-akun', [SuperAdminPengaturanAkunController::class, 'index'])->name('superadmin.pengaturanAkun');
+    Route::post('/superadmin/pengaturan-akun/profil', [SuperAdminPengaturanAkunController::class, 'updateProfile'])->name('superadmin.pengaturanAkun.profile');
+    Route::post('/superadmin/pengaturan-akun/kata-sandi', [SuperAdminPengaturanAkunController::class, 'updatePassword'])->name('superadmin.pengaturanAkun.password');
 });
 
 // PENGGUNA & HAK AKSES (Dapat diakses Super Admin & Validator sementara disamakan)
@@ -55,18 +68,27 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
     Route::get('/dashboard', [ValidatorFaqController::class, 'dashboard'])->name('dashboard');
     Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
 
-    // Halaman Validasi FAQ (Antrean Validasi) + Aksi Approve, Reject & Massal Approve
+    // Halaman Validasi FAQ (Antrean Validasi) + Aksi Approve, Reject, Massal Approve & Publish
     Route::get('/validasi-faq', [ValidatorFaqController::class, 'validasiFaq'])->name('validasiFAQ');
     Route::post('/validasi-faq/bulk-approve', [ValidatorFaqController::class, 'bulkApprove'])->name('validasiFAQ.bulkApprove');
+    Route::post('/validasi-faq/publish', [ValidatorFaqController::class, 'publish'])->name('validasiFAQ.publish');
     Route::post('/validasi-faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('validasiFAQ.approve');
     Route::post('/validasi-faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('validasiFAQ.reject');
 
-    // Alias route untuk kompatibilitas
+    // Alias route untuk kompatibilitas & menu titik 3 Daftar FAQ Validator
+    Route::get('/faq/{id}/detail', [ValidatorFaqController::class, 'show'])->name('faq.show');
+    Route::post('/faq/{id}/status', [ValidatorFaqController::class, 'updateStatus'])->name('faq.updateStatus');
+    Route::delete('/faq/{id}', [ValidatorFaqController::class, 'destroy'])->name('faq.destroy');
     Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
     Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
 
     // Halaman Pengguna & Akses untuk Validator (disamakan sementara dengan Super Admin)
     Route::get('/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('pengguna-akses');
+
+    // Pengaturan Akun Validator
+    Route::get('/pengaturan-akun', [ValidatorPengaturanAkunController::class, 'index'])->name('pengaturanAkun');
+    Route::post('/pengaturan-akun/profil', [ValidatorPengaturanAkunController::class, 'updateProfile'])->name('pengaturanAkun.profile');
+    Route::post('/pengaturan-akun/kata-sandi', [ValidatorPengaturanAkunController::class, 'updatePassword'])->name('pengaturanAkun.password');
 });
 
 // DATA ENTRY ROUTES
@@ -105,12 +127,18 @@ Route::middleware(['auth', 'role:Data Entry'])->group(function () {
         // 4. Menu Sumber Pustaka (tdaftarpustaka)
         Route::get('/sumber-pustaka', [DataEntryFaqController::class, 'sumberPustakaIndex'])->name('sumberpustaka');
         Route::post('/sumber-pustaka', [DataEntryFaqController::class, 'sumberPustakaStore'])->name('sumberpustaka.store');
+        Route::post('/sumber-pustaka/{id}/update', [DataEntryFaqController::class, 'sumberPustakaUpdate'])->name('sumberpustaka.update');
         Route::delete('/sumber-pustaka/{id}', [DataEntryFaqController::class, 'sumberPustakaDestroy'])->name('sumberpustaka.destroy');
         Route::post('/sumber-pustaka/upload', [DataEntryFaqController::class, 'sumberPustakaUpload'])->name('sumberpustaka.upload');
         Route::post('/sumber-pustaka/save-import', [DataEntryFaqController::class, 'sumberPustakaSaveImport'])->name('sumberpustaka.saveImport');
         Route::post('/sumber-pustaka/cancel-import', [DataEntryFaqController::class, 'sumberPustakaCancelImport'])->name('sumberpustaka.cancelImport');
         Route::get('/template/sumber-pustaka', [DataEntryFaqController::class, 'downloadTemplatePustaka'])->name('template.pustaka');
         Route::get('/pustaka/{id}/download', [DataEntryFaqController::class, 'downloadPustaka'])->name('pustaka.download');
+
+        // 5. Pengaturan Akun Data Entry
+        Route::get('/pengaturan-akun', [DataEntryPengaturanAkunController::class, 'index'])->name('pengaturanAkun');
+        Route::post('/pengaturan-akun/profil', [DataEntryPengaturanAkunController::class, 'updateProfile'])->name('pengaturanAkun.profile');
+        Route::post('/pengaturan-akun/kata-sandi', [DataEntryPengaturanAkunController::class, 'updatePassword'])->name('pengaturanAkun.password');
     });
 
     Route::get('/dataentry/dashboard', [DataEntryFaqController::class, 'dashboard']);

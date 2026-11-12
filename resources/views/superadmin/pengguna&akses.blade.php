@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>KMS - Pengguna & Hak Akses (Super Admin)</title>
+    <title>Pengguna & Akses - Ruang {{ auth()->user()?->getRoleName() ?: 'Super Admin' }} | KMS</title>
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans & Lora -->
@@ -100,6 +100,13 @@
 @endphp
 
 <div class="d-flex">
+    @php
+                $authUser = auth()->user();
+                if ($authUser && !$authUser->relationLoaded('role')) {
+                    $authUser->load('role');
+                }
+                $currentUserRole = $authUser ? $authUser->getRoleName() : 'Super Admin';
+            @endphp
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div>
@@ -109,13 +116,6 @@
             </div>
 
             <!-- Role Badge -->
-            @php
-                $authUser = auth()->user();
-                if ($authUser && !$authUser->relationLoaded('role')) {
-                    $authUser->load('role');
-                }
-                $currentUserRole = $authUser ? $authUser->getRoleName() : 'Super Admin';
-            @endphp
             <div>
                 <span class="role-pill">Ruang {{ $currentUserRole ?: 'Super Admin' }}</span>
             </div>
@@ -140,7 +140,7 @@
                         <span>Pengguna &amp; Akses</span>
                     </a>
                 @else
-                    <a href="/superadmin/dashboard" class="nav-link-custom">
+                    <a href="{{ route('superadmin.dashboard') }}" class="nav-link-custom">
                         <i class="bi bi-grid"></i>
                         <span>Dashboard</span>
                     </a>
@@ -148,9 +148,9 @@
                         <i class="bi bi-journal-text"></i>
                         <span>Daftar FAQ</span>
                     </a>
-                    <a href="/superadmin/pengguna-akses" class="nav-link-custom active">
+                    <a href="{{ route('superadmin.pengguna-akses') }}" class="nav-link-custom active">
                         <i class="bi bi-people"></i>
-                        <span>Pengguna & akses</span>
+                        <span>Pengguna &amp; Akses</span>
                     </a>
                     <a href="#" class="nav-link-custom">
                         <i class="bi bi-diagram-3"></i>
@@ -158,11 +158,11 @@
                     </a>
                     <a href="#" class="nav-link-custom">
                         <i class="bi bi-graph-up"></i>
-                        <span>Laporan pencarian</span>
+                        <span>Laporan Pencarian</span>
                     </a>
                     <a href="#" class="nav-link-custom">
                         <i class="bi bi-clock-history"></i>
-                        <span>Riwayat aktivitas</span>
+                        <span>Riwayat Aktivitas</span>
                     </a>
                 @endif
             </nav>
@@ -170,21 +170,15 @@
 
         <!-- Bottom Section of Sidebar -->
         <div>
-
-            <!-- Account Settings & Logout -->
-            <a href="#" class="nav-link-custom mb-1">
+            <hr class="sidebar-divider">
+            <a href="{{ $currentUserRole === 'Validator' ? route('validator.pengaturanAkun') : route('superadmin.pengaturanAkun') }}" class="nav-link-custom">
                 <i class="bi bi-gear"></i>
-                <span>Pengaturan akun</span>
+                <span>Pengaturan Akun</span>
             </a>
-            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary" style="cursor: pointer;">
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
             </a>
-
-            <!-- Hidden Logout Form -->
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                @csrf
-            </form>
         </div>
     </aside>
 
@@ -193,62 +187,67 @@
 
     <!-- Main Wrapper -->
     <main class="flex-grow-1 min-vw-0">
-        <!-- Top Navbar -->
+        <!-- Top Navbar (Tanpa Pencarian) -->
+        @php
+            $tbUser = auth()->user();
+            if ($tbUser && !$tbUser->relationLoaded('role')) {
+                $tbUser->load('role');
+            }
+            $tbRole = $tbUser?->getRoleName() ?: 'Super Admin';
+            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $tbUser?->email ?? '';
+            $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('') ?: 'KM';
+        @endphp
         <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
             <!-- Left: Mobile Toggle & Breadcrumb -->
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-5"></i>
                 </button>
-                <div class="d-flex align-items-center text-muted fs-13">
+                <div class="top-breadcrumb d-flex align-items-center">
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
-                    <span class="mx-2 text-secondary">/</span>
-                    <strong class="text-dark">Pengguna & Hak Akses</strong>
+                    <span class="crumb-sep">/</span>
+                    <span>{{ $tbRole }}</span>
+                    <span class="crumb-sep">/</span>
+                    <span class="crumb-current">Pengguna &amp; Akses</span>
                 </div>
             </div>
 
-            <!-- Right: Search, Notification & Profile -->
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <!-- Search Bar -->
-                <div class="search-container">
-                    <i class="bi bi-search"></i>
-                    <input type="text" id="topSearchBar" class="search-input" placeholder="Cari nama, email, atau NPK...">
-                </div>
-
-                <!-- Notification Bell -->
-                <button class="btn btn-link text-secondary p-1 position-relative text-decoration-none" aria-label="Notifikasi">
+            <!-- Right: Notification & Profile -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="top-icon-btn" aria-label="Notifikasi">
                     <i class="bi bi-bell fs-5"></i>
-                    <span class="position-absolute top-1 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                        <span class="visually-hidden">Notifikasi baru</span>
-                    </span>
                 </button>
 
-                <!-- User Profile Dropdown -->
                 <div class="dropdown">
                     <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()->nama ?? 'SA', 0, 2)) }}</div>
+                        <div class="avatar-circle">{{ $tbInitials }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Super Admin' }}</div>
-                            <div class="fs-11 text-muted">{{ Auth::user()->getRoleName() ?? 'Super Admin' }}</div>
+                            <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
                         </div>
                         <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" style="min-width: 200px;">
+                    <ul class="dropdown-menu dropdown-menu-end profile-dropdown mt-2">
                         <li>
-                            <div class="px-3 py-2 border-bottom">
-                                <div class="fw-bold fs-13 text-dark">{{ Auth::user()->nama ?? 'Super Admin' }}</div>
-                                <div class="fs-11 text-muted">{{ Auth::user()->email ?? '' }}</div>
+                            <div class="px-3 py-2 mb-1 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                                <div class="fs-11 text-muted">{{ $tbEmail }}</div>
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 fs-13 d-flex align-items-center gap-2" href="#">
-                                <i class="bi bi-gear text-secondary"></i> Pengaturan akun
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ $tbRole === 'Validator' ? route('validator.pengaturanAkun') : route('superadmin.pengaturanAkun') }}">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                            <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
                                 <i class="bi bi-box-arrow-right"></i> Keluar
                             </a>
                         </li>
@@ -296,7 +295,7 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <div class="date-badge">{{ $currentUserRole === 'Validator' ? 'RUANG PENELAAH · VALIDATOR' : 'KAMIS, 22 OKTOBER 2026' }}</div>
-                    <h1 class="page-title mb-1">Pengguna & Hak Akses</h1>
+                    <h1 class="page-title mb-1">Pengguna &amp; Akses</h1>
                     <p class="text-muted fs-13 mb-0">Kelola akun staf kampus, penugasan peran (role), dan kontrol wewenang dengan proteksi keamanan ketat.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -925,6 +924,78 @@
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- ══════════════════════════════════════════════════════════════════
+     MODAL KONFIRMASI KELUAR (LOGOUT)
+══════════════════════════════════════════════════════════════════ -->
+@php
+    $lmUser = auth()->user();
+    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
+    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
+        ->filter()
+        ->take(2)
+        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+        ->implode('') ?: 'KM';
+@endphp
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-labelledby="modalLogoutTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content kms-modal-content">
+            <div class="kms-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="kms-modal-badge-icon" style="background-color: #FEF2F2; color: #DC2626;">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </span>
+                    <h5 class="kms-modal-title" id="modalLogoutTitle">Konfirmasi Keluar</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
+            </div>
+            <div class="kms-modal-body">
+                Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
+                <div class="logout-user-card">
+                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="lh-sm">
+                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
+                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kms-modal-footer">
+                <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-kms-primary" id="btnConfirmLogout" onclick="submitLogout(this)">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Ya, Keluar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const el = document.getElementById('modalLogoutConfirm');
+        if (window.bootstrap && el) {
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+            document.getElementById('logout-form').submit();
+        }
+    }
+
+    function confirmLogout() {
+        openLogoutModal();
+    }
+
+    function submitLogout(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Memproses...</span>';
+        }
+        document.getElementById('logout-form').submit();
+    }
+</script>
+
 <!-- SweetAlert2 for modern confirmation pop-up -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -942,31 +1013,7 @@
         backdrop.classList.toggle('d-none');
     }
 
-    // Konfirmasi Logout dengan Pop-Up
-    function confirmLogout() {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Konfirmasi Keluar',
-                text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#991b1b', // Warna maroon KMS
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: '<i class="bi bi-box-arrow-right me-1"></i> Ya, Keluar',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                focusCancel: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('logout-form').submit();
-                }
-            });
-        } else {
-            if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
-                document.getElementById('logout-form').submit();
-            }
-        }
-    }
+
 
     // Toggle Password Visibility
     function togglePasswordVisibility(inputId, btn) {
@@ -1181,7 +1228,7 @@
 
     // Bind Search Input Listeners
     document.getElementById('tableFilterInput').addEventListener('input', filterTableRows);
-    document.getElementById('topSearchBar').addEventListener('input', function() {
+    document.getElementById('topSearchBar')?.addEventListener('input', function() {
         document.getElementById('tableFilterInput').value = this.value;
         filterTableRows();
     });

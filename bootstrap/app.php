@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Percayai semua proxy (sangat penting untuk ngrok / tunnel HTTPS agar asset & redirect tidak terblokir)
+        $middleware->trustProxies(at: '*');
+
         // Arahkan user yang sudah login jika mengakses halaman guest (seperti /login)
         $middleware->redirectUsersTo(function (Request $request) {
             $user = $request->user();
