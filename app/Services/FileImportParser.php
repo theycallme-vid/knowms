@@ -378,11 +378,12 @@ class FileImportParser
     /**
      * Mengonversi baris mentah hasil pembacaan file menjadi struktur item Pratinjau FAQ.
      *
-     * Konsep ID & Versi:
-     * - Jika pertanyaan baru (atau belum ada di tabel tfaqs):
-     *   ID FAQ bertambah (FAQ-0001, FAQ-0002, dst.) dan ID Versi adalah FAQ-XXXX-V1 (Versi 1).
-     * - Jika pertanyaan sudah ada di tfaqs (atau di dalam batch file yang sama) atau menggunakan kode FAQ yang sudah ada:
-     *   ID FAQ tetap (misal FAQ-0001) dan ID Versi bertambah menjadi FAQ-0001-V2, FAQ-0001-V3, dst.!
+     * Aturan ID & Pengecekan Duplikat / Kemiripan:
+     * 1. Setiap baris FAQ yang diimport selalu mendapatkan kode FAQ terbaru secara berurutan
+     *    melanjutkan nomor FAQ terakhir di database (contoh: jika sudah ada FAQ-0001 s/d FAQ-0003,
+     *    maka hasil import otomatis mulai dari FAQ-0004, FAQ-0005, dst. tanpa duplikat ID).
+     * 2. Setiap pertanyaan dinormalisasi dan diperiksa menggunakan FaqSimilarityService terhadap
+     *    FAQ di database yang berstatus Active/Approved (Active Publish) maupun Submitted (Menunggu Validasi).
      */
     public static function mapRowsToFaqPreview(array $rows, int $startFaqNumber = 1): array
     {
@@ -390,43 +391,16 @@ class FileImportParser
             return [];
         }
 
-        // Ambil daftar FAQ yang sudah ada di database beserta jumlah versinya
-        $existingFaqsByCode = [];
-        $existingFaqsByQuestion = [];
-
         try {
-            $dbFaqs = \App\Models\Faq::with('versions')->get();
-            foreach ($dbFaqs as $f) {
-                $maxV = 0;
-                foreach ($f->versions as $v) {
-                    if (preg_match('/-V(\d+)$/i', $v->id, $m)) {
-                        $num = (int) $m[1];
-                        if ($num > $maxV) {
-                            $maxV = $num;
-                        }
-                    }
-                }
-                if ($maxV === 0) {
-                    $maxV = $f->versions->count();
-                }
-
-                $codeKey = strtoupper(trim($f->id));
-                $qKey = mb_strtolower(trim($f->pertanyaan));
-
-                $existingFaqsByCode[$codeKey] = [
-                    'id'    => $f->id,
-                    'max_v' => $maxV,
-                ];
-                if ($qKey !== '') {
-                    $existingFaqsByQuestion[$qKey] = $codeKey;
-                }
-            }
+            $maxDbSeq = \App\Models\Faq::getMaxSequenceNumber();
+            $counter = max($startFaqNumber, $maxDbSeq + 1);
         } catch (\Throwable $e) {
-            // Abaikan jika DB belum siap
+            $counter = max(1, $startFaqNumber);
         }
 
+        $similarityService = new FaqSimilarityService();
         $items = [];
-        $counter = $startFaqNumber;
+        $seenNormalizedInFile = [];
 
         foreach ($rows as $rowIndex => $row) {
             $col0 = trim($row[0] ?? '');
@@ -446,13 +420,9 @@ class FileImportParser
                 }
             }
 
-            // Deteksi apakah Kolom 0 adalah Nomor Urut atau Kode FAQ
+            // Deteksi apakah Kolom 0 adalah Nomor Urut atau Kode FAQ lama dari template
             $hasLeadingCodeOrNo = false;
-            $explicitFaqCode = null;
-            if (preg_match('/^FAQ-\d+/i', $col0)) {
-                $hasLeadingCodeOrNo = true;
-                $explicitFaqCode = strtoupper($col0);
-            } elseif (preg_match('/^\d+$/', $col0)) {
+            if (preg_match('/^FAQ-\d+/i', $col0) || preg_match('/^\d+$/', $col0)) {
                 $hasLeadingCodeOrNo = true;
             }
 
@@ -483,52 +453,43 @@ class FileImportParser
                 ));
             }
 
-            // Tentukan apakah ini versi baru dari FAQ yang sudah ada atau FAQ baru
-            $qKey = mb_strtolower($pertanyaan);
-            $matchedCode = null;
+            // 1. Selalu gunakan ID FAQ terbaru berurutan tanpa duplikat
+            $faqId = sprintf('FAQ-%04d', $counter++);
+            $versionNum = 1;
+            $versionId = $faqId . '-V1';
 
-            if ($explicitFaqCode && isset($existingFaqsByCode[$explicitFaqCode])) {
-                $matchedCode = $explicitFaqCode;
-            } elseif ($qKey !== '' && isset($existingFaqsByQuestion[$qKey])) {
-                $matchedCode = $existingFaqsByQuestion[$qKey];
+            // 2. Analisis Duplikat Identik (100%) & Kemiripan Makna terhadap DB (Active Publish / Menunggu Validasi)
+            $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 30.0);
+            $normQ = $analysis['normalized_input'] ?? '';
+
+            $inFileDuplicateOf = null;
+            if ($normQ !== '' && isset($seenNormalizedInFile[$normQ])) {
+                $inFileDuplicateOf = $seenNormalizedInFile[$normQ];
+            } elseif ($normQ !== '') {
+                $seenNormalizedInFile[$normQ] = $faqId;
             }
-
-            if ($matchedCode !== null) {
-                $faqId = $existingFaqsByCode[$matchedCode]['id'];
-                $nextV = $existingFaqsByCode[$matchedCode]['max_v'] + 1;
-                $existingFaqsByCode[$matchedCode]['max_v'] = $nextV;
-                $versionNum = $nextV;
-            } else {
-                $faqId = sprintf('FAQ-%04d', $counter++);
-                $versionNum = 1;
-                $codeKey = strtoupper($faqId);
-                $existingFaqsByCode[$codeKey] = [
-                    'id'    => $faqId,
-                    'max_v' => 1,
-                ];
-                if ($qKey !== '') {
-                    $existingFaqsByQuestion[$qKey] = $codeKey;
-                }
-            }
-
-            $versionId = $faqId . '-V' . $versionNum;
 
             // Status 'ready' (Siap diajukan) jika Pertanyaan, Jawaban, Kata Kunci, dan Sumber Pustaka semuanya terisi
             $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && $pustakaJudul !== '');
 
             $items[] = [
-                'row_key'        => $versionId, // Unik per baris (misal FAQ-0001-V1, FAQ-0001-V2)
-                'id'             => $faqId,
-                'version_id'     => $versionId,
-                'version_num'    => $versionNum,
-                'version'        => 'Versi ' . $versionNum,
-                'pertanyaan'     => $pertanyaan,
-                'jawaban'        => $jawaban,
-                'tags'           => $tags,
-                'pustaka_judul'  => $pustakaJudul,
-                'pustaka_bagian' => $pustakaBagian !== '' ? $pustakaBagian : ($pustakaJudul !== '' ? 'Dokumen Rujukan Resmi' : 'Belum diisi'),
-                'status'         => $isReady ? 'ready' : 'incomplete',
-                'checked'        => $isReady,
+                'row_key'            => $versionId,
+                'id'                 => $faqId,
+                'version_id'         => $versionId,
+                'version_num'        => $versionNum,
+                'version'            => 'Versi ' . $versionNum,
+                'pertanyaan'         => $pertanyaan,
+                'jawaban'            => $jawaban,
+                'tags'               => $tags,
+                'pustaka_judul'      => $pustakaJudul,
+                'pustaka_bagian'     => $pustakaBagian !== '' ? $pustakaBagian : ($pustakaJudul !== '' ? 'Dokumen Rujukan Resmi' : 'Belum diisi'),
+                'status'             => $isReady ? 'ready' : 'incomplete',
+                'checked'            => $isReady && !($analysis['has_exact_match'] ?? false),
+                'has_exact_match'    => (bool) ($analysis['has_exact_match'] ?? false),
+                'exact_match'        => $analysis['exact_match'] ?? null,
+                'similar_candidates' => $analysis['candidates'] ?? [],
+                'max_similarity'     => $analysis['max_similarity'] ?? 0.0,
+                'in_file_duplicate'  => $inFileDuplicateOf,
             ];
         }
 
@@ -569,47 +530,107 @@ class FileImportParser
     }
 
     /**
-     * Mengonversi baris mentah hasil pembacaan file menjadi daftar Sumber Pustaka (tdaftarpustaka).
+     * Mengonversi baris mentah hasil pembacaan file Excel/CSV/PDF menjadi daftar Sumber Pustaka (tdaftarpustaka).
+     * Wajib membaca 2 kolom:
+     * - Kolom 1: Link Sumber Pustaka
+     * - Kolom 2: Tipe (Private / Public)
+     * Sekaligus memvalidasi apakah setiap baris sudah sesuai atau belum untuk dipantau pada tabel pratinjau.
      */
     public static function mapRowsToSumberPustaka(array $rows): array
     {
         $sources = [];
-        foreach ($rows as $rowIndex => $row) {
-            $col0 = trim($row[0] ?? '');
-            $col1 = trim($row[1] ?? '');
-            $col2 = trim($row[2] ?? '');
+        $linkColIdx = 0;
+        $typeColIdx = 1;
 
+        foreach ($rows as $rowIndex => $row) {
+            $col0 = trim((string) ($row[0] ?? ''));
+            $col1 = trim((string) ($row[1] ?? ''));
+            $col2 = trim((string) ($row[2] ?? ''));
+
+            if ($col0 === '' && $col1 === '' && $col2 === '') {
+                continue;
+            }
+
+            // Deteksi baris header untuk menentukan posisi kolom Link Sumber Pustaka & Tipe (Private/Public)
             if ($rowIndex === 0) {
-                $header = strtolower($col0 . ' ' . $col1);
-                if (str_contains($header, 'judul') || str_contains($header, 'link') || str_contains($header, 'sumber') || str_contains($header, 'tipe') || $col0 === 'no') {
+                $h0 = strtolower($col0);
+                $h1 = strtolower($col1);
+                $h2 = strtolower($col2);
+                $headerCombined = $h0 . ' ' . $h1 . ' ' . $h2;
+
+                if (
+                    str_contains($headerCombined, 'link') ||
+                    str_contains($headerCombined, 'sumber') ||
+                    str_contains($headerCombined, 'pustaka') ||
+                    str_contains($headerCombined, 'dokumen') ||
+                    str_contains($headerCombined, 'tautan') ||
+                    str_contains($headerCombined, 'tipe') ||
+                    $h0 === 'no' ||
+                    $h0 === 'no.'
+                ) {
+                    if ($h0 === 'no' || $h0 === 'no.') {
+                        if (str_contains($h1, 'tipe') || str_contains($h1, 'type')) {
+                            $typeColIdx = 1;
+                            $linkColIdx = 2;
+                        } else {
+                            $linkColIdx = 1;
+                            $typeColIdx = 2;
+                        }
+                    } elseif (str_contains($h0, 'tipe') || str_contains($h0, 'type')) {
+                        $typeColIdx = 0;
+                        $linkColIdx = 1;
+                    } else {
+                        $linkColIdx = 0;
+                        $typeColIdx = 1;
+                    }
                     continue;
                 }
             }
 
-            // Deteksi apakah kolom 0 adalah nomor urut
-            if (preg_match('/^\d+$/', $col0) && ($col1 !== '' || $col2 !== '')) {
-                $col0 = $col1;
-                $col1 = $col2;
+            // Jika baris diawali nomor urut tetapi tidak ada header
+            if ($linkColIdx === 0 && preg_match('/^\d+$/', $col0) && ($col1 !== '' || $col2 !== '')) {
+                $rawLink = $col1;
+                $rawType = $col2;
+            } else {
+                $rawLink = trim((string) ($row[$linkColIdx] ?? ''));
+                $rawType = trim((string) ($row[$typeColIdx] ?? ''));
             }
 
-            $type = 'link';
-            $linkName = $col0;
-
-            if (in_array(strtolower($col0), ['link', 'upload']) && $col1 !== '') {
-                $type = strtolower($col0);
-                $linkName = $col1;
-            } elseif ($col0 !== '') {
-                $linkName = $col0;
+            // Jika terbalik (misal kolom 0 berisi Public/Private dan kolom 1 berisi link)
+            if (in_array(strtolower($rawLink), ['public', 'private'], true) && !in_array(strtolower($rawType), ['public', 'private'], true) && $rawType !== '') {
+                [$rawLink, $rawType] = [$rawType, $rawLink];
             }
 
-            $linkName = substr(trim($linkName), 0, 45);
-            if ($linkName !== '') {
-                $sources[] = [
-                    'type' => $type,
-                    'link' => $linkName,
-                ];
+            $issues = [];
+            if ($rawLink === '') {
+                $issues[] = 'Link Sumber Pustaka kosong';
+            } elseif (mb_strlen($rawLink) > 45) {
+                $issues[] = 'Link melebihi 45 karakter (dipotong otomatis)';
             }
+
+            $typeLower = strtolower($rawType);
+            $isValidType = in_array($typeLower, ['public', 'private'], true);
+            if (!$isValidType) {
+                $issues[] = $rawType === ''
+                    ? 'Kolom Tipe kosong (wajib Public atau Private)'
+                    : "Tipe '{$rawType}' tidak sesuai (wajib Public atau Private)";
+            }
+
+            $normalizedType = $typeLower === 'private' ? 'Private' : 'Public';
+            $cleanLink = mb_substr($rawLink, 0, 45);
+            $isValid = ($cleanLink !== '' && $isValidType);
+
+            $sources[] = [
+                'link'         => $cleanLink,
+                'raw_link'     => $rawLink,
+                'type'         => $normalizedType,
+                'raw_type'     => $rawType !== '' ? $rawType : '-',
+                'is_valid'     => $isValid,
+                'status_label' => $isValid ? 'Sesuai' : 'Belum Sesuai',
+                'notes'        => empty($issues) ? 'Kolom Link Sumber Pustaka & Tipe sudah sesuai' : implode('; ', $issues),
+            ];
         }
+
         return $sources;
     }
 

@@ -26,17 +26,20 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div>
-            <div class="sidebar-brand mb-3">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="sidebar-logo-img">
+            <!-- KMS Brand Header -->
+            <div class="sidebar-brand">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
             </div>
 
-            <div class="mb-3">
+            <!-- Role Badge -->
+            <div>
                 <span class="role-pill">Ruang Data Entry</span>
             </div>
 
+            <!-- Navigation Links -->
             <nav class="nav flex-column">
                 <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-file-earmark-text"></i>
+                    <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom active">
@@ -54,19 +57,17 @@
             </nav>
         </div>
 
+        <!-- Bottom Section of Sidebar -->
         <div>
-            <hr class="sidebar-divider my-3">
-            <a href="#" class="nav-link-custom mb-1">
+            <hr class="sidebar-divider">
+            <a href="{{ route('dataentry.pengaturanAkun') }}" class="nav-link-custom">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan Akun</span>
             </a>
-            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary">
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
             </a>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                @csrf
-            </form>
         </div>
     </aside>
 
@@ -75,46 +76,72 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1 min-vw-0">
-        <!-- Top Navbar -->
+        <!-- Top Navbar (Tanpa Pencarian) -->
+        @php
+            $tbUser = auth()->user();
+            if ($tbUser && !$tbUser->relationLoaded('role')) {
+                $tbUser->load('role');
+            }
+            $tbRole = $tbUser?->getRoleName() ?: 'Data Entry';
+            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $tbUser?->email ?? '';
+            $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('') ?: 'KM';
+        @endphp
         <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- Left: Mobile Toggle & Breadcrumb -->
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-5"></i>
                 </button>
-                <div class="d-flex align-items-center text-muted fs-13">
+                <div class="top-breadcrumb d-flex align-items-center">
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
-                    <span class="mx-2 text-muted">/</span>
-                    <span class="text-dark fw-semibold">Data Entry</span>
+                    <span class="crumb-sep">/</span>
+                    <span>{{ $tbRole }}</span>
+                    <span class="crumb-sep">/</span>
+                    <span class="crumb-current">Buat FAQ</span>
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <div class="search-container">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="search-input" placeholder="Cari FAQ, pengguna, atau aktivitas...">
-                </div>
+            <!-- Right: Notification & Profile -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="top-icon-btn" aria-label="Notifikasi">
+                    <i class="bi bi-bell fs-5"></i>
+                </button>
 
                 <div class="dropdown">
-                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown">
-                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}</div>
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-circle">{{ $tbInitials }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
-                            <div class="fs-11 text-muted">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
+                            <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
                         </div>
+                        <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                    <ul class="dropdown-menu dropdown-menu-end profile-dropdown mt-2">
                         <li>
-                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                            <div class="px-3 py-2 mb-1 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                                <div class="fs-11 text-muted">{{ $tbEmail }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dataentry.pengaturanAkun') }}">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
                                 <i class="bi bi-box-arrow-right"></i> Keluar
                             </a>
                         </li>
                     </ul>
                 </div>
-
-                <button class="btn btn-link text-secondary p-1 text-decoration-none" aria-label="Notifikasi">
-                    <i class="bi bi-bell fs-5"></i>
-                </button>
             </div>
         </header>
 
@@ -128,7 +155,7 @@
             <!-- Page Title & Upload Excel/PDF Button -->
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <div>
-                    <h1 class="display-serif fs-2 mb-1">{{ isset($isEdit) && $isEdit ? 'Edit FAQ' : 'Buat FAQ' }}</h1>
+                    <h1 class="page-title mb-1">Buat FAQ</h1>
                     <p class="text-muted fs-14 mb-0">Susun jawaban yang jelas dan lengkapi dengan sumber pustaka resmi</p>
                 </div>
                 <div>
@@ -288,13 +315,25 @@
                             placeholder="Tulis pertanyaan yang sering diajukan mahasiswa..."
                             required>{{ old('pertanyaan', $isEditing ? $faq->pertanyaan : ($selectedExistingFaq?->pertanyaan ?? '')) }}</textarea>
 
-                        <!-- Live Duplicate Warning -->
-                        <div id="duplicateWarning" class="alert alert-warning rounded-3 p-3 mt-2 fs-12 d-none">
-                            <div class="d-flex align-items-start gap-2">
-                                <i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i>
-                                <div>
-                                    <div class="fw-bold mb-1">Perhatian: Pertanyaan Serupa Terdeteksi</div>
-                                    <div id="duplicateList"></div>
+                        <!-- Peringatan Duplikat Identik 100% (Active Publish / Menunggu Validasi) -->
+                        <div id="exactDuplicateAlert" class="alert alert-danger rounded-3 p-3 mt-2 fs-13 d-none border-danger">
+                            <div class="d-flex align-items-start gap-2.5">
+                                <i class="bi bi-Octagon-fill bi-exclamation-octagon-fill text-danger fs-5 mt-0.5"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-danger mb-1" id="exactDuplicateTitle">Peringatan: Pertanyaan Duplikat 100% Terdeteksi!</div>
+                                    <div id="exactDuplicateBody" class="text-dark"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informasi Kemiripan Pertanyaan / Makna Serupa (Normalisasi + Similarity Score) -->
+                        <div id="duplicateWarning" class="alert alert-warning rounded-3 p-3 mt-2 fs-13 d-none">
+                            <div class="d-flex align-items-start gap-2.5">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 mt-0.5"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-dark mb-1">Informasi Kemiripan Pertanyaan / Makna Serupa di Database</div>
+                                    <div class="fs-12 text-muted mb-2">Ditemukan kandidat FAQ dengan status <strong>Active Publish</strong> atau <strong>Menunggu Validasi</strong> yang memiliki kemiripan makna:</div>
+                                    <div id="duplicateList" class="d-flex flex-column gap-1.5"></div>
                                 </div>
                             </div>
                         </div>
@@ -322,7 +361,7 @@
 
                     <!-- Kata Kunci (Tag Input) -->
                     <div class="mb-4">
-                        <label class="form-label-custom">Kata kunci</label>
+                        <label class="form-label-custom">Kata Kunci</label>
                         <div id="tagContainer" class="tag-container" onclick="document.getElementById('tagInput').focus()">
                             @if($isEditing && $faq->tags)
                                 @foreach($faq->tags as $t)
@@ -355,7 +394,7 @@
 
                     <!-- Rujukan Sumber Pustaka * -->
                     <div>
-                        <label class="form-label-custom form-label-required">Rujukan sumber pustaka</label>
+                        <label class="form-label-custom form-label-required">Rujukan Sumber Pustaka</label>
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                             <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#sourceModal">
                                 <i class="bi bi-book"></i>
@@ -369,28 +408,44 @@
                             </label>
                         </div>
 
-                        <div class="mb-2">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
-                                <input type="text"
-                                       name="sumber_link"
-                                       id="inputSumberLink"
-                                       maxlength="45"
-                                       value="{{ old('sumber_link', ($isEditing && $latestVer && $latestVer->daftarPustaka && $latestVer->daftarPustaka->type === 'link') ? $latestVer->daftarPustaka->link : '') }}"
-                                       placeholder="Atau ketik judul/link rujukan baru (maks. 45 karakter)..."
-                                       class="form-control fs-13">
+                        <div class="row g-2 mb-2">
+                            <div class="col-12 col-md-8">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
+                                    <input type="text"
+                                           name="sumber_link"
+                                           id="inputSumberLink"
+                                           maxlength="45"
+                                           value="{{ old('sumber_link', ($isEditing && $latestVer && $latestVer->daftarPustaka && empty($latestVer->daftarPustaka->upload)) ? $latestVer->daftarPustaka->link : '') }}"
+                                           placeholder="Atau ketik dokumen/tautan sumber pustaka baru (maks. 45 karakter)..."
+                                           class="form-control fs-13">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                @php
+                                    $currentVis = ($isEditing && $latestVer && $latestVer->daftarPustaka)
+                                        ? strtolower((string) $latestVer->daftarPustaka->type)
+                                        : 'public';
+                                @endphp
+                                <select name="sumber_visibility" id="inputSumberVisibility" class="form-select form-select-sm fs-13 rounded-2">
+                                    <option value="public" {{ $currentVis !== 'private' ? 'selected' : '' }}>Tipe: Public (Dilihat Mahasiswa)</option>
+                                    <option value="private" {{ $currentVis === 'private' ? 'selected' : '' }}>Tipe: Private (Internal FAQ)</option>
+                                </select>
                             </div>
                         </div>
 
                         <div id="sourceList">
                             @if($isEditing && $latestVer && $latestVer->daftarPustaka)
-                                @php $dp = $latestVer->daftarPustaka; @endphp
+                                @php
+                                    $dp = $latestVer->daftarPustaka;
+                                    $dpVis = strtolower((string) $dp->type) === 'private' ? 'Private' : 'Public';
+                                @endphp
                                 <div class="source-item" id="source-selected">
                                     <div class="d-flex align-items-start">
                                         <span class="source-item-number">1</span>
                                         <div>
                                             <div class="source-item-title">{{ $dp->link ?: 'Dokumen Sumber Pustaka #' . $dp->id }}</div>
-                                            <div class="source-item-meta">Tipe: {{ strtoupper($dp->type) }} &middot; Tersimpan di database</div>
+                                            <div class="source-item-meta">Tipe: {{ $dpVis }} &middot; {{ !empty($dp->upload) ? 'File Dokumen' : 'Tautan Resmi' }}</div>
                                         </div>
                                     </div>
                                     <button type="button" class="source-remove-btn" onclick="clearSelectedSource()">&times;</button>
@@ -433,19 +488,23 @@
                 <div id="sourceOptionsList" style="max-height: 300px; overflow-y: auto;">
                     @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
                         @foreach($daftarPustaka as $p)
+                            @php
+                                $pVis = strtolower((string) $p->type) === 'private' ? 'Private' : 'Public';
+                                $pIsFile = !empty($p->upload);
+                            @endphp
                             <div class="source-option p-3 border rounded-3 mb-2 d-flex align-items-center justify-content-between"
                                  style="cursor: pointer;"
-                                 onclick="selectSource('{{ $p->id }}', '{{ addslashes($p->link ?: 'Dokumen #' . $p->id) }}', 'Tipe: {{ strtoupper($p->type) }}')">
+                                 onclick="selectSource('{{ $p->id }}', '{{ addslashes($p->link ?: 'Dokumen #' . $p->id) }}', 'Tipe: {{ $pVis }} · {{ $pIsFile ? 'Dokumen File' : 'Tautan' }}')">
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="stat-icon" style="width: 36px; height: 36px; background-color: #EFF6FF; color: #2563EB;">
-                                        <i class="bi {{ $p->type === 'upload' ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
+                                    <div class="stat-icon" style="width: 36px; height: 36px; background-color: {{ $pIsFile ? '#EFF6FF' : '#F0FDF4' }}; color: {{ $pIsFile ? '#2563EB' : '#16A34A' }};">
+                                        <i class="bi {{ $pIsFile ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
                                     </div>
                                     <div>
                                         <div class="fw-bold fs-13 text-dark">{{ $p->link ?: 'Dokumen ID #' . $p->id }}</div>
-                                        <div class="fs-11 text-muted">ID: #{{ $p->id }} &middot; Tipe: {{ strtoupper($p->type) }}</div>
+                                        <div class="fs-11 text-muted">ID: #{{ $p->id }} &middot; Tipe: {{ $pVis }} ({{ $pVis === 'Public' ? 'Tampil di Mahasiswa' : 'Internal FAQ' }})</div>
                                     </div>
                                 </div>
-                                <span class="badge bg-light text-dark border fs-11">{{ strtoupper($p->type) }}</span>
+                                <span class="badge {{ $pVis === 'Private' ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' : 'bg-success-subtle text-success-emphasis border-success-subtle' }} border fs-11">{{ $pVis }}</span>
                             </div>
                         @endforeach
                     @else
@@ -504,6 +563,78 @@
 
 <!-- Bootstrap 5.3 JS & SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MODAL KONFIRMASI KELUAR (LOGOUT)
+══════════════════════════════════════════════════════════════════ -->
+@php
+    $lmUser = auth()->user();
+    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
+    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
+        ->filter()
+        ->take(2)
+        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+        ->implode('') ?: 'KM';
+@endphp
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-labelledby="modalLogoutTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content kms-modal-content">
+            <div class="kms-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="kms-modal-badge-icon" style="background-color: #FEF2F2; color: #DC2626;">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </span>
+                    <h5 class="kms-modal-title" id="modalLogoutTitle">Konfirmasi Keluar</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
+            </div>
+            <div class="kms-modal-body">
+                Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
+                <div class="logout-user-card">
+                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="lh-sm">
+                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
+                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kms-modal-footer">
+                <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-kms-primary" id="btnConfirmLogout" onclick="submitLogout(this)">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Ya, Keluar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const el = document.getElementById('modalLogoutConfirm');
+        if (window.bootstrap && el) {
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+            document.getElementById('logout-form').submit();
+        }
+    }
+
+    function confirmLogout() {
+        openLogoutModal();
+    }
+
+    function submitLogout(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Memproses...</span>';
+        }
+        document.getElementById('logout-form').submit();
+    }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -512,21 +643,7 @@
         document.getElementById('sidebarBackdrop').classList.toggle('d-none');
     }
 
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Konfirmasi Keluar',
-            text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#85172C',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Keluar',
-            cancelButtonText: 'Batal',
-            reverseButtons: true
-        }).then((res) => {
-            if (res.isConfirmed) document.getElementById('logout-form').submit();
-        });
-    }
+
 
     // WYSIWYG Toolbar
     document.querySelectorAll('.editor-toolbar-btn').forEach(btn => {
@@ -650,33 +767,81 @@
         }
     }
 
-    // Live Check Duplicate
+    // Live Check Duplikat Identik (100%) & Kemiripan Makna (Similarity Score)
     let dupTimeout = null;
+    const currentEditingFaqId = '{{ $isEditing ? $faq->id : "" }}';
+
     document.getElementById('inputPertanyaan')?.addEventListener('input', function () {
         clearTimeout(dupTimeout);
         const q = this.value.trim();
+        const exactBox = document.getElementById('exactDuplicateAlert');
+        const exactBody = document.getElementById('exactDuplicateBody');
         const warnBox = document.getElementById('duplicateWarning');
         const listBox = document.getElementById('duplicateList');
 
-        if (q.length < 4) {
-            warnBox.classList.add('d-none');
+        if (q.length < 3) {
+            exactBox?.classList.add('d-none');
+            warnBox?.classList.add('d-none');
             return;
         }
 
         dupTimeout = setTimeout(() => {
-            fetch(`{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}`)
+            const url = `{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}${currentEditingFaqId ? '&exclude_id=' + encodeURIComponent(currentEditingFaqId) : ''}`;
+            fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    if (data.duplicates && data.duplicates.length > 0) {
-                        listBox.innerHTML = data.duplicates.map(d =>
-                            `<div>&bull; <strong>${escHtml(d.id)}</strong>: ${escHtml(d.pertanyaan)}</div>`
-                        ).join('');
-                        warnBox.classList.remove('d-none');
+                    // 1. Jika terdeteksi Duplikat 100% (Active Publish atau Menunggu Validasi)
+                    if (data.has_exact_match && data.exact_match) {
+                        const em = data.exact_match;
+                        const isPublish = em.status_label === 'Active Publish';
+                        const badgeClass = isPublish
+                            ? 'bg-success text-white'
+                            : 'bg-primary text-white';
+
+                        exactBody.innerHTML = `
+                            <div class="mb-1">
+                                Pertanyaan yang Anda ketik memiliki kemiripan <strong>100%</strong> dengan FAQ <strong>${escHtml(em.id)}</strong> yang saat ini berada dalam kondisi:
+                                <span class="badge ${badgeClass} ms-1 px-2 py-1">${escHtml(em.status_label)}</span>
+                            </div>
+                            <div class="p-2 bg-white rounded-2 border fs-12 text-secondary mt-1.5">
+                                <strong>${escHtml(em.id)} (${escHtml(em.version_id || em.id + '-V1')}):</strong> "${escHtml(em.pertanyaan)}"
+                            </div>
+                        `;
+                        exactBox?.classList.remove('d-none');
                     } else {
-                        warnBox.classList.add('d-none');
+                        exactBox?.classList.add('d-none');
+                    }
+
+                    // 2. Kandidat FAQ yang memiliki kemiripan teks / makna serupa
+                    const candidates = (data.candidates || []).filter(c => !c.is_exact);
+                    if (candidates.length > 0) {
+                        listBox.innerHTML = candidates.map(d => {
+                            const stBadge = d.status_label === 'Active Publish'
+                                ? '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Active Publish</span>'
+                                : '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Menunggu Validasi</span>';
+                            const simBadge = d.similarity >= 70
+                                ? `<span class="badge bg-danger text-white">${d.similarity}% Mirip</span>`
+                                : `<span class="badge bg-warning text-dark">${d.similarity}% Mirip</span>`;
+
+                            return `
+                                <div class="p-2 bg-white rounded-2 border d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <div>
+                                        <span class="fw-bold text-dark">${escHtml(d.id)}</span>:
+                                        <span class="text-dark">${escHtml(d.pertanyaan)}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        ${simBadge}
+                                        ${stBadge}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        warnBox?.classList.remove('d-none');
+                    } else {
+                        warnBox?.classList.add('d-none');
                     }
                 }).catch(() => {});
-        }, 400);
+        }, 350);
     });
 
     const defaultNewFaqId = '{{ $newFaqId ?? "FAQ-0001" }}';

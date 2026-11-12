@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pratinjau Unggahan FAQ - Ruang Data Entry | KMS</title>
+    <title>Buat FAQ - Ruang Data Entry | KMS</title>
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans & Lora -->
@@ -26,17 +26,20 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div>
-            <div class="sidebar-brand mb-3">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="sidebar-logo-img">
+            <!-- KMS Brand Header -->
+            <div class="sidebar-brand">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
             </div>
 
-            <div class="mb-3">
+            <!-- Role Badge -->
+            <div>
                 <span class="role-pill">Ruang Data Entry</span>
             </div>
 
+            <!-- Navigation Links -->
             <nav class="nav flex-column">
                 <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-file-earmark-text"></i>
+                    <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom active">
@@ -54,19 +57,17 @@
             </nav>
         </div>
 
+        <!-- Bottom Section of Sidebar -->
         <div>
-            <hr class="sidebar-divider my-3">
-            <a href="#" class="nav-link-custom mb-1">
+            <hr class="sidebar-divider">
+            <a href="{{ route('dataentry.pengaturanAkun') }}" class="nav-link-custom">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan Akun</span>
             </a>
-            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary">
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
             </a>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                @csrf
-            </form>
         </div>
     </aside>
 
@@ -75,46 +76,72 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1 min-vw-0">
-        <!-- Top Navbar -->
+        <!-- Top Navbar (Tanpa Pencarian) -->
+        @php
+            $tbUser = auth()->user();
+            if ($tbUser && !$tbUser->relationLoaded('role')) {
+                $tbUser->load('role');
+            }
+            $tbRole = $tbUser?->getRoleName() ?: 'Data Entry';
+            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $tbUser?->email ?? '';
+            $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('') ?: 'KM';
+        @endphp
         <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- Left: Mobile Toggle & Breadcrumb -->
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-5"></i>
                 </button>
-                <div class="d-flex align-items-center text-muted fs-13">
+                <div class="top-breadcrumb d-flex align-items-center">
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
-                    <span class="mx-2 text-muted">/</span>
-                    <span class="text-dark fw-semibold">Data Entry</span>
+                    <span class="crumb-sep">/</span>
+                    <span>{{ $tbRole }}</span>
+                    <span class="crumb-sep">/</span>
+                    <span class="crumb-current">Buat FAQ</span>
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <div class="search-container">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="search-input" placeholder="Cari FAQ, pengguna, atau aktivitas...">
-                </div>
+            <!-- Right: Notification & Profile -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="top-icon-btn" aria-label="Notifikasi">
+                    <i class="bi bi-bell fs-5"></i>
+                </button>
 
                 <div class="dropdown">
-                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown">
-                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}</div>
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-circle">{{ $tbInitials }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
-                            <div class="fs-11 text-muted">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
+                            <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
                         </div>
+                        <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                    <ul class="dropdown-menu dropdown-menu-end profile-dropdown mt-2">
                         <li>
-                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                            <div class="px-3 py-2 mb-1 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                                <div class="fs-11 text-muted">{{ $tbEmail }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dataentry.pengaturanAkun') }}">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
                                 <i class="bi bi-box-arrow-right"></i> Keluar
                             </a>
                         </li>
                     </ul>
                 </div>
-
-                <button class="btn btn-link text-secondary p-1 text-decoration-none" aria-label="Notifikasi">
-                    <i class="bi bi-bell fs-5"></i>
-                </button>
             </div>
         </header>
 
@@ -136,7 +163,7 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <h1 class="display-serif fs-2 mb-0">Buat FAQ</h1>
+                        <h1 class="page-title mb-0">Buat FAQ</h1>
                         <span class="badge-pratinjau">Pratinjau unggahan</span>
                     </div>
                     <p class="text-muted fs-14 mb-0 mt-1">
@@ -178,6 +205,46 @@
                     <input type="text" id="searchInput" oninput="filterFaqs()" class="form-control form-control-sm rounded-3 ps-5 fs-13" placeholder="Cari pertanyaan...">
                 </div>
             </div>
+
+            @php
+                $simService = app(\App\Services\FaqSimilarityService::class);
+                $exactDuplicateCount = 0;
+                $similarCount = 0;
+
+                foreach ($items as $idx => $it) {
+                    if (!array_key_exists('has_exact_match', $it)) {
+                        $an = $simService->analyzeQuestion((string) ($it['pertanyaan'] ?? ''), null, 50.0);
+                        $items[$idx]['has_exact_match'] = $an['has_exact_match'];
+                        $items[$idx]['exact_match'] = $an['exact_match'];
+                        $items[$idx]['similar_candidates'] = $an['candidates'];
+                        $items[$idx]['max_similarity'] = $an['max_similarity'];
+                    }
+                    if (!empty($items[$idx]['has_exact_match'])) {
+                        $exactDuplicateCount++;
+                    } elseif (!empty($items[$idx]['similar_candidates'])) {
+                        $similarCount++;
+                    }
+                }
+            @endphp
+
+            @if($exactDuplicateCount > 0 || $similarCount > 0)
+                <div class="alert {{ $exactDuplicateCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }} rounded-4 p-3 mb-3 fs-13">
+                    <div class="d-flex align-items-start gap-2.5">
+                        <i class="bi {{ $exactDuplicateCount > 0 ? 'bi-exclamation-octagon-fill text-danger' : 'bi-info-circle-fill text-warning' }} fs-5 mt-0.5"></i>
+                        <div>
+                            <div class="fw-bold text-dark mb-0.5">Hasil Pengecekan Duplikat &amp; Kemiripan File Import</div>
+                            <div class="text-secondary fs-12">
+                                @if($exactDuplicateCount > 0)
+                                    Terdapat <strong class="text-danger">{{ $exactDuplicateCount }} baris pertanyaan</strong> yang terdeteksi <strong>100% sama (duplikat)</strong> dengan FAQ yang sedang berstatus <strong>Active Publish</strong> atau <strong>Menunggu Validasi</strong> di database.
+                                @endif
+                                @if($similarCount > 0)
+                                    Ditemukan pula <strong>{{ $similarCount }} baris pertanyaan</strong> yang memiliki kemiripan makna dengan FAQ yang sudah ada.
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <!-- Tabel Pratinjau -->
             <div class="preview-table-card">
@@ -229,6 +296,35 @@
                                     <td>
                                         <div class="fw-bold text-dark fs-13 line-clamp-1 mb-0.5 faq-pertanyaan">{{ $item['pertanyaan'] }}</div>
                                         <div class="fs-12 text-muted line-clamp-1 faq-jawaban">{{ strip_tags($item['jawaban']) }}</div>
+
+                                        <div class="faq-similarity-box mt-1">
+                                            @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
+                                                @php
+                                                    $em = $item['exact_match'];
+                                                    $stLabel = $em['status_label'] ?? 'Active Publish';
+                                                @endphp
+                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">
+                                                    <i class="bi bi-exclamation-octagon-fill"></i>
+                                                    <span>Peringatan: Mirip 100% dengan <strong>{{ $em['id'] }}</strong> (Kondisi: <strong>{{ $stLabel }}</strong>)</span>
+                                                </div>
+                                            @elseif(!empty($item['similar_candidates']))
+                                                @php
+                                                    $topCand = $item['similar_candidates'][0];
+                                                    $candLabel = $topCand['status_label'] ?? 'Active Publish';
+                                                @endphp
+                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-warning-subtle text-dark border border-warning-subtle fs-11">
+                                                    <i class="bi bi-info-circle-fill text-warning"></i>
+                                                    <span>Mirip <strong>{{ $topCand['similarity'] }}%</strong> dengan <strong>{{ $topCand['id'] }}</strong> ({{ $candLabel }}: "{{ \Illuminate\Support\Str::limit($topCand['pertanyaan'], 48) }}")</span>
+                                                </div>
+                                            @endif
+
+                                            @if(!empty($item['in_file_duplicate']))
+                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-secondary-subtle text-secondary border fs-11 mt-0.5">
+                                                    <i class="bi bi-files"></i>
+                                                    <span>Duplikat di dalam file yang sama dengan <strong>{{ $item['in_file_duplicate'] }}</strong></span>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="d-flex flex-wrap gap-1 faq-tags-container">
@@ -251,6 +347,11 @@
                                         @endif
                                     </td>
                                     <td class="faq-status-cell">
+                                        @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
+                                            <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-11 d-inline-block mb-1">
+                                                Duplikat 100% ({{ $item['exact_match']['status_label'] ?? 'Active Publish' }})
+                                            </span>
+                                        @endif
                                         @if($item['status'] === 'ready')
                                             <span class="badge-ready">Siap diajukan</span>
                                         @else
@@ -455,6 +556,78 @@
 
 <!-- Bootstrap 5.3 JS & SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MODAL KONFIRMASI KELUAR (LOGOUT)
+══════════════════════════════════════════════════════════════════ -->
+@php
+    $lmUser = auth()->user();
+    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
+    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
+        ->filter()
+        ->take(2)
+        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+        ->implode('') ?: 'KM';
+@endphp
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-labelledby="modalLogoutTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content kms-modal-content">
+            <div class="kms-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="kms-modal-badge-icon" style="background-color: #FEF2F2; color: #DC2626;">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </span>
+                    <h5 class="kms-modal-title" id="modalLogoutTitle">Konfirmasi Keluar</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
+            </div>
+            <div class="kms-modal-body">
+                Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
+                <div class="logout-user-card">
+                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="lh-sm">
+                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
+                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kms-modal-footer">
+                <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-kms-primary" id="btnConfirmLogout" onclick="submitLogout(this)">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Ya, Keluar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const el = document.getElementById('modalLogoutConfirm');
+        if (window.bootstrap && el) {
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+            document.getElementById('logout-form').submit();
+        }
+    }
+
+    function confirmLogout() {
+        openLogoutModal();
+    }
+
+    function submitLogout(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Memproses...</span>';
+        }
+        document.getElementById('logout-form').submit();
+    }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -465,21 +638,7 @@
         document.getElementById('sidebarBackdrop').classList.toggle('d-none');
     }
 
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Konfirmasi Keluar',
-            text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#85172C',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Keluar',
-            cancelButtonText: 'Batal',
-            reverseButtons: true
-        }).then((res) => {
-            if (res.isConfirmed) document.getElementById('logout-form').submit();
-        });
-    }
+
 
     function escHtml(str) {
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

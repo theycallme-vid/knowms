@@ -59,25 +59,48 @@ class Faq extends Model
     }
 
     /**
-     * Generate ID FAQ otomatis dengan format FAQ-XXXX (contoh: FAQ-0001, FAQ-0002).
-     * Jika tabel masih kosong, default mulai dari FAQ-0001.
+     * Ambil angka urut terbesar dari seluruh kode FAQ di database (contoh: FAQ-0003 -> 3)
      */
-    public static function generateNextId(): string
+    public static function getMaxSequenceNumber(): int
     {
         $ids = self::pluck('id');
         $maxNumber = 0;
 
         foreach ($ids as $id) {
-            if (preg_match('/FAQ-(\d+)/i', $id, $matches)) {
-                $num = (int)$matches[1];
+            if (preg_match('/FAQ-(\d+)/i', (string) $id, $matches)) {
+                $num = (int) $matches[1];
                 if ($num > $maxNumber) {
                     $maxNumber = $num;
                 }
             }
         }
 
-        $nextNumber = $maxNumber + 1;
-        return sprintf('FAQ-%04d', $nextNumber);
+        return $maxNumber;
+    }
+
+    /**
+     * Format angka urut menjadi kode FAQ standar (FAQ-0001, FAQ-0004, dst.)
+     */
+    public static function formatSequenceId(int $number): string
+    {
+        return sprintf('FAQ-%04d', max(1, $number));
+    }
+
+    /**
+     * Generate ID FAQ otomatis dengan format FAQ-XXXX (contoh: FAQ-0001, FAQ-0002).
+     * Selalu melanjutkan dari nomor terbesar di database dan tidak pernah duplikat.
+     */
+    public static function generateNextId(int $offset = 0): string
+    {
+        $nextNumber = self::getMaxSequenceNumber() + 1 + max(0, $offset);
+        $candidate = self::formatSequenceId($nextNumber);
+
+        while (self::where('id', $candidate)->exists()) {
+            $nextNumber++;
+            $candidate = self::formatSequenceId($nextNumber);
+        }
+
+        return $candidate;
     }
 
     /**
