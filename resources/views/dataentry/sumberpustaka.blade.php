@@ -26,17 +26,20 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div>
-            <div class="sidebar-brand mb-3">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS" class="sidebar-logo-img">
+            <!-- KMS Brand Header -->
+            <div class="sidebar-brand">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
             </div>
 
-            <div class="mb-3">
+            <!-- Role Badge -->
+            <div>
                 <span class="role-pill">Ruang Data Entry</span>
             </div>
 
+            <!-- Navigation Links -->
             <nav class="nav flex-column">
                 <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-file-earmark-text"></i>
+                    <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom">
@@ -54,19 +57,17 @@
             </nav>
         </div>
 
+        <!-- Bottom Section of Sidebar -->
         <div>
-            <hr class="sidebar-divider my-3">
-            <a href="#" class="nav-link-custom mb-1">
+            <hr class="sidebar-divider">
+            <a href="{{ route('dataentry.pengaturanAkun') }}" class="nav-link-custom">
                 <i class="bi bi-gear"></i>
                 <span>Pengaturan Akun</span>
             </a>
-            <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link-custom text-secondary">
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
             </a>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                @csrf
-            </form>
         </div>
     </aside>
 
@@ -75,46 +76,72 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1 min-vw-0">
-        <!-- Top Navbar -->
+        <!-- Top Navbar (Tanpa Pencarian) -->
+        @php
+            $tbUser = auth()->user();
+            if ($tbUser && !$tbUser->relationLoaded('role')) {
+                $tbUser->load('role');
+            }
+            $tbRole = $tbUser?->getRoleName() ?: 'Data Entry';
+            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $tbUser?->email ?? '';
+            $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('') ?: 'KM';
+        @endphp
         <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- Left: Mobile Toggle & Breadcrumb -->
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-5"></i>
                 </button>
-                <div class="d-flex align-items-center text-muted fs-13">
+                <div class="top-breadcrumb d-flex align-items-center">
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
-                    <span class="mx-2 text-muted">/</span>
-                    <span class="text-dark fw-semibold">Data Entry</span>
+                    <span class="crumb-sep">/</span>
+                    <span>{{ $tbRole }}</span>
+                    <span class="crumb-sep">/</span>
+                    <span class="crumb-current">Sumber Pustaka</span>
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <div class="search-container">
-                    <i class="bi bi-search"></i>
-                    <input type="text" class="search-input" placeholder="Cari FAQ, pengguna, atau aktivitas...">
-                </div>
+            <!-- Right: Notification & Profile -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="top-icon-btn" aria-label="Notifikasi">
+                    <i class="bi bi-bell fs-5"></i>
+                </button>
 
                 <div class="dropdown">
-                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown">
-                        <div class="avatar-circle">{{ strtoupper(substr(Auth::user()?->nama ?? 'NP', 0, 2)) }}</div>
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-circle">{{ $tbInitials }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
-                            <div class="fw-bold fs-13 text-dark">{{ Auth::user()?->nama ?? 'Nadia Putri' }}</div>
-                            <div class="fs-11 text-muted">{{ Auth::user()?->getRoleName() ?: 'Data Entry' }}</div>
+                            <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
                         </div>
+                        <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                    <ul class="dropdown-menu dropdown-menu-end profile-dropdown mt-2">
                         <li>
-                            <a class="dropdown-item py-2 fs-13 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="confirmLogout()">
+                            <div class="px-3 py-2 mb-1 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                                <div class="fs-11 text-muted">{{ $tbEmail }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dataentry.pengaturanAkun') }}">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
                                 <i class="bi bi-box-arrow-right"></i> Keluar
                             </a>
                         </li>
                     </ul>
                 </div>
-
-                <button class="btn btn-link text-secondary p-1 text-decoration-none" aria-label="Notifikasi">
-                    <i class="bi bi-bell fs-5"></i>
-                </button>
             </div>
         </header>
 
@@ -123,7 +150,7 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-2 mb-4">
                 <div>
                     <div class="date-badge">RUJUKAN RESMI &middot; TABEL TDAFTARPUSTAKA</div>
-                    <h1 class="display-serif fs-2 mb-1">Sumber Pustaka</h1>
+                    <h1 class="page-title mb-1">Sumber Pustaka</h1>
                     <p class="text-muted fs-14 mb-0">Kelola dokumen peraturan, pedoman akademik, dan rujukan resmi yang menjadi dasar jawaban FAQ.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -140,15 +167,23 @@
 
             <!-- Pratinjau Import Sumber Pustaka (Muncul jika pengguna baru saja mengunggah file daftar pustaka) -->
             @if(!empty($previewSources))
+                @php
+                    $validImportCount = collect($previewSources)->where('is_valid', true)->count();
+                    $invalidImportCount = count($previewSources) - $validImportCount;
+                @endphp
                 <div class="card-custom mb-4 border-primary-subtle" style="background-color: #F8FAFF;">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h2 class="fw-bold fs-15 text-dark mb-0">Pratinjau Unggahan Sumber Pustaka</h2>
-                                <span class="badge-pratinjau">{{ count($previewSources) }} sumber terbaca</span>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h2 class="fw-bold fs-15 text-dark mb-0">Pratinjau &amp; Pemantauan Import Sumber Pustaka</h2>
+                                <span class="badge-pratinjau">{{ count($previewSources) }} baris terbaca</span>
+                                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle fs-11">{{ $validImportCount }} Sesuai</span>
+                                @if($invalidImportCount > 0)
+                                    <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle fs-11">{{ $invalidImportCount }} Belum Sesuai</span>
+                                @endif
                             </div>
                             <div class="fs-12 text-muted mt-1">
-                                Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Tinjau daftar rujukan sebelum disimpan ke tabel <code>tdaftarpustaka</code>.
+                                Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Membaca 2 kolom: <strong>Link Sumber Pustaka</strong> dan <strong>Tipe (Private/Public)</strong>.
                             </div>
                         </div>
                         <form action="{{ route('dataentry.sumberpustaka.cancelImport') }}" method="POST">
@@ -164,20 +199,38 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 50px;" class="text-center">PILIH</th>
-                                        <th style="width: 120px;">TIPE</th>
-                                        <th>JUDUL / TAUTAN SUMBER PUSTAKA</th>
+                                        <th>Dokumen/Tautan Sumber Pustaka</th>
+                                        <th style="width: 170px;">TIPE (PRIVATE/PUBLIC)</th>
+                                        <th style="width: 260px;">STATUS KESESUAIAN EXCEL</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($previewSources as $idx => $src)
-                                        <tr>
+                                        @php
+                                            $isRowValid = $src['is_valid'] ?? true;
+                                            $rowType = ucfirst(strtolower($src['type'] ?? 'Public'));
+                                        @endphp
+                                        <tr class="{{ !$isRowValid ? 'table-warning' : '' }}">
                                             <td class="text-center">
-                                                <input type="checkbox" name="selected_indexes[]" value="{{ $idx }}" class="form-check-input" checked>
+                                                <input type="checkbox" name="selected_indexes[]" value="{{ $idx }}" class="form-check-input" {{ $isRowValid ? 'checked' : '' }}>
+                                            </td>
+                                            <td class="fw-semibold text-dark fs-13">
+                                                {{ $src['link'] ?: '(Kosong)' }}
                                             </td>
                                             <td>
-                                                <span class="badge bg-light text-dark border fs-11 text-uppercase">{{ $src['type'] ?? 'link' }}</span>
+                                                <span class="badge {{ strtolower($rowType) === 'private' ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' : 'bg-success-subtle text-success-emphasis border-success-subtle' }} border fs-12 px-2.5 py-1">
+                                                    {{ $rowType }}
+                                                </span>
                                             </td>
-                                            <td class="fw-semibold text-dark fs-13">{{ $src['link'] }}</td>
+                                            <td>
+                                                @if($isRowValid)
+                                                    <span class="badge bg-success text-white fs-11 me-1"><i class="bi bi-check-circle me-1"></i>Sesuai</span>
+                                                    <span class="fs-12 text-muted">{{ $src['notes'] ?? 'Siap disimpan' }}</span>
+                                                @else
+                                                    <span class="badge bg-danger text-white fs-11 me-1"><i class="bi bi-exclamation-triangle me-1"></i>Belum Sesuai</span>
+                                                    <div class="fs-11 text-danger mt-0.5">{{ $src['notes'] ?? 'Periksa format kolom' }}</div>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -197,8 +250,7 @@
             <div class="card-custom">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
                     <div>
-                        <h2 class="fw-bold fs-16 text-dark mb-0">Daftar Sumber Pustaka Resmi</h2>
-                        <div class="fs-12 text-muted">{{ $pustakas->count() }} sumber rujukan tersimpan di database</div>
+                        <h1 class="fw-bold fs-16 text-dark mb-0">Daftar Sumber Pustaka Resmi</h1>
                     </div>
                     <div class="position-relative" style="min-width: 260px;">
                         <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted fs-13"></i>
@@ -211,10 +263,10 @@
                         <thead>
                             <tr>
                                 <th style="width: 80px;">ID</th>
-                                <th>JUDUL / TAUTAN SUMBER PUSTAKA</th>
-                                <th style="width: 140px;">TIPE</th>
-                                <th style="width: 180px;">DIGUNAKAN PADA</th>
-                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
+                                <th>Dokumen/Tautan Sumber Pustaka</th>
+                                <th style="width: 170px;">TIPE</th>
+                                <th style="width: 170px;">DIGUNAKAN PADA</th>
+                                <th style="width: 240px; text-align: right;">TINDAKAN</th>
                             </tr>
                         </thead>
                         <tbody id="pustakaTableBody">
@@ -226,40 +278,58 @@
                                 </tr>
                             @else
                                 @foreach($pustakas as $p)
+                                    @php
+                                        $isFile = !empty($p->upload);
+                                        $visType = strtolower((string) $p->type) === 'private' ? 'Private' : 'Public';
+                                    @endphp
                                     <tr class="pustaka-row">
-                                        <td class="text-muted fw-semibold">#{{ $p->id }}</td>
+                                        <td class="text-dark fw-semibold">#{{ $p->id }}</td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="stat-icon" style="width: 34px; height: 34px; background-color: {{ $p->type === 'upload' ? '#EFF6FF' : '#F0FDF4' }}; color: {{ $p->type === 'upload' ? '#2563EB' : '#16A34A' }}; font-size: 0.95rem;">
-                                                    <i class="bi {{ $p->type === 'upload' ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <div class="stat-icon" style="width: 36px; height: 36px; background-color: {{ $isFile ? '#EFF6FF' : '#F0FDF4' }}; color: {{ $isFile ? '#2563EB' : '#16A34A' }}; font-size: 1rem;">
+                                                    <i class="bi {{ $isFile ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="fw-bold text-dark fs-13">{{ $p->link ?: 'Dokumen Sumber #' . $p->id }}</div>
-                                                    <div class="fs-11 text-muted">
-                                                        {{ $p->type === 'upload' ? 'Dokumen tersimpan di database (BLOB)' : 'Rujukan Link / Pedoman Resmi' }}
+                                                    <div class="fw-bold text-dark fs-14">{{ $p->link ?: 'Dokumen Sumber #' . $p->id }}</div>
+                                                    <div class="fs-12 text-muted">
+                                                        @if($isFile)
+                                                            File Dokumen (BLOB) &middot; {{ $visType === 'Public' ? 'Tampil di FAQ Mahasiswa' : 'Tidak ditampilkan di Mahasiswa (Internal)' }}
+                                                        @else
+                                                            Tautan / Link Rujukan &middot; {{ $visType === 'Public' ? 'Tampil di FAQ Mahasiswa' : 'Tidak ditampilkan di Mahasiswa (Internal)' }}
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            @if($p->type === 'upload')
-                                                <span class="badge-status badge-status-validasi">UPLOAD FILE</span>
+                                            @if($visType === 'Private')
+                                                <span class="badge-status badge-status-revisi">
+                                                    <i class="bi bi-lock-fill me-1"></i>Private
+                                                </span>
                                             @else
-                                                <span class="badge-status badge-status-terbit">LINK / JUDUL</span>
+                                                <span class="badge-status badge-status-terbit">
+                                                    <i class="bi bi-globe2 me-1"></i>Public
+                                                </span>
                                             @endif
                                         </td>
                                         <td>
-                                            <span class="badge bg-light text-dark border fs-11 fw-semibold px-2.5 py-1 rounded-pill">
+                                            <span class="badge bg-light text-dark border fs-12 fw-semibold px-2.5 py-1 rounded-pill">
                                                 {{ $p->faq_versions_count }} Versi FAQ
                                             </span>
                                         </td>
                                         <td style="text-align: right;">
-                                            <div class="d-inline-flex align-items-center gap-1">
-                                                @if($p->type === 'upload' && !empty($p->upload))
+                                            <div class="d-inline-flex align-items-center gap-1.5">
+                                                @if($isFile)
                                                     <a href="{{ route('dataentry.pustaka.download', $p->id) }}" class="btn-table-edit text-decoration-none">
                                                         <i class="bi bi-download"></i> Unduh
                                                     </a>
                                                 @endif
+
+                                                <button type="button"
+                                                        class="btn-table-edit"
+                                                        onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($p->link) }}', '{{ strtolower($visType) }}', {{ $isFile ? 'true' : 'false' }})">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </button>
 
                                                 <form action="{{ route('dataentry.sumberpustaka.destroy', $p->id) }}" method="POST" id="del-pustaka-{{ $p->id }}" class="d-inline">
                                                     @csrf
@@ -293,27 +363,80 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka</label>
-                        <select name="type" id="pustakaTypeSelect" class="form-select fs-13 rounded-3" onchange="togglePustakaTypeInput(this.value)">
-                            <option value="link">Rujukan Judul / Tautan Resmi (Link)</option>
-                            <option value="upload">Unggah Dokumen Resmi (PDF / DOCX ke Database)</option>
+                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka (Public / Private)</label>
+                        <select name="type" class="form-select fs-13 rounded-3" required>
+                            <option value="public">Public — Dapat dilihat oleh Mahasiswa pada FAQ</option>
+                            <option value="private">Private — Tidak dimunculkan di Mahasiswa (Tercatat di FAQ)</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label-custom form-label-required">Judul / Nama Rujukan (Maks. 45 Karakter)</label>
-                        <input type="text" name="link" maxlength="45" class="form-control fs-13 rounded-3" placeholder="contoh: Pedoman Akademik 2026/2027" required>
+                        <label class="form-label-custom form-label-required">Jenis Input Sumber Pustaka</label>
+                        <select name="source_kind" id="pustakaKindSelect" class="form-select fs-13 rounded-3" onchange="togglePustakaTypeInput(this.value)">
+                            <option value="link">Tautan / Link Sumber Pustaka</option>
+                            <option value="upload">Unggah File Dokumen (PDF / DOCX)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="linkInputContainer">
+                        <label class="form-label-custom form-label-required" id="linkInputLabel">Link / Tautan Sumber Pustaka (Maks. 45 Karakter)</label>
+                        <input type="text" name="link" id="addPustakaLinkInput" maxlength="45" class="form-control fs-13 rounded-3" placeholder="contoh: https://akademik.kampus.ac.id/pedoman" required>
                     </div>
 
                     <div class="mb-2 d-none" id="fileUploadContainer">
                         <label class="form-label-custom form-label-required">Pilih File Dokumen (PDF / DOCX)</label>
-                        <input type="file" name="file_upload" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
-                        <div class="fs-11 text-muted mt-1">Dokumen akan disimpan ke kolom <code>upload</code> (MEDIUMBLOB) pada tabel <code>tdaftarpustaka</code>.</div>
+                        <input type="file" name="file_upload" id="addPustakaFileInput" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
+                        <div class="fs-11 text-muted mt-1">Dokumen akan disimpan pada tabel <code>tdaftarpustaka</code> dengan tipe akses yang dipilih.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-top">
                     <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-sm btn-maroon px-3">Simpan Sumber Pustaka</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Sumber Pustaka (Jika Link -> Ganti Link; Jika File -> Upload File Baru) -->
+<div class="modal fade" id="editPustakaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <form id="editPustakaForm" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold fs-16" id="editPustakaModalTitle">Edit Sumber Pustaka</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka (Public / Private)</label>
+                        <select name="type" id="editPustakaType" class="form-select fs-13 rounded-3" required>
+                            <option value="public">Public — Dapat dilihat oleh Mahasiswa pada FAQ</option>
+                            <option value="private">Private — Tidak dimunculkan di Mahasiswa (Tercatat di FAQ)</option>
+                        </select>
+                    </div>
+
+                    <!-- Muncul jika Sumber Pustaka berupa Link -->
+                    <div class="mb-3" id="editLinkBox">
+                        <label class="form-label-custom form-label-required" id="editLinkLabel">Ganti Link Sumber Pustaka</label>
+                        <input type="text" name="link" id="editPustakaLink" maxlength="45" class="form-control fs-13 rounded-3" placeholder="Masukkan link sumber pustaka baru...">
+                    </div>
+
+                    <!-- Muncul jika Sumber Pustaka berupa File Dokumen -->
+                    <div class="mb-2 d-none" id="editFileBox">
+                        <div class="p-2.5 bg-light border rounded-3 mb-3 fs-12">
+                            <span class="text-muted">File saat ini:</span>
+                            <strong class="text-dark ms-1" id="currentFileNameText">-</strong>
+                        </div>
+                        <label class="form-label-custom form-label-required">Unggah File Baru yang Ingin Diedit (PDF / DOCX)</label>
+                        <input type="file" name="file_upload" id="editPustakaFile" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
+                        <div class="fs-11 text-muted mt-1">Pilih file dokumen baru untuk menggantikan file sebelumnya (kosongkan jika hanya mengubah tipe Public/Private).</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-maroon px-3">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
@@ -343,12 +466,12 @@
 
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format Kolom:</span>
+                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format 2 Kolom Wajib:</span>
                             <a href="{{ route('dataentry.template.pustaka') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Tipe</strong> (<code>link</code>) &middot; Kolom B: <strong>Judul atau Link Sumber Pustaka</strong></div>
+                        <div>Kolom A: <strong>Link Sumber Pustaka</strong> &middot; Kolom B: <strong>Tipe (Private/Public)</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -362,6 +485,78 @@
 
 <!-- Bootstrap 5.3 JS & SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MODAL KONFIRMASI KELUAR (LOGOUT)
+══════════════════════════════════════════════════════════════════ -->
+@php
+    $lmUser = auth()->user();
+    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
+    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
+        ->filter()
+        ->take(2)
+        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+        ->implode('') ?: 'KM';
+@endphp
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-labelledby="modalLogoutTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content kms-modal-content">
+            <div class="kms-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="kms-modal-badge-icon" style="background-color: #FEF2F2; color: #DC2626;">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </span>
+                    <h5 class="kms-modal-title" id="modalLogoutTitle">Konfirmasi Keluar</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
+            </div>
+            <div class="kms-modal-body">
+                Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
+                <div class="logout-user-card">
+                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="lh-sm">
+                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
+                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kms-modal-footer">
+                <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-kms-primary" id="btnConfirmLogout" onclick="submitLogout(this)">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Ya, Keluar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const el = document.getElementById('modalLogoutConfirm');
+        if (window.bootstrap && el) {
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+            document.getElementById('logout-form').submit();
+        }
+    }
+
+    function confirmLogout() {
+        openLogoutModal();
+    }
+
+    function submitLogout(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Memproses...</span>';
+        }
+        document.getElementById('logout-form').submit();
+    }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -370,29 +565,70 @@
         document.getElementById('sidebarBackdrop').classList.toggle('d-none');
     }
 
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Konfirmasi Keluar',
-            text: 'Apakah Anda yakin ingin keluar dari sistem KMS?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#85172C',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Keluar',
-            cancelButtonText: 'Batal',
-            reverseButtons: true
-        }).then((res) => {
-            if (res.isConfirmed) document.getElementById('logout-form').submit();
-        });
-    }
+
 
     function togglePustakaTypeInput(val) {
-        const box = document.getElementById('fileUploadContainer');
+        const fileBox = document.getElementById('fileUploadContainer');
+        const linkInput = document.getElementById('addPustakaLinkInput');
+        const linkLabel = document.getElementById('linkInputLabel');
+
         if (val === 'upload') {
-            box.classList.remove('d-none');
+            fileBox.classList.remove('d-none');
+            if (linkInput) linkInput.required = false;
+            if (linkLabel) {
+                linkLabel.textContent = 'Nama / Judul Dokumen (Opsional, Maks. 45 Karakter)';
+                linkLabel.classList.remove('form-label-required');
+            }
         } else {
-            box.classList.add('d-none');
+            fileBox.classList.add('d-none');
+            if (linkInput) linkInput.required = true;
+            if (linkLabel) {
+                linkLabel.textContent = 'Link / Tautan Sumber Pustaka (Maks. 45 Karakter)';
+                linkLabel.classList.add('form-label-required');
+            }
         }
+    }
+
+    function openEditPustakaModal(id, currentLink, currentType, isFile) {
+        const form = document.getElementById('editPustakaForm');
+        form.action = `{{ url('/data-entry/sumber-pustaka') }}/${id}/update`;
+
+        const typeSelect = document.getElementById('editPustakaType');
+        if (typeSelect) {
+            typeSelect.value = (currentType === 'private') ? 'private' : 'public';
+        }
+
+        const titleEl = document.getElementById('editPustakaModalTitle');
+        const editLinkBox = document.getElementById('editLinkBox');
+        const editLinkInput = document.getElementById('editPustakaLink');
+        const editFileBox = document.getElementById('editFileBox');
+        const editFileInput = document.getElementById('editPustakaFile');
+        const currentFileNameText = document.getElementById('currentFileNameText');
+
+        if (editFileInput) editFileInput.value = '';
+
+        if (isFile) {
+            if (titleEl) titleEl.textContent = 'Edit File Sumber Pustaka #' + id;
+            editLinkBox?.classList.add('d-none');
+            editFileBox?.classList.remove('d-none');
+            if (editLinkInput) {
+                editLinkInput.value = currentLink || '';
+                editLinkInput.required = false;
+            }
+            if (currentFileNameText) {
+                currentFileNameText.textContent = currentLink || ('Dokumen #' + id);
+            }
+        } else {
+            if (titleEl) titleEl.textContent = 'Edit Link Sumber Pustaka #' + id;
+            editFileBox?.classList.add('d-none');
+            editLinkBox?.classList.remove('d-none');
+            if (editLinkInput) {
+                editLinkInput.value = currentLink || '';
+                editLinkInput.required = true;
+            }
+        }
+
+        new bootstrap.Modal(document.getElementById('editPustakaModal')).show();
     }
 
     function confirmDeletePustaka(id, nama) {

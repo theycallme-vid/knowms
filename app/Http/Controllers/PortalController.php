@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DaftarPustaka;
+use App\Models\Faq;
+use App\Models\FaqVersion;
 use App\Models\Session as TSession;
 use Illuminate\Http\Request;
+use Throwable;
 
 class PortalController extends Controller
 {
@@ -104,10 +108,27 @@ class PortalController extends Controller
         $kodeFakultas = session('kode_fakultas');
         $namaFakultas = self::resolveNamaFakultas($kodeFakultas);
 
+        $publishedFaqs = collect();
+        try {
+            DaftarPustaka::ensurePublicPrivateEnum();
+            FaqVersion::processDueScheduledPublications();
+
+            $publishedFaqs = Faq::with([
+                'tags',
+                'versions' => fn ($q) => $q->whereIn('status', ['Active', 'active'])->latest('updated_at'),
+                'versions.daftarPustaka',
+            ])->whereHas('versions', function ($q) {
+                $q->whereIn('status', ['Active', 'active']);
+            })->orderBy('created_at', 'desc')->get();
+        } catch (Throwable $e) {
+            $publishedFaqs = collect();
+        }
+
         return view('mahasiswa.faq', [
-            'kodeFakultas' => $kodeFakultas,
-            'namaFakultas' => $namaFakultas,
-            'fakultasMap'  => self::FAKULTAS_MAP,
+            'kodeFakultas'  => $kodeFakultas,
+            'namaFakultas'  => $namaFakultas,
+            'fakultasMap'   => self::FAKULTAS_MAP,
+            'publishedFaqs' => $publishedFaqs,
         ]);
     }
 

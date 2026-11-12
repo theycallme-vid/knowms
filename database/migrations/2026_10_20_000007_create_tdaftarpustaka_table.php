@@ -11,7 +11,7 @@ return new class extends Migration
         if (!Schema::hasTable('tdaftarpustaka')) {
             Schema::create('tdaftarpustaka', function (Blueprint $table) {
                 $table->integer('id')->autoIncrement();
-                $table->enum('type', ['link', 'upload']);
+                $table->enum('type', ['public', 'private'])->default('public');
                 $table->string('link', 45)->nullable();
                 $table->binary('upload')->nullable();
                 $table->timestamps();
@@ -19,6 +19,11 @@ return new class extends Migration
 
             // Sesuaikan tipe kolom upload menjadi MEDIUMBLOB sesuai ERD
             DB::statement('ALTER TABLE tdaftarpustaka MODIFY upload MEDIUMBLOB NULL');
+        } else {
+            DB::statement("ALTER TABLE tdaftarpustaka MODIFY type VARCHAR(20) NOT NULL DEFAULT 'public'");
+            DB::statement("UPDATE tdaftarpustaka SET type = 'public' WHERE LOWER(type) NOT IN ('public', 'private')");
+            DB::statement("UPDATE tdaftarpustaka SET type = LOWER(type)");
+            DB::statement("ALTER TABLE tdaftarpustaka MODIFY type ENUM('public', 'private') NOT NULL DEFAULT 'public'");
         }
     }
 

@@ -35,15 +35,15 @@ class FaqSeeder extends Seeder
         $adityaId = $deAditya?->id ?? $deMain->id;
         $dewiId   = $deDewi?->id   ?? $deMain->id;
 
-        // 1. Buat Daftar Pustaka Dummy
-        $pustakaAkademik = DaftarPustaka::firstOrCreate(
+        // 1. Buat Daftar Pustaka Dummy (type: public / private)
+        $pustakaAkademik = DaftarPustaka::updateOrCreate(
             ['link' => 'https://akademik.kampus.ac.id/pedoman-2026'],
-            ['type' => 'link']
+            ['type' => 'public']
         );
 
-        $pustakaBaak = DaftarPustaka::firstOrCreate(
+        $pustakaBaak = DaftarPustaka::updateOrCreate(
             ['link' => 'https://baak.kampus.ac.id/standar-operasional'],
-            ['type' => 'link']
+            ['type' => 'private']
         );
 
         // 2. Buat Tags Fakultas & Kategori

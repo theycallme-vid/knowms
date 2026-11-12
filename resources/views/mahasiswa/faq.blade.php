@@ -49,12 +49,35 @@
     ];
 
     $faqs = [
-        ['id' => 1, 'q' => 'Bagaimana cara mengisi dan mengajukan KRS?', 'cat' => 'KRS & perkuliahan', 'key' => 'akademik'],
-        ['id' => 2, 'q' => 'Apa yang perlu disiapkan untuk registrasi ulang?', 'cat' => 'Administrasi akademik', 'key' => 'umum'],
-        ['id' => 3, 'q' => 'Bagaimana prosedur pengajuan cuti kuliah?', 'cat' => 'Administrasi akademik', 'key' => 'umum'],
-        ['id' => 4, 'q' => 'Di mana saya bisa melihat hasil studi (KHS)?', 'cat' => 'KRS & perkuliahan', 'key' => 'akademik'],
-        ['id' => 5, 'q' => 'Bagaimana cara mengajukan beasiswa?', 'cat' => 'Biaya & beasiswa', 'key' => 'biaya'],
+        ['id' => 1, 'q' => 'Bagaimana cara mengisi dan mengajukan KRS?', 'cat' => 'KRS & perkuliahan', 'key' => 'akademik', 'a' => null, 'source_type' => 'public', 'source_label' => 'Cek jadwal dan ketentuan terbaru di portal akademik fakultasmu.', 'source_url' => '#'],
+        ['id' => 2, 'q' => 'Apa yang perlu disiapkan untuk registrasi ulang?', 'cat' => 'Administrasi akademik', 'key' => 'umum', 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka petunjuk teknis layanan akademik mahasiswa', 'source_url' => '#'],
+        ['id' => 3, 'q' => 'Bagaimana prosedur pengajuan cuti kuliah?', 'cat' => 'Administrasi akademik', 'key' => 'umum', 'a' => null, 'source_type' => 'private', 'source_label' => 'SOP Internal Pengajuan Cuti Kuliah', 'source_url' => '#'],
+        ['id' => 4, 'q' => 'Di mana saya bisa melihat hasil studi (KHS)?', 'cat' => 'KRS & perkuliahan', 'key' => 'akademik', 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka petunjuk teknis layanan akademik mahasiswa', 'source_url' => '#'],
+        ['id' => 5, 'q' => 'Bagaimana cara mengajukan beasiswa?', 'cat' => 'Biaya & beasiswa', 'key' => 'biaya', 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka panduan pengajuan beasiswa mahasiswa', 'source_url' => '#'],
     ];
+
+    if (isset($publishedFaqs) && $publishedFaqs->isNotEmpty()) {
+        $mappedDbFaqs = [];
+        foreach ($publishedFaqs as $idx => $dbFaq) {
+            $activeVer = $dbFaq->versions->first();
+            $pustaka = $activeVer?->daftarPustaka;
+            $sourceType = $pustaka ? strtolower((string) $pustaka->type) : null;
+            $sourceLabel = $pustaka ? $pustaka->link : null;
+            $sourceUrl = ($pustaka && filter_var($pustaka->link, FILTER_VALIDATE_URL)) ? $pustaka->link : '#';
+            $tagNames = $dbFaq->tags->pluck('nama')->implode(' · ');
+            $mappedDbFaqs[] = [
+                'id'           => $idx + 1,
+                'q'            => $dbFaq->pertanyaan,
+                'a'            => $activeVer?->jawaban,
+                'cat'          => $tagNames ?: 'Panduan Akademik',
+                'key'          => 'akademik',
+                'source_type'  => $sourceType,
+                'source_label' => $sourceLabel,
+                'source_url'   => $sourceUrl,
+            ];
+        }
+        $faqs = $mappedDbFaqs;
+    }
 @endphp
 
 <!-- ========================================================================= -->
@@ -213,7 +236,37 @@
 
                     <div id="faq{{ $f['id'] }}" class="collapse {{ $f['id'] === 1 ? 'show' : '' }}" data-bs-parent="#faqList">
                         <div class="faq-body pt-1">
-                            @if($f['id'] === 1)
+                            @if(!empty($f['a']))
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="tag-soft">{{ $f['cat'] }}</span>
+                                    <span class="fs-12 text-muted">Panduan resmi mahasiswa</span>
+                                </div>
+                                <div class="fs-13 text-secondary mb-3" style="line-height: 1.65;">
+                                    {!! $f['a'] !!}
+                                </div>
+                                {{-- Hanya tampilkan Sumber Pustaka jika bertipe Public (Private disembunyikan dari Mahasiswa) --}}
+                                @if(($f['source_type'] ?? null) === 'public' && !empty($f['source_label']))
+                                    <a href="{{ $f['source_url'] ?? '#' }}" target="{{ ($f['source_url'] ?? '#') !== '#' ? '_blank' : '_self' }}" rel="noopener noreferrer" class="source-box mb-3">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-book fs-6 text-primary"></i>
+                                            <span>Sumber Pustaka: {{ $f['source_label'] }}</span>
+                                        </span>
+                                        <i class="bi bi-arrow-up-right fs-13"></i>
+                                    </a>
+                                @endif
+                                <!-- Feedback Section -->
+                                <div class="d-flex justify-content-between align-items-center pt-2 border-top border-light fs-11 text-muted">
+                                    <span>Apakah jawaban ini membantu?</span>
+                                    <span class="d-flex gap-3">
+                                        <button class="btn btn-link p-0 fs-12 text-decoration-none fw-semibold" style="color: var(--brand-maroon);" onclick="alert('Terima kasih atas masukan Anda!'); return false;">
+                                            <i class="bi bi-hand-thumbs-up me-1"></i>Ya, membantu
+                                        </button>
+                                        <button class="btn btn-link p-0 fs-12 text-decoration-none text-muted" onclick="alert('Terima kasih, kami akan menyempurnakan jawaban ini.'); return false;">
+                                            <i class="bi bi-hand-thumbs-down me-1"></i>Belum
+                                        </button>
+                                    </span>
+                                </div>
+                            @elseif($f['id'] === 1)
                                 <p class="fs-13 text-secondary mb-3 mt-1" style="line-height: 1.6;">
                                     Kartu Rencana Studi (KRS) berisi mata kuliah yang akan kamu tempuh dalam satu semester. Secara umum, kamu dapat mengikuti langkah berikut:
                                 </p>
@@ -242,14 +295,16 @@
                                     </li>
                                 </ol>
 
-                                <!-- Official Source Box -->
-                                <a href="#" class="source-box mb-3">
-                                    <span class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-book fs-6 text-primary"></i>
-                                        <span>Cek jadwal dan ketentuan terbaru di portal akademik fakultasmu.</span>
-                                    </span>
-                                    <i class="bi bi-arrow-up-right fs-13"></i>
-                                </a>
+                                <!-- Official Source Box (hanya tampil jika tipe Public) -->
+                                @if(($f['source_type'] ?? 'public') === 'public')
+                                    <a href="{{ $f['source_url'] ?? '#' }}" class="source-box mb-3">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-book fs-6 text-primary"></i>
+                                            <span>{{ $f['source_label'] ?? 'Cek jadwal dan ketentuan terbaru di portal akademik fakultasmu.' }}</span>
+                                        </span>
+                                        <i class="bi bi-arrow-up-right fs-13"></i>
+                                    </a>
+                                @endif
 
                                 <!-- Feedback Section -->
                                 <div class="d-flex justify-content-between align-items-center pt-2 border-top border-light fs-11 text-muted">
@@ -271,13 +326,15 @@
                                 <p class="fs-13 text-secondary mb-3" style="line-height: 1.6;">
                                     Informasi lengkap terkait <strong>{{ strtolower($f['q']) }}</strong> dapat diakses melalui pengumuman resmi fakultas atau panduan terintegrasi KMS.
                                 </p>
-                                <a href="#" class="source-box mb-2">
-                                    <span class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-file-earmark-text fs-6 text-primary"></i>
-                                        <span>Buka petunjuk teknis layanan akademik mahasiswa</span>
-                                    </span>
-                                    <i class="bi bi-arrow-up-right fs-13"></i>
-                                </a>
+                                @if(($f['source_type'] ?? 'public') === 'public')
+                                    <a href="{{ $f['source_url'] ?? '#' }}" class="source-box mb-2">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-file-earmark-text fs-6 text-primary"></i>
+                                            <span>{{ $f['source_label'] ?? 'Buka petunjuk teknis layanan akademik mahasiswa' }}</span>
+                                        </span>
+                                        <i class="bi bi-arrow-up-right fs-13"></i>
+                                    </a>
+                                @endif
                             @endif
                         </div>
                     </div>
