@@ -72,7 +72,20 @@ class PortalController extends Controller
             }
         } else {
             // Jika kosong (Lanjutkan tanpa NRP / Tamu)
-            $kodeFakultas = null;
+            $sessionRecord = new TSession();
+            $sessionRecord->kode_fakultas = null;
+            $sessionRecord->created_at = now();
+            $sessionRecord->updated_at = now();
+            $sessionRecord->save();
+
+            session([
+                'tsession_id'   => $sessionRecord->id,
+                'kode_fakultas' => null,
+                'nama_fakultas' => 'Guest',
+                'is_guest'      => true,
+            ]);
+
+            return redirect()->route('guest.faq');
         }
 
         // Simpan ke tabel tsession beserta timestamp created_at
