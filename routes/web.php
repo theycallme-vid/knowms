@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GuestController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\dataentry\FaqController as DataEntryFaqController;
 use App\Http\Controllers\dataentry\PengaturanAkunController as DataEntryPengaturanAkunController;
@@ -18,6 +19,12 @@ Route::get('/simulator', function () {
 
 // HALAMAN PUBLIK: FAQ Mahasiswa
 Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
+
+// HALAMAN GUEST: FAQ untuk Tamu / Pengunjung tanpa input NRP & tanpa Scan KTM
+Route::get('/guest', [GuestController::class, 'index'])->name('guest.faq');
+Route::get('/guest/faq', [GuestController::class, 'index']);
+Route::post('/guest/end-session', [GuestController::class, 'endSession'])->name('guest.end-session');
+Route::get('/guest/end-session', [GuestController::class, 'endSession']);
 
 // HALAMAN PORTAL MAHASISWA & PROSES SIMPAN / AKHIRI SESSION FAKULTAS
 Route::get('/', [PortalController::class, 'index'])->name('portal');

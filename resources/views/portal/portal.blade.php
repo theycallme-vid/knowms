@@ -83,7 +83,7 @@
                 </div>
 
                 <!-- Card: Jelajahi FAQ sebagai tamu -->
-                <a href="{{ route('mahasiswa.faq') }}" class="guest-card d-flex align-items-center justify-content-between gap-3">
+                <a href="{{ route('guest.faq') }}" class="guest-card d-flex align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div class="guest-icon-box">
                             <i class="bi bi-globe2"></i>
