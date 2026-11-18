@@ -38,9 +38,13 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
+                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
+                </a>
+                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom">
+                    <i class="bi bi-send-check"></i>
+                    <span>Pengajuan FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom">
                     <i class="bi bi-plus-lg"></i>
@@ -149,15 +153,10 @@
         <div class="content-area">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-2 mb-4">
                 <div>
-                    <div class="date-badge">RUJUKAN RESMI &middot; TABEL TDAFTARPUSTAKA</div>
                     <h1 class="page-title mb-1">Sumber Pustaka</h1>
                     <p class="text-muted fs-14 mb-0">Kelola dokumen peraturan, pedoman akademik, dan rujukan resmi yang menjadi dasar jawaban FAQ.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                    <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#uploadPustakaModal">
-                        <i class="bi bi-upload"></i>
-                        <span>Unggah File (Excel/PDF)</span>
-                    </button>
                     <button type="button" class="btn-maroon" data-bs-toggle="modal" data-bs-target="#addPustakaModal">
                         <i class="bi bi-plus-lg"></i>
                         <span>Tambah Sumber Pustaka</span>
@@ -175,7 +174,7 @@
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <h2 class="fw-bold fs-15 text-dark mb-0">Pratinjau &amp; Pemantauan Import Sumber Pustaka</h2>
+                                <h2 class="fw-bold fs-15 text-dark mb-0">Pratinjau &amp; Pemantauan Import Tautan Sumber Pustaka</h2>
                                 <span class="badge-pratinjau">{{ count($previewSources) }} baris terbaca</span>
                                 <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle fs-11">{{ $validImportCount }} Sesuai</span>
                                 @if($invalidImportCount > 0)
@@ -183,7 +182,7 @@
                                 @endif
                             </div>
                             <div class="fs-12 text-muted mt-1">
-                                Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Membaca 2 kolom: <strong>Link Sumber Pustaka</strong> dan <strong>Tipe (Private/Public)</strong>.
+                                Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Membaca 3 kolom wajib: <strong>1. Judul Link</strong>, <strong>2. Link-nya</strong>, dan <strong>3. Tipe (Private/Public)</strong>.
                             </div>
                         </div>
                         <form action="{{ route('dataentry.sumberpustaka.cancelImport') }}" method="POST">
@@ -199,9 +198,10 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 50px;" class="text-center">PILIH</th>
-                                        <th>Dokumen/Tautan Sumber Pustaka</th>
-                                        <th style="width: 170px;">TIPE (PRIVATE/PUBLIC)</th>
-                                        <th style="width: 260px;">STATUS KESESUAIAN EXCEL</th>
+                                        <th>1. JUDUL LINK</th>
+                                        <th>2. LINK / TAUTAN</th>
+                                        <th style="width: 160px;">3. TIPE (PRIVATE/PUBLIC)</th>
+                                        <th style="width: 260px;">STATUS KESESUAIAN</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -214,7 +214,10 @@
                                             <td class="text-center">
                                                 <input type="checkbox" name="selected_indexes[]" value="{{ $idx }}" class="form-check-input" {{ $isRowValid ? 'checked' : '' }}>
                                             </td>
-                                            <td class="fw-semibold text-dark fs-13">
+                                            <td class="fw-bold text-dark fs-13">
+                                                {{ $src['judul'] ?? $src['link'] ?: '(Kosong)' }}
+                                            </td>
+                                            <td class="text-secondary fs-13">
                                                 {{ $src['link'] ?: '(Kosong)' }}
                                             </td>
                                             <td>
@@ -264,16 +267,17 @@
                             <tr>
                                 <th style="width: 80px;">ID</th>
                                 <th>Dokumen/Tautan Sumber Pustaka</th>
-                                <th style="width: 170px;">TIPE</th>
-                                <th style="width: 170px;">DIGUNAKAN PADA</th>
+                                <th style="width: 145px;">JENIS</th>
+                                <th style="width: 150px;">TIPE</th>
+                                <th style="width: 165px;">DIGUNAKAN PADA</th>
                                 <th style="width: 240px; text-align: right;">TINDAKAN</th>
                             </tr>
                         </thead>
                         <tbody id="pustakaTableBody">
                             @if($pustakas->isEmpty())
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted fs-13">
-                                        Belum ada sumber pustaka di database. Klik <strong>Tambah Sumber Pustaka</strong> atau <strong>Unggah File</strong>.
+                                    <td colspan="6" class="text-center py-5 text-muted fs-13">
+                                        Belum ada sumber pustaka di database. Klik <strong>Tambah Sumber Pustaka</strong>.
                                     </td>
                                 </tr>
                             @else
@@ -281,25 +285,23 @@
                                     @php
                                         $isFile = !empty($p->upload);
                                         $visType = strtolower((string) $p->type) === 'private' ? 'Private' : 'Public';
+                                        $judulDisplay = $p->judul_tampil;
                                     @endphp
                                     <tr class="pustaka-row">
-                                        <td class="text-dark fw-semibold">#{{ $p->id }}</td>
+                                        <td class="text-dark fw-semibold">{{ $loop->iteration }}</td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-2.5">
-                                                <div class="stat-icon" style="width: 36px; height: 36px; background-color: {{ $isFile ? '#EFF6FF' : '#F0FDF4' }}; color: {{ $isFile ? '#2563EB' : '#16A34A' }}; font-size: 1rem;">
-                                                    <i class="bi {{ $isFile ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold text-dark fs-14">{{ $p->link ?: 'Dokumen Sumber #' . $p->id }}</div>
-                                                    <div class="fs-12 text-muted">
-                                                        @if($isFile)
-                                                            File Dokumen (BLOB) &middot; {{ $visType === 'Public' ? 'Tampil di FAQ Mahasiswa' : 'Tidak ditampilkan di Mahasiswa (Internal)' }}
-                                                        @else
-                                                            Tautan / Link Rujukan &middot; {{ $visType === 'Public' ? 'Tampil di FAQ Mahasiswa' : 'Tidak ditampilkan di Mahasiswa (Internal)' }}
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <div class="fw-bold text-dark fs-14">{{ $judulDisplay }}</div>
+                                        </td>
+                                        <td>
+                                            @if($isFile)
+                                                <span class="badge-status" style="background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #DBEAFE;">
+                                                    <i class="bi bi-file-earmark-text me-1"></i>Dokumen
+                                                </span>
+                                            @else
+                                                <span class="badge-status" style="background-color: #F0FDF4; color: #15803D; border: 1px solid #DCFCE7;">
+                                                    <i class="bi bi-link-45deg me-1"></i>Tautan
+                                                </span>
+                                            @endif
                                         </td>
                                         <td>
                                             @if($visType === 'Private')
@@ -327,14 +329,14 @@
 
                                                 <button type="button"
                                                         class="btn-table-edit"
-                                                        onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($p->link) }}', '{{ strtolower($visType) }}', {{ $isFile ? 'true' : 'false' }})">
+                                                        onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}', '{{ strtolower($visType) }}', {{ $isFile ? 'true' : 'false' }})">
                                                     <i class="bi bi-pencil"></i> Edit
                                                 </button>
 
                                                 <form action="{{ route('dataentry.sumberpustaka.destroy', $p->id) }}" method="POST" id="del-pustaka-{{ $p->id }}" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="button" class="btn-table-delete" onclick="confirmDeletePustaka('{{ $p->id }}', '{{ addslashes($p->link) }}')">
+                                                    <button type="button" class="btn-table-delete" onclick="confirmDeletePustaka('{{ $p->id }}', '{{ addslashes($judulDisplay) }}')">
                                                         <i class="bi bi-trash3"></i> Hapus
                                                     </button>
                                                 </form>
@@ -362,31 +364,42 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- 1. Judul Tautan / Judul Dokumen -->
                     <div class="mb-3">
-                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka (Public / Private)</label>
+                        <label class="form-label-custom form-label-required" id="addJudulLabel">1. Judul Tautan</label>
+                        <input type="text" name="judul" id="addPustakaJudulInput" maxlength="100" class="form-control fs-13 rounded-3" placeholder="contoh: Pedoman Akademik UBAYA 2026/2027" required>
+                    </div>
+
+                    <!-- 2. Jenis Input -->
+                    <div class="mb-3">
+                        <label class="form-label-custom form-label-required">2. Jenis Input</label>
+                        <select name="source_kind" id="pustakaKindSelect" class="form-select fs-13 rounded-3" onchange="togglePustakaTypeInput(this.value)">
+                            <option value="link">Tautan (Link)</option>
+                            <option value="upload">Dokumen (Unggah File)</option>
+                        </select>
+                    </div>
+
+                    <!-- 3. Tautan/Link (Jika Jenis Input = Tautan) -->
+                    <div class="mb-3" id="linkInputContainer">
+                        <label class="form-label-custom form-label-required" id="linkInputLabel">3. Tautan/Link</label>
+                        <input type="text" name="link" id="addPustakaLinkInput" maxlength="60" class="form-control fs-13 rounded-3" placeholder="contoh: https://akademik.kampus.ac.id/pedoman-2026" required>
+                        <div class="fs-11 text-muted mt-1">Maksimal 60 karakter untuk tautan sumber pustaka.</div>
+                    </div>
+
+                    <!-- 3. Unggah File Dokumen (Jika Jenis Input = Dokumen) -->
+                    <div class="mb-3 d-none" id="fileUploadContainer">
+                        <label class="form-label-custom form-label-required">3. Unggah File Dokumen</label>
+                        <input type="file" name="file_upload" id="addPustakaFileInput" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
+                        <div class="fs-11 text-muted mt-1">Untuk jenis input Dokumen, wajib mengunggah file dokumen rujukan.</div>
+                    </div>
+
+                    <!-- 4. Tipe (Public/Private) -->
+                    <div class="mb-2">
+                        <label class="form-label-custom form-label-required">4. Tipe (Public/Private)</label>
                         <select name="type" class="form-select fs-13 rounded-3" required>
                             <option value="public">Public — Dapat dilihat oleh Mahasiswa pada FAQ</option>
                             <option value="private">Private — Tidak dimunculkan di Mahasiswa (Tercatat di FAQ)</option>
                         </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label-custom form-label-required">Jenis Input Sumber Pustaka</label>
-                        <select name="source_kind" id="pustakaKindSelect" class="form-select fs-13 rounded-3" onchange="togglePustakaTypeInput(this.value)">
-                            <option value="link">Tautan / Link Sumber Pustaka</option>
-                            <option value="upload">Unggah File Dokumen (PDF / DOCX)</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3" id="linkInputContainer">
-                        <label class="form-label-custom form-label-required" id="linkInputLabel">Link / Tautan Sumber Pustaka (Maks. 45 Karakter)</label>
-                        <input type="text" name="link" id="addPustakaLinkInput" maxlength="45" class="form-control fs-13 rounded-3" placeholder="contoh: https://akademik.kampus.ac.id/pedoman" required>
-                    </div>
-
-                    <div class="mb-2 d-none" id="fileUploadContainer">
-                        <label class="form-label-custom form-label-required">Pilih File Dokumen (PDF / DOCX)</label>
-                        <input type="file" name="file_upload" id="addPustakaFileInput" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
-                        <div class="fs-11 text-muted mt-1">Dokumen akan disimpan pada tabel <code>tdaftarpustaka</code> dengan tipe akses yang dipilih.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-top">
@@ -398,7 +411,7 @@
     </div>
 </div>
 
-<!-- Modal Edit Sumber Pustaka (Jika Link -> Ganti Link; Jika File -> Upload File Baru) -->
+<!-- Modal Edit Sumber Pustaka -->
 <div class="modal fade" id="editPustakaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
@@ -409,29 +422,35 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Judul Tautan / Dokumen -->
                     <div class="mb-3">
+                        <label class="form-label-custom form-label-required" id="editJudulLabel">Judul Sumber Pustaka</label>
+                        <input type="text" name="judul" id="editPustakaJudul" maxlength="100" class="form-control fs-13 rounded-3" placeholder="Masukkan judul sumber pustaka..." required>
+                    </div>
+
+                    <!-- Muncul jika Sumber Pustaka berupa Link -->
+                    <div class="mb-3" id="editLinkBox">
+                        <label class="form-label-custom form-label-required" id="editLinkLabel">Link / Tautan Sumber Pustaka (Maks. 60 Karakter)</label>
+                        <input type="text" name="link" id="editPustakaLink" maxlength="60" class="form-control fs-13 rounded-3" placeholder="Masukkan link sumber pustaka baru (maks. 60 karakter)...">
+                    </div>
+
+                    <!-- Muncul jika Sumber Pustaka berupa File Dokumen -->
+                    <div class="mb-3 d-none" id="editFileBox">
+                        <div class="p-2.5 bg-light border rounded-3 mb-3 fs-12">
+                            <span class="text-muted">File saat ini:</span>
+                            <strong class="text-dark ms-1" id="currentFileNameText">-</strong>
+                        </div>
+                        <label class="form-label-custom">Unggah File Dokumen Baru (PDF / DOCX)</label>
+                        <input type="file" name="file_upload" id="editPustakaFile" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
+                        <div class="fs-11 text-muted mt-1">Pilih file dokumen baru untuk menggantikan file sebelumnya (kosongkan jika hanya mengubah judul atau tipe).</div>
+                    </div>
+
+                    <div class="mb-2">
                         <label class="form-label-custom form-label-required">Tipe Sumber Pustaka (Public / Private)</label>
                         <select name="type" id="editPustakaType" class="form-select fs-13 rounded-3" required>
                             <option value="public">Public — Dapat dilihat oleh Mahasiswa pada FAQ</option>
                             <option value="private">Private — Tidak dimunculkan di Mahasiswa (Tercatat di FAQ)</option>
                         </select>
-                    </div>
-
-                    <!-- Muncul jika Sumber Pustaka berupa Link -->
-                    <div class="mb-3" id="editLinkBox">
-                        <label class="form-label-custom form-label-required" id="editLinkLabel">Ganti Link Sumber Pustaka</label>
-                        <input type="text" name="link" id="editPustakaLink" maxlength="45" class="form-control fs-13 rounded-3" placeholder="Masukkan link sumber pustaka baru...">
-                    </div>
-
-                    <!-- Muncul jika Sumber Pustaka berupa File Dokumen -->
-                    <div class="mb-2 d-none" id="editFileBox">
-                        <div class="p-2.5 bg-light border rounded-3 mb-3 fs-12">
-                            <span class="text-muted">File saat ini:</span>
-                            <strong class="text-dark ms-1" id="currentFileNameText">-</strong>
-                        </div>
-                        <label class="form-label-custom form-label-required">Unggah File Baru yang Ingin Diedit (PDF / DOCX)</label>
-                        <input type="file" name="file_upload" id="editPustakaFile" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
-                        <div class="fs-11 text-muted mt-1">Pilih file dokumen baru untuk menggantikan file sebelumnya (kosongkan jika hanya mengubah tipe Public/Private).</div>
                     </div>
                 </div>
                 <div class="modal-footer border-top">
@@ -443,20 +462,25 @@
     </div>
 </div>
 
-<!-- Modal Unggah File Daftar Sumber Pustaka (Excel / CSV / PDF) -->
+<!-- Modal Unggah File Daftar Sumber Pustaka (Khusus Link: Excel / CSV / PDF) -->
 <div class="modal fade" id="uploadPustakaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
             <form action="{{ route('dataentry.sumberpustaka.upload') }}" method="POST" enctype="multipart/form-data" id="uploadPustakaForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold fs-16">Import Daftar Sumber Pustaka (Excel / CSV / PDF)</h5>
+                    <h5 class="modal-title fw-bold fs-16">Import Daftar Tautan Sumber Pustaka (Excel / CSV / PDF)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
+                    <div class="alert alert-warning rounded-3 p-2.5 fs-12 mb-3">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        <strong>Catatan:</strong> Unggah file Excel/CSV/PDF ini <strong>hanya dikhususkan untuk Tautan (Link)</strong> saja. Untuk sumber pustaka berupa <strong>Dokumen (File)</strong>, wajib mengunggah melalui tombol <strong>+ Tambah Sumber Pustaka</strong>.
+                    </div>
+
                     <div class="upload-dropzone mb-3">
                         <i class="bi bi-journal-bookmark fs-1 text-success mb-2 d-block"></i>
-                        <div class="fw-semibold text-dark fs-14 mb-1">Pilih file daftar sumber pustaka</div>
+                        <div class="fw-semibold text-dark fs-14 mb-1">Pilih file daftar tautan sumber pustaka</div>
                         <div class="text-muted fs-12 mb-3">Mendukung format .XLSX, .CSV, atau .PDF</div>
                         <label class="btn btn-sm btn-white-outline">
                             <i class="bi bi-folder2-open"></i> Pilih Dokumen
@@ -466,12 +490,12 @@
 
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format 2 Kolom Wajib:</span>
+                            <span class="fw-bold text-dark"><i class="bi bi-table me-1"></i>Format 3 Kolom Wajib (Excel / CSV / PDF):</span>
                             <a href="{{ route('dataentry.template.pustaka') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Link Sumber Pustaka</strong> &middot; Kolom B: <strong>Tipe (Private/Public)</strong></div>
+                        <div>1. <strong>Judul Link</strong> &middot; 2. <strong>Link-nya</strong> (maks. 60 karakter) &middot; 3. <strong>Tipe (Private/Public)</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -568,28 +592,28 @@
 
 
     function togglePustakaTypeInput(val) {
-        const fileBox = document.getElementById('fileUploadContainer');
+        const judulLabel = document.getElementById('addJudulLabel');
+        const linkContainer = document.getElementById('linkInputContainer');
         const linkInput = document.getElementById('addPustakaLinkInput');
-        const linkLabel = document.getElementById('linkInputLabel');
+        const fileBox = document.getElementById('fileUploadContainer');
+        const fileInput = document.getElementById('addPustakaFileInput');
 
         if (val === 'upload') {
-            fileBox.classList.remove('d-none');
+            if (judulLabel) judulLabel.textContent = '1. Judul Dokumen';
+            linkContainer?.classList.add('d-none');
             if (linkInput) linkInput.required = false;
-            if (linkLabel) {
-                linkLabel.textContent = 'Nama / Judul Dokumen (Opsional, Maks. 45 Karakter)';
-                linkLabel.classList.remove('form-label-required');
-            }
+            fileBox?.classList.remove('d-none');
+            if (fileInput) fileInput.required = true;
         } else {
-            fileBox.classList.add('d-none');
+            if (judulLabel) judulLabel.textContent = '1. Judul Tautan';
+            fileBox?.classList.add('d-none');
+            if (fileInput) fileInput.required = false;
+            linkContainer?.classList.remove('d-none');
             if (linkInput) linkInput.required = true;
-            if (linkLabel) {
-                linkLabel.textContent = 'Link / Tautan Sumber Pustaka (Maks. 45 Karakter)';
-                linkLabel.classList.add('form-label-required');
-            }
         }
     }
 
-    function openEditPustakaModal(id, currentLink, currentType, isFile) {
+    function openEditPustakaModal(id, currentJudul, currentLink, currentType, isFile) {
         const form = document.getElementById('editPustakaForm');
         form.action = `{{ url('/data-entry/sumber-pustaka') }}/${id}/update`;
 
@@ -599,16 +623,20 @@
         }
 
         const titleEl = document.getElementById('editPustakaModalTitle');
+        const editJudulLabel = document.getElementById('editJudulLabel');
+        const editJudulInput = document.getElementById('editPustakaJudul');
         const editLinkBox = document.getElementById('editLinkBox');
         const editLinkInput = document.getElementById('editPustakaLink');
         const editFileBox = document.getElementById('editFileBox');
         const editFileInput = document.getElementById('editPustakaFile');
         const currentFileNameText = document.getElementById('currentFileNameText');
 
+        if (editJudulInput) editJudulInput.value = currentJudul || '';
         if (editFileInput) editFileInput.value = '';
 
         if (isFile) {
-            if (titleEl) titleEl.textContent = 'Edit File Sumber Pustaka #' + id;
+            if (titleEl) titleEl.textContent = 'Edit Dokumen Sumber Pustaka';
+            if (editJudulLabel) editJudulLabel.textContent = 'Judul Dokumen';
             editLinkBox?.classList.add('d-none');
             editFileBox?.classList.remove('d-none');
             if (editLinkInput) {
@@ -616,10 +644,11 @@
                 editLinkInput.required = false;
             }
             if (currentFileNameText) {
-                currentFileNameText.textContent = currentLink || ('Dokumen #' + id);
+                currentFileNameText.textContent = currentLink || currentJudul || ('Dokumen ' + id);
             }
         } else {
-            if (titleEl) titleEl.textContent = 'Edit Link Sumber Pustaka #' + id;
+            if (titleEl) titleEl.textContent = 'Edit Tautan Sumber Pustaka';
+            if (editJudulLabel) editJudulLabel.textContent = 'Judul Tautan';
             editFileBox?.classList.add('d-none');
             editLinkBox?.classList.remove('d-none');
             if (editLinkInput) {

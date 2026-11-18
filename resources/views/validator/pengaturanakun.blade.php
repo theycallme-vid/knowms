@@ -51,10 +51,6 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('validator.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-grid"></i>
-                    <span>Dashboard</span>
-                </a>
                 <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>

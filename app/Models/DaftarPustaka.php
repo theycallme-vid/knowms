@@ -9,6 +9,7 @@ class DaftarPustaka extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'judul',
         'type',
         'link',
         'upload',
@@ -18,6 +19,15 @@ class DaftarPustaka extends Model
     public function faqVersions()
     {
         return $this->hasMany(FaqVersion::class, 'tDaftarPustakas_id');
+    }
+
+    /** Judul sumber pustaka yang ditampilkan pada tabel & pilihan */
+    public function getJudulTampilAttribute(): string
+    {
+        if (!empty($this->judul)) {
+            return (string) $this->judul;
+        }
+        return (string) ($this->link ?: ('Sumber Pustaka ' . $this->id));
     }
 
     /** Apakah pustaka ini merupakan file dokumen yang diunggah (memiliki isi BLOB) */
@@ -39,7 +49,7 @@ class DaftarPustaka extends Model
     }
 
     /**
-     * Pastikan kolom type pada tabel tdaftarpustaka mendukung nilai 'public' & 'private'
+     * Pastikan tabel tdaftarpustaka memiliki kolom judul, link VARCHAR(60), dan enum type ('public', 'private')
      * walaupun database lama belum di-migrate ulang.
      */
     public static function ensurePublicPrivateEnum(): void
@@ -51,6 +61,17 @@ class DaftarPustaka extends Model
         $checked = true;
 
         try {
+            $judulCol = \Illuminate\Support\Facades\DB::selectOne("SHOW COLUMNS FROM tdaftarpustaka LIKE 'judul'");
+            if (!$judulCol) {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka ADD COLUMN judul VARCHAR(100) NULL AFTER id");
+                \Illuminate\Support\Facades\DB::statement("UPDATE tdaftarpustaka SET judul = link WHERE judul IS NULL OR judul = ''");
+            }
+
+            $linkCol = \Illuminate\Support\Facades\DB::selectOne("SHOW COLUMNS FROM tdaftarpustaka LIKE 'link'");
+            if ($linkCol && isset($linkCol->Type) && !str_contains(strtolower((string) $linkCol->Type), '60')) {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka MODIFY link VARCHAR(60) NULL");
+            }
+
             $col = \Illuminate\Support\Facades\DB::selectOne("SHOW COLUMNS FROM tdaftarpustaka LIKE 'type'");
             if ($col && isset($col->Type) && !str_contains(strtolower((string) $col->Type), 'public')) {
                 \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka MODIFY type VARCHAR(20) NOT NULL DEFAULT 'public'");

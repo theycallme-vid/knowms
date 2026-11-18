@@ -38,9 +38,13 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
+                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
+                </a>
+                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom">
+                    <i class="bi bi-send-check"></i>
+                    <span>Pengajuan FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom">
                     <i class="bi bi-plus-lg"></i>
@@ -149,18 +153,15 @@
         <div class="content-area">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-2 mb-4">
                 <div>
-                    <div class="date-badge">KLASIFIKASI PENGETAHUAN &middot; TABEL TTAG</div>
                     <h1 class="page-title mb-1">Daftar Kata Kunci</h1>
                     <p class="text-muted fs-14 mb-0">Kelola kata kunci klasifikasi FAQ secara satuan atau import langsung dari file Excel/CSV/PDF.</p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                    <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#uploadKeywordModal">
-                        <i class="bi bi-upload"></i>
-                        <span>Unggah File</span>
+                    <button type="button" class="btn-outline-maroon text-nowrap" data-bs-toggle="modal" data-bs-target="#uploadKeywordModal">
+                        <i class="bi bi-upload"></i><span>Unggah File</span>
                     </button>
-                    <button type="button" class="btn-maroon" data-bs-toggle="modal" data-bs-target="#addKeywordModal">
-                        <i class="bi bi-plus-lg"></i>
-                        <span>Tambah Kata Kunci</span>
+                    <button type="button" class="btn-maroon text-nowrap" data-bs-toggle="modal" data-bs-target="#addKeywordModal">
+                        <i class="bi bi-plus-lg"></i><span>Tambah Kata Kunci</span>
                     </button>
                 </div>
             </div>
@@ -237,7 +238,7 @@
                             @else
                                 @foreach($tags as $tag)
                                     <tr class="tag-row">
-                                        <td class="text-muted fw-semibold">#{{ $tag->id }}</td>
+                                        <td class="text-dark fw-semibold">{{ $loop->iteration }}</td>
                                         <td>
                                             <span class="keyword-pill-blue fs-12 px-3 py-1">{{ $tag->nama }}</span>
                                         </td>
@@ -247,7 +248,7 @@
                                             </span>
                                         </td>
                                         <td class="text-muted fs-12">
-                                            {{ $tag->created_at ? $tag->created_at->translatedFormat('d M Y') : '-' }}
+                                            {{ $tag->created_at ? $tag->created_at->timezone('Asia/Jakarta')->translatedFormat('d M Y') : '-' }}
                                         </td>
                                         <td style="text-align: right;">
                                             <div class="d-inline-flex align-items-center gap-1">

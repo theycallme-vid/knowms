@@ -62,7 +62,7 @@
             $activeVer = $dbFaq->versions->first();
             $pustaka = $activeVer?->daftarPustaka;
             $sourceType = $pustaka ? strtolower((string) $pustaka->type) : null;
-            $sourceLabel = $pustaka ? $pustaka->link : null;
+            $sourceLabel = $pustaka ? ($pustaka->judul_tampil ?: $pustaka->link) : null;
             $sourceUrl = ($pustaka && filter_var($pustaka->link, FILTER_VALIDATE_URL)) ? $pustaka->link : '#';
             $tagNames = $dbFaq->tags->pluck('nama')->implode(' · ');
             $mappedDbFaqs[] = [

@@ -50,10 +50,6 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('validator.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-grid"></i>
-                    <span>Dashboard</span>
-                </a>
                 <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
@@ -182,15 +178,8 @@
 
             <!-- Page Header (Ukuran & warna seragam dengan halaman lain) -->
             <div class="mb-4">
-                <div class="date-badge">RUANG PENELAAH &middot; VALIDATOR</div>
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                     <h1 class="page-title mb-0 me-1">Validasi FAQ</h1>
-                    <span class="badge-waiting">{{ $totalWaiting }} menunggu validasi</span>
-                    @if(($totalApprovedQueue ?? 0) > 0)
-                        <span class="badge rounded-pill fw-semibold fs-12 px-3 py-1" style="background-color: #ECFDF5; color: #059669; border: 1px solid #A7F3D0;">
-                            {{ $totalApprovedQueue }} Approved (Siap Publish)
-                        </span>
-                    @endif
                 </div>
                 <p class="fs-13 text-muted mb-0">
                     Tinjau pertanyaan, jawaban, dan rujukan sumber untuk menyetujui (Approved) dan mempublikasikan (Publish) FAQ.
@@ -234,10 +223,6 @@
                                 </a>
                             @endif
                         </div>
-
-                        <div>
-                            <span class="pill-waiting-status">Menunggu Validasi</span>
-                        </div>
                     </div>
                 </form>
 
@@ -266,9 +251,9 @@
                                         $avatarColors = ['de-avatar-teal', 'de-avatar-blue', 'de-avatar-amber', 'de-avatar-purple'];
                                         $colorClass   = $avatarColors[$index % count($avatarColors)];
                                         $isChecked    = !empty($item->default_checked);
-                                        $createdAtObj = $item->created_at instanceof \Carbon\Carbon
+                                        $createdAtObj = ($item->created_at instanceof \Carbon\Carbon
                                             ? $item->created_at
-                                            : \Carbon\Carbon::parse($item->created_at);
+                                            : \Carbon\Carbon::parse($item->created_at))->timezone('Asia/Jakarta');
                                         $itemStatus   = $item->status ?? 'Submitted';
                                         $isApproved   = !empty($item->is_approved) || strtolower($itemStatus) === 'approved';
                                         $isScheduled  = !empty($item->is_scheduled);
@@ -314,23 +299,11 @@
                                         <td>
                                             <div class="faq-code">{{ $item->kode }}</div>
                                             <div class="faq-version">{{ $item->versi }}</div>
-                                            <div class="mt-1">
-                                                @if($isApproved)
-                                                    <span class="badge-status badge-approved">
-                                                        <i class="bi bi-check-circle-fill"></i> Approved
-                                                    </span>
-                                                @else
-                                                    <span class="badge-status badge-submitted">
-                                                        <i class="bi bi-hourglass-split"></i> Submitted
-                                                    </span>
-                                                @endif
-                                            </div>
                                         </td>
 
                                         <!-- Pertanyaan -->
                                         <td>
                                             <div class="faq-question">{{ $item->pertanyaan }}</div>
-                                            <div class="faq-category-sub">{{ $item->kategori }}</div>
                                             @if($isApproved)
                                                 <div class="mt-1.5">
                                                     @if($isScheduled && $schedLabel)
@@ -350,13 +323,7 @@
 
                                         <!-- Data Entry -->
                                         <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="de-avatar {{ $colorClass }}">{{ $item->data_entry_initials }}</div>
-                                                <div>
-                                                    <div class="fs-13 fw-bold text-dark lh-sm">{{ $item->data_entry_nama }}</div>
-                                                    <div class="fs-11 text-muted">{{ $item->data_entry_role ?? 'Data Entry' }}</div>
-                                                </div>
-                                            </div>
+                                            <div class="fs-13 fw-bold text-dark lh-sm">{{ $item->data_entry_nama }}</div>
                                         </td>
 
                                         <!-- Waktu Pengajuan (created_at) -->
@@ -402,8 +369,6 @@
                                             <div class="d-flex flex-column align-items-center gap-2 text-muted">
                                                 <i class="bi bi-journal-check fs-2 opacity-50"></i>
                                                 <div class="fw-semibold fs-14 text-dark">Belum ada antrean FAQ yang menunggu validasi</div>
-                                                <div class="fs-12">Jalankan <code>php artisan db:seed</code> untuk mengisi data uji coba atau tunggu pengajuan dari Data Entry.</div>
-                                            </div>
                                         </td>
                                     </tr>
                                 @endforelse
@@ -464,7 +429,6 @@
             <div class="bulk-approval-card">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <span class="badge-selected-count" id="selectedCountBadge">0 FAQ dipilih</span>
-                    <span class="fs-12 text-muted" id="selectedHelperText">Centang FAQ Submitted untuk Approved, atau centang FAQ Approved untuk menyalakan tombol Publish.</span>
                 </div>
                 <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
                     <button type="button" id="btnBulkApprove" class="btn-bulk-approve" onclick="openBulkApproveModal()" disabled>
@@ -483,58 +447,47 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     MODAL 1: DETAIL VIEW FAQ
+     MODAL 1: DETAIL VIEW FAQ (TEMA WEBSITE ELEGAN & MUDAH DIBACA)
 ══════════════════════════════════════════════════════════════════ -->
 <div class="modal fade" id="modalViewFaq" tabindex="-1" aria-labelledby="modalViewFaqLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content kms-modal-content">
-            <div class="kms-modal-header">
+        <div class="modal-content kms-modal-content" style="border-radius: 18px; overflow: hidden;">
+            <div class="kms-modal-header" style="background: linear-gradient(135deg, #FFFDFB 0%, #FDF2F4 100%); border-bottom: 1px solid #F3E2E5; padding: 1.1rem 1.4rem;">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="pill-waiting-status">Menunggu Validasi</span>
-                    <span class="fs-13 fw-bold text-dark" id="viewModalCode">FAQ-0248</span>
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold fs-12" style="background-color: #85172C; color: #ffffff;" id="viewModalCode">FAQ-0001</span>
+                    <span class="fs-12 fw-semibold" style="color: #85172C;" id="viewModalVersion">Versi 1</span>
                     <span class="fs-12 text-muted">&middot;</span>
-                    <span class="fs-12 text-muted" id="viewModalVersion">Versi 1</span>
+                    <span class="fs-12 text-muted" id="viewModalDe">Data Entry</span>
+                    <span class="fs-12 text-muted">&middot;</span>
+                    <span class="fs-12 text-muted" id="viewModalTime">-</span>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.75rem;"></button>
             </div>
-            <div class="kms-modal-body">
-                <div class="fs-11 fw-bold text-uppercase text-muted mb-1" id="viewModalCategory">Akademik · Fakultas Teknik</div>
-                <h3 class="display-serif fs-20 fw-bold text-dark mb-3" id="viewModalQuestion">
-                    Persyaratan yudisium Fakultas Teknik
-                </h3>
+            <div class="kms-modal-body" style="padding: 1.4rem;">
+                <span class="d-none" id="viewModalCategory"></span>
 
-                <div class="rounded-3 p-3 mb-3" style="background-color: #F8FAFC; border: 1px solid #F1F5F9;">
-                    <div class="row g-2 fs-12">
-                        <div class="col-sm-6">
-                            <span class="text-muted">Diajukan oleh:</span>
-                            <strong class="text-dark ms-1" id="viewModalDe">Nadia Putri</strong>
-                            <span class="text-muted">(Data Entry)</span>
-                        </div>
-                        <div class="col-sm-6 text-sm-end text-muted">
-                            Waktu Pengajuan: <strong class="text-dark" id="viewModalTime">21 Okt 2026, 10.18 WIB</strong>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- Pertanyaan -->
                 <div class="mb-3">
-                    <div class="text-uppercase fw-bold fs-11 text-muted mb-2" style="letter-spacing: 0.05em;">Jawaban untuk Mahasiswa</div>
-                    <div class="p-3 rounded-3 bg-white border fs-13 text-secondary lh-lg" id="viewModalAnswer"></div>
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Pertanyaan</div>
+                    <div class="p-3 rounded-3 fs-15 fw-semibold text-dark lh-base" style="background-color: #FFFDFB; border: 1px solid #EDE7E1;" id="viewModalQuestion"></div>
                 </div>
 
+                <!-- Jawaban -->
+                <div class="mb-3">
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Jawaban</div>
+                    <div class="p-3 rounded-3 bg-white border fs-14 text-dark lh-lg" style="border-color: #EDE7E1 !important;" id="viewModalAnswer"></div>
+                </div>
+
+                <!-- Sumber Pustaka -->
                 <div>
-                    <div class="text-uppercase fw-bold fs-11 text-muted mb-2" style="letter-spacing: 0.05em;">Rujukan Sumber Pustaka Resmi</div>
-                    <div class="rounded-3 p-3 d-flex align-items-center gap-3" style="background-color: #EFF6FF; border: 1px solid #DBEAFE;">
-                        <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 36px; height: 36px; background-color: #DBEAFE; color: #2563EB;">
-                            <i class="bi bi-file-earmark-text fs-6"></i>
-                        </div>
-                        <div>
-                            <div class="fw-bold fs-13 text-dark" id="viewModalSource"></div>
-                            <div class="fs-11 text-muted">Dokumen Resmi Kampus &middot; Terverifikasi</div>
-                        </div>
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Sumber Pustaka</div>
+                    <div class="rounded-3 px-3 py-2 d-flex align-items-center gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1;">
+                        <i class="bi bi-journal-bookmark-fill" style="color: #85172C; font-size: 1rem;"></i>
+                        <div class="fw-semibold fs-13 text-dark" id="viewModalSource"></div>
                     </div>
                 </div>
             </div>
-            <div class="kms-modal-footer justify-content-between">
+            <div class="kms-modal-footer justify-content-between" style="padding: 0.9rem 1.4rem;">
                 <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Tutup</button>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn-action-pill btn-pill-rejected" id="modalBtnReject">
@@ -676,7 +629,7 @@
                 <div id="publishFaqIdsContainer"></div>
                 <input type="hidden" name="publish_mode" id="publishModeInput" value="routine">
 
-                <div class="publish-modal-box">
+                <div class="publish-modal-box" style="max-height: 72vh; overflow-y: auto;">
                     <div class="d-flex align-items-start justify-content-between mb-1">
                         <div>
                             <h5 class="fw-bold text-dark mb-1" id="modalPublishFaqLabel" style="font-size: 1.05rem;">Publikasikan FAQ</h5>
@@ -706,18 +659,48 @@
                         <p class="publish-option-sub">Cocok untuk publikasi FAQ secara berkala dalam jumlah banyak.</p>
                     </div>
 
-                    <!-- Pilihan 2: Jadwalkan Publikasi -->
+                    <!-- Pilihan 2: Jadwal Publikasi (Satu kesatuan kotak dengan input tanggal & jam) -->
                     <div class="publish-option-card" data-mode="scheduled" onclick="selectPublishMode('scheduled')">
                         <div class="publish-option-header">
                             <div class="publish-option-title">
                                 <i class="bi bi-calendar-event" style="color: #2563EB; font-size: 1.1rem;"></i>
-                                <span>Jadwalkan Publikasi</span>
+                                <span>Jadwal Publikasi</span>
                             </div>
                         </div>
                         <div class="publish-option-desc">
                             Tentukan sendiri tanggal dan jam publikasi FAQ.
                         </div>
                         <p class="publish-option-sub">Cocok jika FAQ harus tersedia pada waktu tertentu.</p>
+
+                        <!-- Detail Input Tanggal & Jam (Menyatu di dalam kotak Jadwal Publikasi) -->
+                        <div id="publishScheduleDetailBox"
+                             class="d-none mt-3 pt-3"
+                             style="border-top: 1px solid #DBEAFE; cursor: default;"
+                             onclick="event.stopPropagation()">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-clock-history" style="color: #2563EB; font-size: 0.9rem;"></i>
+                                <span class="fw-bold text-dark fs-13">Atur Tanggal &amp; Jam Publikasi</span>
+                            </div>
+                            <div class="text-muted fs-12 mb-2.5">
+                                FAQ akan otomatis diterbitkan sesuai tanggal dan jam yang ditentukan.
+                            </div>
+                            <div class="row g-2.5">
+                                <div class="col-12 col-sm-6">
+                                    <label for="publishDateInput" class="fw-semibold text-dark fs-12 mb-1 d-block">Tanggal publikasi</label>
+                                    <div class="publish-input-wrap">
+                                        <i class="bi bi-calendar3"></i>
+                                        <input type="date" id="publishDateInput" name="publish_date" min="{{ date('Y-m-d') }}" placeholder="Pilih tanggal">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label for="publishTimeInput" class="fw-semibold text-dark fs-12 mb-1 d-block">Jam publikasi</label>
+                                    <div class="publish-input-wrap">
+                                        <i class="bi bi-clock"></i>
+                                        <input type="time" id="publishTimeInput" name="publish_time" placeholder="Pilih jam">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Pilihan 3: Publikasikan Sekarang -->
@@ -732,34 +715,6 @@
                             FAQ langsung dipublikasikan tanpa menunggu jadwal rutin.
                         </div>
                         <p class="publish-option-sub">Cocok untuk informasi yang harus segera diketahui mahasiswa.</p>
-                    </div>
-
-                    <!-- Detail Input Tanggal & Jam (Muncul saat memilih Jadwalkan Publikasi) -->
-                    <div id="publishScheduleDetailBox" class="publish-schedule-box d-none mt-3">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <i class="bi bi-calendar-event" style="color: #2563EB; font-size: 1rem;"></i>
-                            <span class="fw-bold text-dark" style="font-size: 0.9375rem;">Jadwalkan Publikasi</span>
-                        </div>
-                        <div class="text-muted fs-12 mb-2">
-                            FAQ akan otomatis diaktifkan dan ditampilkan kepada mahasiswa sesuai tanggal dan waktu yang ditentukan.
-                        </div>
-                        <hr class="my-2.5" style="border-color: #E2E8F0;">
-
-                        <div class="mb-3">
-                            <label for="publishDateInput" class="fw-bold text-dark fs-13 mb-1.5 d-block">Tanggal publikasi</label>
-                            <div class="publish-input-wrap">
-                                <i class="bi bi-calendar3"></i>
-                                <input type="date" id="publishDateInput" name="publish_date" min="{{ date('Y-m-d') }}" placeholder="Pilih tanggal">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="publishTimeInput" class="fw-bold text-dark fs-13 mb-1.5 d-block">Jam publikasi</label>
-                            <div class="publish-input-wrap">
-                                <i class="bi bi-clock"></i>
-                                <input type="time" id="publishTimeInput" name="publish_time" placeholder="Pilih jam">
-                            </div>
-                        </div>
                     </div>
                 </div>
 

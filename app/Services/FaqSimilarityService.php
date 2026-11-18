@@ -180,7 +180,8 @@ class FaqSimilarityService
     }
 
     /**
-     * Mengambil kandidat FAQ dari database yang berstatus Active, Approved/Accepted, atau Submitted/Pending
+     * Mengambil kandidat FAQ dari database (Termasuk Draft, Active, Approved, Submitted, Rejected)
+     * beserta jawaban dari setiap versinya untuk mendeteksi duplikat pertanyaan + jawaban Draft.
      */
     public function getCandidateFaqs(?string $excludeFaqId = null): Collection
     {
@@ -193,7 +194,7 @@ class FaqSimilarityService
         }
 
         return $query->get()->map(function (Faq $faq) {
-            // Cari versi dengan status Active/Approved/Submitted, atau gunakan versi terbaru
+            // Cari versi dengan status Active/Approved/Submitted, atau gunakan versi terbaru (termasuk Draft)
             $relevantVersion = $faq->versions->first(function ($v) {
                 return in_array(strtolower((string) $v->status), ['active', 'approved', 'accepted', 'submitted', 'pending'], true);
             }) ?? $faq->versions->first();
@@ -201,38 +202,88 @@ class FaqSimilarityService
             $status = $relevantVersion ? (string) $relevantVersion->status : 'Draft';
 
             return [
-                'id'           => $faq->id,
-                'pertanyaan'   => (string) $faq->pertanyaan,
-                'status'       => $status,
-                'status_label' => $this->formatStatusLabel($status),
-                'version_id'   => $relevantVersion?->id ?? ($faq->id . '-V1'),
-                'is_target_status' => in_array(strtolower($status), ['active', 'approved', 'accepted', 'submitted', 'pending'], true),
+                'id'               => $faq->id,
+                'pertanyaan'       => (string) $faq->pertanyaan,
+                'jawaban'          => (string) ($relevantVersion?->jawaban ?? ''),
+                'status'           => $status,
+                'status_label'     => $this->formatStatusLabel($status),
+                'version_id'       => $relevantVersion?->id ?? ($faq->id . '-V1'),
+                'is_target_status' => in_array(strtolower($status), ['active', 'approved', 'accepted', 'submitted', 'pending', 'draft', 'rejected'], true),
+                'all_versions'     => $faq->versions->map(fn ($v) => [
+                    'id'           => $v->id,
+                    'status'       => (string) $v->status,
+                    'status_label' => $this->formatStatusLabel((string) $v->status),
+                    'jawaban'      => (string) $v->jawaban,
+                    'norm_jawaban' => $this->normalizeRaw((string) $v->jawaban),
+                ])->values()->all(),
             ];
         })->filter(fn ($row) => $row['is_target_status'])->values();
     }
 
     /**
+     * Cek apakah ada FAQ dengan kondisi Draft yang memiliki Pertanyaan DAN Jawaban yang sama persis.
+     */
+    public function findExactDraftMatch(string $inputQuestion, string $inputAnswer, ?string $excludeFaqId = null): ?array
+    {
+        $normQ = $this->normalizeRaw($inputQuestion);
+        $normA = $this->normalizeRaw($inputAnswer);
+
+        if ($normQ === '' || $normA === '') {
+            return null;
+        }
+
+        $candidates = $this->getCandidateFaqs($excludeFaqId);
+        foreach ($candidates as $cand) {
+            if ($this->normalizeRaw($cand['pertanyaan']) !== $normQ) {
+                continue;
+            }
+
+            foreach ($cand['all_versions'] as $ver) {
+                if (strtolower($ver['status']) === 'draft' && $ver['norm_jawaban'] === $normA) {
+                    return [
+                        'id'           => $cand['id'],
+                        'version_id'   => $ver['id'],
+                        'pertanyaan'   => $cand['pertanyaan'],
+                        'jawaban'      => $ver['jawaban'],
+                        'status'       => 'Draft',
+                        'status_label' => 'Draft',
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Alur Lengkap Deteksi Duplikat & Kemiripan:
      * 1. Normalisasi data input (lowercase, bersihkan tanda baca & spasi)
-     * 2. Cek duplikat identik (100%) pada FAQ berstatus Active/Approved atau Submitted
+     * 2. Cek duplikat identik (100%) pada FAQ di database (termasuk Draft jika jawaban juga sama persis)
      * 3. Cari kandidat FAQ yang mirip dari database
      * 4. Hitung similarity score (TF-IDF / BM25 token overlap + Character Trigram Dice)
      */
-    public function analyzeQuestion(string $inputQuestion, ?string $excludeFaqId = null, float $candidateThreshold = 30.0): array
+    public function analyzeQuestion(string $inputQuestion, ?string $excludeFaqId = null, float $candidateThreshold = 30.0, ?string $inputAnswer = null): array
     {
         $normalizedInput = $this->normalizeRaw($inputQuestion);
+        $normalizedAnswer = $inputAnswer !== null ? $this->normalizeRaw($inputAnswer) : '';
+
         if ($normalizedInput === '' || mb_strlen($normalizedInput) < 3) {
             return [
-                'normalized_input' => $normalizedInput,
-                'has_exact_match'  => false,
-                'exact_match'      => null,
-                'candidates'       => [],
-                'max_similarity'   => 0.0,
+                'normalized_input'      => $normalizedInput,
+                'has_exact_match'       => false,
+                'exact_match'           => null,
+                'has_exact_draft_match' => false,
+                'exact_draft_match'     => null,
+                'candidates'            => [],
+                'max_similarity'        => 0.0,
             ];
         }
 
         $inputTokens = $this->extractNormalizedTokens($inputQuestion);
         $candidatesDb = $this->getCandidateFaqs($excludeFaqId);
+        $exactDraftMatch = ($normalizedAnswer !== '')
+            ? $this->findExactDraftMatch($inputQuestion, (string) $inputAnswer, $excludeFaqId)
+            : null;
 
         // Hitung IDF sederhana dari korpus kandidat (gaya TNTSearch / BM25)
         $docCount = max(1, $candidatesDb->count() + 1);
@@ -309,11 +360,13 @@ class FaqSimilarityService
         $scoredCandidates = array_slice($scoredCandidates, 0, 5);
 
         return [
-            'normalized_input' => $normalizedInput,
-            'has_exact_match'  => $exactMatch !== null,
-            'exact_match'      => $exactMatch,
-            'candidates'       => $scoredCandidates,
-            'max_similarity'   => $maxSimilarity,
+            'normalized_input'      => $normalizedInput,
+            'has_exact_match'       => $exactMatch !== null,
+            'exact_match'           => $exactMatch,
+            'has_exact_draft_match' => $exactDraftMatch !== null,
+            'exact_draft_match'     => $exactDraftMatch,
+            'candidates'            => $scoredCandidates,
+            'max_similarity'        => $maxSimilarity,
         ];
     }
 

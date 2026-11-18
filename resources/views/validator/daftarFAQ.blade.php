@@ -48,10 +48,6 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('validator.dashboard') }}" class="nav-link-custom">
-                    <i class="bi bi-grid"></i>
-                    <span>Dashboard</span>
-                </a>
                 <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom active">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
@@ -165,19 +161,10 @@
             <!-- Page Header (Ukuran & Warna Seragam) -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-end gap-3 mb-4">
                 <div>
-                    <div class="date-badge">RUANG PENELAAH &middot; VALIDATOR</div>
                     <h1 class="page-title mb-1">Daftar FAQ</h1>
                     <p class="fs-13 text-muted mb-0">
                         Tinjau pertanyaan, jawaban, dan rujukan sumber sebelum menyetujui FAQ.
                     </p>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="#" class="btn btn-outline-secondary bg-white rounded-pill px-3 py-2
-                                       d-inline-flex align-items-center gap-2 shadow-sm text-dark fs-13 fw-semibold"
-                       style="border-color:#E2E8F0;">
-                        <i class="bi bi-download"></i>
-                        <span class="d-none d-sm-inline">Ekspor</span>
-                    </a>
                 </div>
             </div>
 
@@ -194,24 +181,24 @@
                     </div>
                 </div>
 
-                {{-- Aktif --}}
+                {{-- Terbit --}}
                 <div class="stat-card-compact">
                     <div class="stat-icon" style="background-color:#ECFDF5; color:#059669;">
                         <i class="bi bi-lightning-charge-fill"></i>
                     </div>
                     <div>
-                        <div class="stat-label">Aktif</div>
+                        <div class="stat-label">Terbit</div>
                         <div class="stat-value">{{ $totalAktif }}</div>
                     </div>
                 </div>
 
-                {{-- Approved --}}
+                {{-- Disetujui --}}
                 <div class="stat-card-compact">
                     <div class="stat-icon" style="background-color:#EDE9FE; color:#7C3AED;">
                         <i class="bi bi-check2-circle"></i>
                     </div>
                     <div>
-                        <div class="stat-label">Approved</div>
+                        <div class="stat-label">Disetujui</div>
                         <div class="stat-value">{{ $totalApproved }}</div>
                     </div>
                 </div>
@@ -227,14 +214,14 @@
                     </div>
                 </div>
 
-                {{-- Nonaktif --}}
+                {{-- Ditolak --}}
                 <div class="stat-card-compact">
                     <div class="stat-icon" style="background-color:#FEF2F2; color:#DC2626;">
-                        <i class="bi bi-slash-circle"></i>
+                        <i class="bi bi-x-circle"></i>
                     </div>
                     <div>
-                        <div class="stat-label">Nonaktif</div>
-                        <div class="stat-value">{{ $totalInaktif }}</div>
+                        <div class="stat-label">Ditolak</div>
+                        <div class="stat-value">{{ $totalRejected ?? 0 }}</div>
                     </div>
                 </div>
             </div>
@@ -246,86 +233,40 @@
                 <div class="table-card-header">
                     <div class="d-flex align-items-center justify-content-between">
                         <h2 class="fw-bold fs-15 text-dark mb-0">Daftar Seluruh FAQ</h2>
-                        @if($faqs->total() > 0)
-                            <span class="badge rounded-pill fw-medium fs-12 px-3 py-1"
-                                  style="background-color:#DBEAFE; color:#1D4ED8;">
-                                {{ $faqs->total() }} FAQ ditemukan
-                            </span>
-                        @endif
                     </div>
                 </div>
 
                 <!-- ── Filter Bar (Satu Baris: Search + Kategori Fakultas + Status + Sort) ── -->
-                @php $aktivFakultas = request('fakultas', 'Semua'); @endphp
-                <form method="GET" action="{{ route('validator.daftarFAQ') }}" id="filterForm">
-                    <div class="filter-bar">
-                        <div class="filter-left-group">
-                            <!-- Search -->
-                            <div class="filter-search-wrap">
-                                <i class="bi bi-search"></i>
-                                <input type="text" name="search" value="{{ request('search') }}"
-                                       placeholder="Cari kode atau pertanyaan FAQ...">
-                            </div>
-
-                            <!-- Filter Kategori / Fakultas (Satu Baris dengan Search) -->
-                            <select name="fakultas" class="filter-select" onchange="document.getElementById('filterForm').submit()">
-                                <option value="Semua" {{ $aktivFakultas === 'Semua' ? 'selected' : '' }}>Semua Kategori</option>
-                                @foreach($fakultasOptions as $fak)
-                                    <option value="{{ $fak }}" {{ $aktivFakultas === $fak ? 'selected' : '' }}>{{ $fak }}</option>
-                                @endforeach
-                            </select>
-
-                            <!-- Filter Status -->
-                            <select name="status" class="filter-select" onchange="document.getElementById('filterForm').submit()">
-                                <option value="Semua" {{ request('status','Semua') === 'Semua' ? 'selected' : '' }}>Semua Status</option>
-                                <option value="Submitted" {{ request('status') === 'Submitted' ? 'selected' : '' }}>Menunggu Validasi</option>
-                                <option value="Approved"  {{ request('status') === 'Approved'  ? 'selected' : '' }}>Approved</option>
-                                <option value="Active"    {{ request('status') === 'Active'    ? 'selected' : '' }}>Aktif</option>
-                                <option value="Rejected"  {{ request('status') === 'Rejected'  ? 'selected' : '' }}>Rejected</option>
-                                <option value="InActive"  {{ request('status') === 'InActive'  ? 'selected' : '' }}>Nonaktif</option>
-                            </select>
-
-                            <!-- Sort -->
-                            <select name="sort" class="filter-select" onchange="document.getElementById('filterForm').submit()">
-                                <option value="terbaru" {{ request('sort','terbaru') === 'terbaru' ? 'selected' : '' }}>Terbaru</option>
-                                <option value="terlama" {{ request('sort') === 'terlama' ? 'selected' : '' }}>Terlama</option>
-                                <option value="az"      {{ request('sort') === 'az'      ? 'selected' : '' }}>A &rarr; Z</option>
-                            </select>
-
-                            <button type="submit" class="btn-filter-submit">
-                                <i class="bi bi-funnel"></i> Filter
-                            </button>
-
-                            @if(request()->hasAny(['search', 'fakultas', 'status', 'sort']) && collect(request()->only(['search','fakultas','status','sort']))->filter(fn($v) => $v && $v !== 'Semua' && $v !== 'terbaru')->isNotEmpty())
-                                <a href="{{ route('validator.daftarFAQ') }}" class="btn-filter-reset">
-                                    <i class="bi bi-x-lg"></i> Reset
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                </form>
+                <!-- ── Filter Bar (Search + Kata Kunci + Status + Sort, Auto-Submit) ── -->
+                @include('partials.daftar-faq-filter-bar', [
+                    'actionRoute' => route('validator.daftarFAQ'),
+                    'kataKunciOptions' => $kataKunciOptions ?? collect(),
+                ])
 
                 <!-- ── Table ── -->
                 <div class="table-responsive">
                     <table class="faq-table">
                         <thead>
                             <tr>
-                                <th style="width:120px;">Kode / Versi</th>
+                                <th style="width:115px;">Kode / Versi</th>
                                 <th>Pertanyaan</th>
-                                <th style="width:170px;">Data Entry</th>
-                                <th style="width:140px;">Waktu Pengajuan</th>
-                                <th style="width:140px;">Status</th>
-                                <th style="width:200px;" class="text-end pe-4">Aksi</th>
+                                <th style="width:155px;">Data Entry</th>
+                                <th style="width:135px;">Waktu Pengajuan</th>
+                                <th style="width:215px;">Status</th>
+                                <th style="width:120px;" class="text-end pe-4">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($faqs as $faq)
                                 @php
-                                    $latestVersion = $faq->versions->first();
+                                    $rawLatestVersion = $faq->versions->first();
+                                    $activeFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'active');
+                                    $latestVersion = ($rawLatestVersion && strtolower((string) $rawLatestVersion->status) === 'inactive' && $activeFaqVersion)
+                                        ? $activeFaqVersion
+                                        : $rawLatestVersion;
                                     $status        = $latestVersion?->status ?? 'Draft';
                                     $versionCount  = max(1, $faq->versions->count());
                                     $de            = $faq->dataEntry;
-                                    $initials      = strtoupper(substr($de?->nama ?? '?', 0, 2));
                                     $statusClass   = match($status) {
                                         'Approved'  => 'badge-approved',
                                         'Active'    => 'badge-active',
@@ -335,8 +276,11 @@
                                         default     => 'badge-draft',
                                     };
                                     $statusLabel   = match($status) {
+                                        'Active'    => 'Terbit',
+                                        'Approved'  => 'Disetujui',
                                         'Submitted' => 'Menunggu Validasi',
-                                        'InActive'  => 'Nonaktif',
+                                        'Rejected'  => 'Ditolak',
+                                        'InActive'  => 'InActive',
                                         default     => $status,
                                     };
                                     $statusIcon    = match($status) {
@@ -347,6 +291,7 @@
                                         'InActive'  => 'bi-dash-circle',
                                         default     => 'bi-pencil',
                                     };
+                                    $createdAtJkt  = $faq->created_at ? $faq->created_at->timezone('Asia/Jakarta') : null;
                                 @endphp
                                 <tr>
                                     <!-- Kode / Versi -->
@@ -370,24 +315,18 @@
                                         @endif
                                     </td>
 
-                                    <!-- Data Entry -->
+                                    <!-- Data Entry (Cukup Namanya Saja) -->
                                     <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="de-avatar">{{ $initials }}</div>
-                                            <div>
-                                                <div class="fs-13 fw-semibold text-dark">{{ $de?->nama ?? '—' }}</div>
-                                                <div class="fs-11 text-muted">Data Entry</div>
-                                            </div>
-                                        </div>
+                                        <div class="fs-13 fw-semibold text-dark">{{ $de?->nama ?? '—' }}</div>
                                     </td>
 
-                                    <!-- Waktu Pengajuan -->
+                                    <!-- Waktu Pengajuan (Timezone Jakarta GMT+7) -->
                                     <td>
                                         <div class="fs-13 text-dark">
-                                            {{ optional($faq->created_at)->translatedFormat('d M Y') ?? '—' }}
+                                            {{ $createdAtJkt ? $createdAtJkt->translatedFormat('d M Y') : '—' }}
                                         </div>
                                         <div class="fs-11 text-muted">
-                                            {{ optional($faq->created_at)->format('H.i') }} WIB
+                                            {{ $createdAtJkt ? $createdAtJkt->format('H.i') . ' WIB' : '' }}
                                         </div>
                                     </td>
 
@@ -395,85 +334,39 @@
                                     <td>
                                         @php
                                             $schedInfoDaftar = ($status === 'Approved' && $latestVersion) ? $latestVersion->getPublishScheduleInfo() : null;
+                                            $schedModeDaftar = $schedInfoDaftar['mode'] ?? null;
                                         @endphp
-                                        <span class="badge-status {{ $statusClass }}">
-                                            <i class="bi {{ $statusIcon }}"></i>
-                                            {{ $statusLabel }}
-                                        </span>
-                                        @if($schedInfoDaftar && !empty($schedInfoDaftar['label']))
-                                            <div class="mt-1">
-                                                <span class="publish-wait-badge {{ ($schedInfoDaftar['mode'] ?? '') === 'routine' ? 'is-routine' : 'is-scheduled-date' }}" style="font-size: 0.68rem;">
-                                                    <i class="bi {{ ($schedInfoDaftar['mode'] ?? '') === 'routine' ? 'bi-clock-history' : 'bi-calendar-event' }}"></i>
-                                                    <span>{{ $schedInfoDaftar['label'] }}</span>
+                                        @if($status === 'Approved' && $schedModeDaftar === 'routine')
+                                            <span class="badge-status badge-routine-wait">
+                                                <i class="bi bi-clock"></i>
+                                                Menunggu Publikasi Rutin
+                                            </span>
+                                        @elseif($status === 'Approved' && $schedModeDaftar === 'scheduled')
+                                            <div class="status-cell-stack">
+                                                <span class="badge-status badge-scheduled-wait">
+                                                    <i class="bi bi-calendar-event"></i>
+                                                    Terjadwal Publikasi
                                                 </span>
+                                                @if(!empty($schedInfoDaftar['scheduled_at']))
+                                                    <span class="status-subnote">
+                                                        {{ \Carbon\Carbon::parse($schedInfoDaftar['scheduled_at'])->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') }} WIB
+                                                    </span>
+                                                @endif
                                             </div>
+                                        @else
+                                            <span class="badge-status {{ $statusClass }}">
+                                                <i class="bi {{ $statusIcon }}"></i>
+                                                {{ $statusLabel }}
+                                            </span>
                                         @endif
                                     </td>
 
-                                    <!-- Aksi -->
+                                    <!-- Aksi (Hanya Tombol View, Tanpa Titik 3) -->
                                     <td class="text-end pe-4">
-                                        <div class="d-inline-flex align-items-center justify-content-end gap-1.5">
+                                        <div class="d-inline-flex align-items-center justify-content-end">
                                             <button type="button" class="btn-action btn-action-view" onclick="viewValidatorFaqDetail('{{ $faq->id }}')">
                                                 <i class="bi bi-eye"></i> View
                                             </button>
-
-                                            <!-- Menu Opsi Titik 3 (Dipindahkan dari Daftar FAQ Data Entry ke Validator) -->
-                                            <div class="dropdown d-inline-block">
-                                                <button class="btn-action btn-action-view px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Opsi Lainnya">
-                                                    <i class="bi bi-three-dots-vertical"></i>
-                                                </button>
-                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border rounded-3 py-1 fs-12" style="min-width: 210px;">
-                                                    <li>
-                                                        <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="javascript:void(0)" onclick="viewValidatorFaqDetail('{{ $faq->id }}')">
-                                                            <i class="bi bi-clock-history text-secondary"></i>
-                                                            <span>Riwayat Versi ({{ $versionCount }})</span>
-                                                        </a>
-                                                    </li>
-                                                    @if(strtolower($status) === 'submitted')
-                                                        <li>
-                                                            <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="{{ route('validator.validasiFAQ', ['search' => $faq->id]) }}">
-                                                                <i class="bi bi-check2-square text-primary"></i>
-                                                                <span>Buka di Antrean Validasi</span>
-                                                            </a>
-                                                        </li>
-                                                    @endif
-                                                    @if(strtolower($status) !== 'active')
-                                                        <li>
-                                                            <form action="{{ route('validator.faq.updateStatus', $faq->id) }}" method="POST" class="d-inline">
-                                                                @csrf
-                                                                <input type="hidden" name="status" value="Active">
-                                                                <button type="submit" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-success">
-                                                                    <i class="bi bi-lightning-fill"></i>
-                                                                    <span>Set Active (Publish)</span>
-                                                                </button>
-                                                            </form>
-                                                        </li>
-                                                    @endif
-                                                    @if(strtolower($status) !== 'inactive')
-                                                        <li>
-                                                            <form action="{{ route('validator.faq.updateStatus', $faq->id) }}" method="POST" class="d-inline">
-                                                                @csrf
-                                                                <input type="hidden" name="status" value="InActive">
-                                                                <button type="submit" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-secondary">
-                                                                    <i class="bi bi-dash-circle"></i>
-                                                                    <span>Nonaktifkan FAQ</span>
-                                                                </button>
-                                                            </form>
-                                                        </li>
-                                                    @endif
-                                                    <li><hr class="dropdown-divider my-1"></li>
-                                                    <li>
-                                                        <form action="{{ route('validator.faq.destroy', $faq->id) }}" method="POST" id="validator-delete-faq-{{ $faq->id }}" class="d-inline">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="button" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-danger" onclick="confirmDeleteValidatorFaq('{{ $faq->id }}')">
-                                                                <i class="bi bi-trash3"></i>
-                                                                <span>Hapus FAQ</span>
-                                                            </button>
-                                                        </form>
-                                                    </li>
-                                                </ul>
-                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -642,7 +535,29 @@
         }
     }
 
-    function viewValidatorFaqDetail(faqId) {
+    function toggleValidatorVersionStatus(faqId, versionId, targetStatus) {
+        fetch(`{{ url('/validator/faq-version') }}/${versionId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ status: targetStatus })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                // Muat ulang isi modal View agar status Active/InActive langsung terbarui
+                viewValidatorFaqDetail(faqId, true);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: res.message || 'Gagal mengubah status versi.' });
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function viewValidatorFaqDetail(faqId, isRefresh = false) {
         fetch(`{{ url('/validator/faq') }}/${faqId}/detail`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
@@ -652,33 +567,84 @@
                 const d = res.data;
                 const latest = d.latest_version || {};
                 const tagsHtml = (d.tags && d.tags.length > 0)
-                    ? d.tags.map(t => `<span class="badge bg-light text-secondary border fs-12 px-2 py-1 rounded-pill me-1 mb-1">${t}</span>`).join('')
-                    : '<span class="text-muted fs-12">Tidak ada kata kunci</span>';
+                    ? `<div class="d-flex flex-wrap gap-2" style="margin-bottom: 1.15rem;">${d.tags.map(t => `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${t}</span>`).join('')}</div>`
+                    : '';
+
+                const rawSt = (latest.status || 'Draft').toLowerCase();
+                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draft</span>`;
+                if (rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
+                else if (rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Disetujui</span>';
+                else if (rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
+                else if (rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
+                else if (rawSt === 'inactive') statusBadge = '<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;border:1px solid #CBD5E1;font-size:0.75rem;padding:0.4rem 0.85rem;">InActive</span>';
 
                 let versionsHistoryHtml = '';
                 if (d.versions && d.versions.length > 0) {
                     versionsHistoryHtml = `
-                        <div class="mt-3">
-                            <label class="fw-bold text-dark d-block mb-1">Riwayat Versi Jawaban (\`tfaqsversion\`):</label>
-                            <div class="border rounded-3 overflow-hidden">
-                                <table class="table table-sm mb-0 fs-12 align-middle">
-                                    <thead class="table-light">
+                        <div style="margin-top: 0.25rem;">
+                            <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.5rem;">Riwayat Versi Jawaban</div>
+                            <div class="rounded-3 overflow-auto" style="border: 1px solid #EDE7E1; max-height: 210px;">
+                                <table class="table table-sm mb-0 align-middle" style="font-size: 0.83rem;">
+                                    <thead style="background-color: #FBF9F7; border-bottom: 1px solid #EDE7E1; position: sticky; top: 0; z-index: 1;">
                                         <tr>
-                                            <th>ID Versi</th>
-                                            <th>Status</th>
-                                            <th>Sumber Pustaka</th>
-                                            <th>Diperbarui</th>
+                                            <th class="text-secondary fw-semibold" style="width: 125px; font-size: 0.74rem; padding: 0.7rem 1rem;">ID Versi</th>
+                                            <th class="text-secondary fw-semibold" style="font-size: 0.74rem; padding: 0.7rem 1rem;">Jawaban Versi Tersebut</th>
+                                            <th class="text-secondary fw-semibold text-center" style="width: 175px; font-size: 0.74rem; padding: 0.7rem 1rem;">Status</th>
+                                            <th class="text-secondary fw-semibold" style="width: 155px; font-size: 0.74rem; padding: 0.7rem 1rem;">Diperbarui</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${d.versions.map(v => `
-                                            <tr>
-                                                <td class="fw-bold text-dark">${v.id}</td>
-                                                <td><span class="badge bg-light text-dark border">${v.status}</span></td>
-                                                <td>${v.daftar_pustaka ? (v.daftar_pustaka.link + ' (' + v.daftar_pustaka.type + ')') : '-'}</td>
-                                                <td class="text-muted">${v.updated_at || '-'}</td>
-                                            </tr>
-                                        `).join('')}
+                                        ${d.versions.map(v => {
+                                            const vSt = (v.status || 'Draft').toLowerCase();
+                                            const isVerActive = vSt === 'active';
+                                            const canToggleVer = ['active', 'inactive'].includes(vSt);
+
+                                            let statusActionHtml = '';
+                                            if (canToggleVer) {
+                                                statusActionHtml = `
+                                                    <div class="d-inline-flex align-items-center gap-1 p-1 rounded-pill" style="background-color: #F8F5F1; border: 1px solid #EDE7E1;">
+                                                        <button type="button"
+                                                                ${!isVerActive ? `onclick="toggleValidatorVersionStatus('${d.id}', '${v.id}', 'Active')"` : ''}
+                                                                class="btn btn-sm rounded-pill fw-semibold"
+                                                                style="font-size: 0.72rem; padding: 0.25rem 0.7rem; ${isVerActive ? 'background-color: #16A34A; color: #FFFFFF; border: none; cursor: default;' : 'background-color: transparent; color: #64748B; border: none;'}">
+                                                            Active
+                                                        </button>
+                                                        <button type="button"
+                                                                ${isVerActive ? `onclick="toggleValidatorVersionStatus('${d.id}', '${v.id}', 'InActive')"` : ''}
+                                                                class="btn btn-sm rounded-pill fw-semibold"
+                                                                style="font-size: 0.72rem; padding: 0.25rem 0.7rem; ${!isVerActive ? 'background-color: #475569; color: #FFFFFF; border: none; cursor: default;' : 'background-color: transparent; color: #64748B; border: none;'}">
+                                                            InActive
+                                                        </button>
+                                                    </div>
+                                                `;
+                                            } else {
+                                                statusActionHtml = `
+                                                    <div class="d-inline-flex align-items-center gap-1 p-1 rounded-pill" style="background-color: #F1F5F9; border: 1px solid #E2E8F0; opacity: 0.55; cursor: not-allowed;" title="Dimatikan — hanya dapat dinyalakan setelah FAQ diterbitkan">
+                                                        <button type="button"
+                                                                disabled
+                                                                class="btn btn-sm rounded-pill fw-semibold"
+                                                                style="font-size: 0.72rem; padding: 0.25rem 0.7rem; background-color: transparent; color: #94A3B8; border: none; cursor: not-allowed;">
+                                                            Active
+                                                        </button>
+                                                        <button type="button"
+                                                                disabled
+                                                                class="btn btn-sm rounded-pill fw-semibold"
+                                                                style="font-size: 0.72rem; padding: 0.25rem 0.7rem; background-color: #CBD5E1; color: #64748B; border: none; cursor: not-allowed;">
+                                                            InActive
+                                                        </button>
+                                                    </div>
+                                                `;
+                                            }
+
+                                            return `
+                                                <tr style="border-bottom: 1px solid #F3EFEA;">
+                                                    <td class="fw-bold text-nowrap" style="color: #85172C; padding: 0.8rem 1rem;">${v.id}</td>
+                                                    <td class="text-dark" style="line-height: 1.55; word-break: break-word; padding: 0.8rem 1rem;">${v.jawaban || '-'}</td>
+                                                    <td class="text-center" style="padding: 0.8rem 1rem;">${statusActionHtml}</td>
+                                                    <td class="text-secondary text-nowrap" style="font-size: 0.77rem; padding: 0.8rem 1rem;">${v.updated_at || '-'}</td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
                                     </tbody>
                                 </table>
                             </div>
@@ -687,33 +653,61 @@
                 }
 
                 Swal.fire({
-                    title: `<div class="fs-18 fw-bold text-start text-dark">${d.id}: ${d.pertanyaan}</div>`,
+                    title: '',
                     html: `
-                        <div class="text-start fs-13 text-secondary">
-                            <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
-                                <span>Versi Aktif: <strong class="text-dark">${latest.id || (d.id + '-V1')}</strong></span>
-                                <span>&middot;</span>
-                                <span>Penulis: <strong class="text-dark">${d.data_entry || '-'}</strong></span>
-                                <span>&middot;</span>
-                                <span>Dibuat: ${d.created_at || '-'}</span>
+                        <div class="text-start" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1E293B;">
+                            <!-- Header Banner Tema Website -->
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-bottom: 1px solid #EDE7E1; padding: 0 3rem 0.95rem 0; margin-bottom: 1.15rem;">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge rounded-pill fw-bold" style="background-color: #85172C; color: #FFFFFF; font-size: 0.78rem; padding: 0.42rem 0.9rem;">${d.id}</span>
+                                    ${statusBadge}
+                                </div>
+                                <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.78rem;">
+                                    <span><i class="bi bi-person me-1"></i><strong class="text-dark">${d.data_entry || '-'}</strong></span>
+                                    <span>&middot;</span>
+                                    <span><i class="bi bi-clock me-1"></i>${d.created_at || '-'}</span>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="fw-bold text-dark d-block mb-1">Kata Kunci:</label>
-                                <div>${tagsHtml}</div>
+
+                            <!-- Pertanyaan -->
+                            <div style="margin-bottom: 1.1rem;">
+                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Pertanyaan</div>
+                                <div class="rounded-3 fw-semibold text-dark" style="background-color: #FFFDFB; border: 1px solid #EDE7E1; font-size: 0.94rem; line-height: 1.55; padding: 0.85rem 1.05rem;">
+                                    ${d.pertanyaan || '-'}
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="fw-bold text-dark d-block mb-1">Jawaban (${latest.id || (d.id + '-V1')}):</label>
-                                <div class="p-3 bg-light rounded-3 text-dark border fs-13" style="max-height: 180px; overflow-y: auto;">
+
+                            <!-- Jawaban -->
+                            <div style="margin-bottom: 1.1rem;">
+                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Jawaban (${latest.id || (d.id + '-V1')})</div>
+                                <div class="rounded-3 bg-white text-dark" style="border: 1px solid #EDE7E1; font-size: 0.89rem; max-height: 165px; overflow-y: auto; line-height: 1.65; padding: 0.9rem 1.05rem;">
                                     ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
                                 </div>
                             </div>
+
+                            ${tagsHtml}
+
                             ${versionsHistoryHtml}
                         </div>
                     `,
-                    width: '680px',
+                    width: '820px',
+                    showCloseButton: true,
                     confirmButtonColor: '#85172C',
-                    confirmButtonText: 'Tutup'
+                    confirmButtonText: 'Tutup',
+                    customClass: {
+                        popup: 'rounded-4 shadow-lg border-0 kms-view-modal'
+                    },
+                    didClose: () => {
+                        if (window._validatorVersionChanged) {
+                            window._validatorVersionChanged = false;
+                            window.location.reload();
+                        }
+                    }
                 });
+
+                if (isRefresh) {
+                    window._validatorVersionChanged = true;
+                }
             }
         })
         .catch(err => console.error(err));

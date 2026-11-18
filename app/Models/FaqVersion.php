@@ -143,17 +143,16 @@ class FaqVersion extends Model
 
                 $targetTime = Carbon::parse($info['scheduled_at']);
                 if (now()->gte($targetTime)) {
-                    // Nonaktifkan versi Active lama pada FAQ yang sama
-                    self::where('tFaqs_id', $ver->tFaqs_id)
+                    // Jika sudah terdapat versi Active sebelumnya pada FAQ yang sama,
+                    // pertahankan versi lama tetap Active dan set versi baru sebagai InActive
+                    // hingga diubah secara manual lewat tombol Active.
+                    $hasExistingActive = self::where('tFaqs_id', $ver->tFaqs_id)
                         ->where('id', '!=', $ver->id)
                         ->whereIn('status', ['Active', 'active'])
-                        ->update([
-                            'status'     => 'InActive',
-                            'updated_at' => now(),
-                        ]);
+                        ->exists();
 
                     $ver->update([
-                        'status'     => 'Active',
+                        'status'     => $hasExistingActive ? 'InActive' : 'Active',
                         'catatan'    => null,
                         'updated_at' => now(),
                     ]);

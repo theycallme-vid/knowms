@@ -195,51 +195,51 @@
                             <i class="bi bi-sliders2"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Menunggu validasi</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $submittedCount ?? 8 }}</div>
+                            <div class="fs-12 text-muted fw-medium mb-1">Menunggu Validasi</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $submittedCount ?? 0 }}</div>
                             <div class="fs-12 text-muted">Antrean seluruh tim validator</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Stat 2: Perlu diprioritaskan -->
+                <!-- Stat 2: Disetujui (Siap Publish) -->
                 <div class="col-12 col-sm-6 col-lg-3">
                     <div class="card-custom d-flex align-items-start gap-3">
-                        <div class="stat-icon" style="background-color: #FEF2F2; color: #DC2626;">
-                            <i class="bi bi-alarm"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Perlu diprioritaskan</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $rejectedCount ?? 4 }}</div>
-                            <div class="fs-12" style="color: #DC2626;">Perlu revisi / tindak lanjut</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stat 3: Ditinjau minggu ini -->
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="card-custom d-flex align-items-start gap-3">
-                        <div class="stat-icon" style="background-color: #ECFDF5; color: #059669;">
+                        <div class="stat-icon" style="background-color: #EDE9FE; color: #6D28D9;">
                             <i class="bi bi-check2-circle"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Telah disetujui</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $approvedCount ?? 32 }}</div>
-                            <div class="fs-12 text-muted">{{ $approvedCount ?? 32 }} terbit &middot; {{ $rejectedCount ?? 0 }} dikembalikan</div>
+                            <div class="fs-12 text-muted fw-medium mb-1">Disetujui</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $approvedOnlyCount ?? 0 }}</div>
+                            <div class="fs-12" style="color: #6D28D9;">Siap dipublikasikan</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Stat 4: Rata-rata waktu ulasan -->
+                <!-- Stat 3: Terbit -->
                 <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="card-custom d-flex align-items-start gap-3">
-                        <div class="stat-icon" style="background-color: #FFFBEB; color: #D97706;">
-                            <i class="bi bi-stopwatch"></i>
+                    <div class="card-custom d-flex align-items-start gap-3" style="border-color: #A7F3D0; background: linear-gradient(135deg, #FFFFFF 0%, #ECFDF5 100%);">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #FFFFFF; box-shadow: 0 3px 8px rgba(5, 150, 105, 0.22);">
+                            <i class="bi bi-globe2"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Rata-rata waktu ulasan</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">1,2 hari</div>
-                            <div class="fs-12 text-muted">Target layanan maksimal 2 hari</div>
+                            <div class="fs-12 fw-semibold mb-1" style="color: #065F46;">Terbit (Active)</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $publishedCount ?? 0 }}</div>
+                            <div class="fs-12 fw-medium" style="color: #059669;">Tampil di FAQ Mahasiswa</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stat 4: Ditolak / Revisi -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="card-custom d-flex align-items-start gap-3">
+                        <div class="stat-icon" style="background-color: #FEF2F2; color: #DC2626;">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fs-12 text-muted fw-medium mb-1">Ditolak (Perlu Revisi)</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $rejectedCount ?? 0 }}</div>
+                            <div class="fs-12" style="color: #DC2626;">Perlu tindak lanjut penulis</div>
                         </div>
                     </div>
                 </div>
@@ -258,25 +258,34 @@
 
                             <!-- Sort Dropdown -->
                             <div class="mb-3">
-                                <div class="position-relative">
-                                    <select class="form-select rounded-3 fs-13 text-secondary" style="border-color: #E2E8F0; padding-top: 0.45rem; padding-bottom: 0.45rem;">
-                                        <option selected>&#8645; Terbaru diajukan</option>
-                                        <option value="1">Terlama menunggu</option>
-                                    </select>
-                                </div>
+                                <form method="GET" action="{{ route('validator.dashboard') }}" id="dashboardQueueSortForm">
+                                    @if(request('faq_id'))
+                                        <input type="hidden" name="faq_id" value="{{ request('faq_id') }}">
+                                    @endif
+                                    <div class="position-relative">
+                                        <select name="sort" class="form-select rounded-3 fs-13 text-secondary" style="border-color: #E2E8F0; padding-top: 0.45rem; padding-bottom: 0.45rem;" onchange="document.getElementById('dashboardQueueSortForm').submit()">
+                                            <option value="terbaru" {{ ($sort ?? 'terbaru') === 'terbaru' ? 'selected' : '' }}>&#8645; Terbaru diajukan</option>
+                                            <option value="terlama" {{ ($sort ?? 'terbaru') === 'terlama' ? 'selected' : '' }}>&#8645; Terlama menunggu</option>
+                                        </select>
+                                    </div>
+                                </form>
                             </div>
 
                             <!-- Queue Items List -->
                             <div class="queue-list">
                                 @forelse($queueFaqs->take(5) as $qFaq)
-                                    <a href="{{ route('validator.dashboard', ['faq_id' => $qFaq->id]) }}"
+                                    @php
+                                        $qSubVer = $qFaq->versions->first(fn($v) => strtolower($v->status) === 'submitted') ?? $qFaq->versions->first();
+                                        $qTimeObj = ($qSubVer?->updated_at ?? $qFaq->created_at)?->timezone('Asia/Jakarta');
+                                    @endphp
+                                    <a href="{{ route('validator.dashboard', ['faq_id' => $qFaq->id, 'sort' => $sort ?? 'terbaru']) }}"
                                        class="queue-item {{ ($selectedFaq && $selectedFaq->id === $qFaq->id) ? 'active' : '' }}">
                                         <div class="d-flex align-items-center justify-content-between mb-1">
                                             <span class="fs-11 fw-semibold" style="color: #2563EB;">{{ $qFaq->id }}</span>
                                             <i class="bi bi-record-circle" style="color: #2563EB; font-size: 0.75rem;"></i>
                                         </div>
                                         <div class="fw-bold fs-13 text-dark mb-1">{{ $qFaq->pertanyaan }}</div>
-                                        <div class="fs-11 text-muted">{{ $qFaq->dataEntry?->nama ?? 'Data Entry' }} &middot; {{ $qFaq->created_at?->translatedFormat('d M Y') }}</div>
+                                        <div class="fs-11 text-muted">{{ $qFaq->dataEntry?->nama ?? 'Data Entry' }} &middot; {{ $qTimeObj?->translatedFormat('d M Y, H:i') }} WIB</div>
                                     </a>
                                 @empty
                                     <div class="text-center py-4 text-muted fs-12">
@@ -342,8 +351,8 @@
                                                 </div>
                                             </div>
                                             <div class="col-sm-6 text-sm-end">
-                                                <div class="text-muted mb-1">Dibuat {{ $selectedFaq->created_at?->translatedFormat('d M Y, H.i') }}</div>
-                                                <div class="text-muted">Diperbarui {{ $selectedVer?->updated_at?->translatedFormat('d M Y, H.i') }}</div>
+                                                <div class="text-muted mb-1">Dibuat {{ $selectedFaq->created_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</div>
+                                                <div class="text-muted">Diperbarui {{ $selectedVer?->updated_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</div>
                                             </div>
                                         </div>
                                     </div>
@@ -364,8 +373,8 @@
                                             <i class="bi bi-file-earmark-text fs-5"></i>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold fs-13 text-dark">{{ $selectedVer?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus' }}</div>
-                                            <div class="fs-11 text-muted">Tipe: {{ strtoupper($selectedVer?->daftarPustaka?->type ?? 'LINK') }} &middot; Rujukan Resmi</div>
+                                            <div class="fw-bold fs-13 text-dark">{{ $selectedVer?->daftarPustaka?->judul_tampil ?? $selectedVer?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus' }}</div>
+                                            <div class="fs-11 text-muted">Tipe: {{ strtoupper($selectedVer?->daftarPustaka?->type ?? 'PUBLIC') }} &middot; Rujukan Resmi</div>
                                         </div>
                                     </div>
                                 </div>
@@ -374,7 +383,7 @@
                                 <div class="col-12 col-lg-5 col-xl-4 ps-lg-3">
                                     <div>
                                         <h3 class="fw-bold fs-14 text-dark mb-1">Daftar pemeriksaan</h3>
-                                        <p class="fs-11 text-muted mb-3">Periksa seluruh aspek sebelum menerbitkan.</p>
+                                        <p class="fs-11 text-muted mb-3">Periksa seluruh aspek sebelum menyetujui.</p>
 
                                         <!-- 4 Checklist Items -->
                                         <div class="d-flex flex-column gap-2 mb-4">
@@ -402,7 +411,7 @@
                                             <div class="mb-3">
                                                 <label class="form-label fw-bold fs-12 text-dark mb-1">Catatan revisi</label>
                                                 <textarea name="catatan" class="form-control rounded-3 fs-12 text-secondary" rows="3" placeholder="Tulis bagian yang perlu diperbaiki dan arahan untuk penulis..." style="border-color: #E2E8F0;" required></textarea>
-                                                <div class="fs-11 text-muted mt-1">Wajib diisi jika meminta revisi.</div>
+                                                <div class="fs-11 text-muted mt-1">Wajib diisi jika menolak / meminta revisi.</div>
                                             </div>
                                         </form>
 
@@ -412,12 +421,12 @@
                                                 @csrf
                                                 <button type="submit" class="btn-maroon w-100 justify-content-center shadow-2xs">
                                                     <i class="bi bi-check2"></i>
-                                                    <span>Setujui &amp; terbitkan</span>
+                                                    <span>Setujui FAQ (Disetujui)</span>
                                                 </button>
                                             </form>
                                             <button type="submit" form="dashboardRejectForm" class="btn-pill-light w-100 justify-content-center shadow-2xs">
                                                 <i class="bi bi-chat-left-text"></i>
-                                                <span>Minta revisi</span>
+                                                <span>Tolak / Minta Revisi</span>
                                             </button>
                                         </div>
 
@@ -435,6 +444,68 @@
                             </div>
                         @endif
                     </div>
+                </div>
+            </div>
+
+            <!-- Riwayat Penelaahan Terbaru Table -->
+            <div class="card-custom mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2 class="fw-bold fs-16 text-dark mb-0">Riwayat penelaahan terbaru</h2>
+                        <div class="text-muted fs-12">Keputusan validasi dan publikasi FAQ terakhir (Zona Waktu Jakarta WIB)</div>
+                    </div>
+                    <a href="{{ route('validator.daftarFAQ') }}" class="fs-13 fw-semibold text-decoration-none" style="color: #85172C;">
+                        Lihat Daftar FAQ &rarr;
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 fs-13">
+                        <thead class="table-light fs-11 text-uppercase text-muted">
+                            <tr>
+                                <th style="width: 110px;">ID / Versi</th>
+                                <th>Pertanyaan FAQ</th>
+                                <th style="width: 170px;">Data Entry</th>
+                                <th style="width: 170px;">Penelaah</th>
+                                <th style="width: 170px;">Waktu Diperbarui</th>
+                                <th style="width: 130px; text-align: right;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse(($recentValidatedVersions ?? collect()) as $rVer)
+                                @php
+                                    $rSt = strtolower($rVer->status ?? '');
+                                    $rBadge = match($rSt) {
+                                        'active'   => ['bg' => '#059669', 'color' => '#FFFFFF', 'label' => 'Terbit'],
+                                        'approved' => ['bg' => '#EDE9FE', 'color' => '#6D28D9', 'label' => 'Disetujui'],
+                                        'rejected' => ['bg' => '#FEF2F2', 'color' => '#DC2626', 'label' => 'Ditolak'],
+                                        default    => ['bg' => '#EFF6FF', 'color' => '#2563EB', 'label' => $rVer->status],
+                                    };
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ $rVer->tfaqs_id }}</div>
+                                        <div class="fs-11 text-muted">Versi #{{ $rVer->id }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $rVer->faq?->pertanyaan ?? '-' }}</div>
+                                    </td>
+                                    <td class="text-secondary">{{ $rVer->faq?->dataEntry?->nama ?? 'Data Entry' }}</td>
+                                    <td class="text-secondary">{{ $rVer->validator?->nama ?? 'Validator' }}</td>
+                                    <td class="text-muted fs-12">{{ $rVer->updated_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }} WIB</td>
+                                    <td style="text-align: right;">
+                                        <span class="badge rounded-pill fw-semibold px-3 py-1" style="background-color: {{ $rBadge['bg'] }}; color: {{ $rBadge['color'] }};">
+                                            {{ $rBadge['label'] }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4 fs-12">Belum ada riwayat penelaahan FAQ.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

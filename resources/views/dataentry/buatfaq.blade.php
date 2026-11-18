@@ -38,9 +38,13 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
+                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
+                </a>
+                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom">
+                    <i class="bi bi-send-check"></i>
+                    <span>Pengajuan FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom active">
                     <i class="bi bi-plus-lg"></i>
@@ -147,21 +151,16 @@
 
         <!-- Content Area -->
         <div class="content-area">
-            <a href="{{ route('dataentry.dashboard') }}" class="back-link">
-                <i class="bi bi-chevron-left"></i>
-                <span>Daftar FAQ</span>
-            </a>
 
             <!-- Page Title & Upload Excel/PDF Button -->
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <div>
-                    <h1 class="page-title mb-1">Buat FAQ</h1>
+                    <h1 class="page-title mb-1">{{ isset($isEdit) && $isEdit ? 'Edit FAQ' : 'Buat FAQ' }}</h1>
                     <p class="text-muted fs-14 mb-0">Susun jawaban yang jelas dan lengkapi dengan sumber pustaka resmi</p>
                 </div>
                 <div>
-                    <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                        <i class="bi bi-upload"></i>
-                        <span>Import File (Excel/PDF)</span>
+                    <button type="button" class="btn-outline-maroon text-nowrap" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="bi bi-upload"></i><span>Unggah File</span>
                     </button>
                 </div>
             </div>
@@ -190,6 +189,16 @@
                     $displayVerNum = 1;
                 }
             @endphp
+
+            @if(session('error'))
+                <div class="alert alert-danger rounded-4 border-danger-subtle d-flex align-items-start gap-3 mb-4">
+                    <i class="bi bi-exclamation-octagon-fill fs-5 text-danger mt-1"></i>
+                    <div>
+                        <div class="fw-bold fs-12 text-uppercase mb-1">Peringatan Validasi</div>
+                        <div class="fs-13 text-dark">{{ session('error') }}</div>
+                    </div>
+                </div>
+            @endif
 
             @if($isEditing && $faqStatus === 'rejected' && $latestVer && $latestVer->catatan)
                 <div class="alert alert-danger rounded-4 border-danger-subtle d-flex align-items-start gap-3 mb-4">
@@ -233,27 +242,30 @@
                     </div>
 
                     @if(!$isEditing)
-                        <!-- Pilihan Mode: Buat FAQ Baru (FAQ-XXXX-V1) vs Tambah Versi Jawaban dari FAQ yang Dipilih (FAQ-XXXX-V2) -->
-                        <div class="p-3 rounded-3 bg-light border mb-4">
-                            <label class="form-label-custom mb-2">Jenis Penyusunan Jawaban FAQ</label>
-                            <div class="d-flex flex-wrap gap-3 mb-2">
-                                <div class="form-check">
+                        <!-- Pilihan Mode: Desain Kartu Ramah Pengguna -->
+                        <div class="mb-4">
+                            <label class="form-label-custom mb-1">Jenis FAQ yang Ingin Dibuat</label>
+                            <div class="fs-12 text-muted mb-2">Pilih apakah Anda ingin menulis pertanyaan baru atau menambah alternatif jawaban dari FAQ yang sudah ada.</div>
+                            <div class="faq-mode-grid">
+                                <label class="faq-mode-card {{ $defaultMode === 'new' ? 'is-selected' : '' }}" id="modeCardNew" for="modeFaqNew">
                                     <input class="form-check-input" type="radio" name="mode_faq_radio" id="modeFaqNew" value="new"
                                            {{ $defaultMode === 'new' ? 'checked' : '' }} onchange="switchFaqCreationMode('new')">
-                                    <label class="form-check-label fs-13 fw-semibold text-dark" for="modeFaqNew">
-                                        Buat Pertanyaan FAQ Baru <span class="text-muted fw-normal"></span>
-                                    </label>
-                                </div>
-                                <div class="form-check">
+                                    <div>
+                                        <div class="fw-bold fs-13 text-dark">Pertanyaan FAQ Baru</div>
+                                        <div class="fs-12 text-muted mt-0.5">Untuk topik pertanyaan yang belum pernah dibuat sebelumnya.</div>
+                                    </div>
+                                </label>
+                                <label class="faq-mode-card {{ $defaultMode === 'existing' ? 'is-selected' : '' }}" id="modeCardExisting" for="modeFaqExisting">
                                     <input class="form-check-input" type="radio" name="mode_faq_radio" id="modeFaqExisting" value="existing"
                                            {{ $defaultMode === 'existing' ? 'checked' : '' }} onchange="switchFaqCreationMode('existing')">
-                                    <label class="form-check-label fs-13 fw-semibold text-dark" for="modeFaqExisting">
-                                        Tambah Versi Jawaban Baru dari FAQ yang Sudah Ada <span class="text-muted fw-normal"></span>
-                                    </label>
-                                </div>
+                                    <div>
+                                        <div class="fw-bold fs-13 text-dark">Tambah Versi Jawaban Baru</div>
+                                        <div class="fs-12 text-muted mt-0.5">Menambah pembaruan jawaban pada FAQ yang sudah ada.</div>
+                                    </div>
+                                </label>
                             </div>
 
-                            <div id="existingFaqSelectorBox" class="{{ $defaultMode === 'existing' ? '' : 'd-none' }} mt-2 pt-2 border-top">
+                            <div id="existingFaqSelectorBox" class="{{ $defaultMode === 'existing' ? '' : 'd-none' }} mt-3 pt-3 border-top">
                                 <label class="fs-12 fw-semibold text-secondary mb-1">Pilih FAQ yang ingin dibuatkan versi jawaban barunya:</label>
                                 <select name="existing_faq_id" id="existingFaqSelect" class="form-select fs-13 rounded-3" onchange="handleExistingFaqSelected(this)">
                                     <option value="">-- Pilih Kode / Pertanyaan FAQ --</option>
@@ -263,14 +275,17 @@
                                                 $nextVId = $fItem->generateNextVersionId();
                                                 $nextVNum = (int) preg_replace('/.*-V/i', '', $nextVId) ?: 2;
                                                 $fTags = $fItem->tags->pluck('nama')->implode(',');
+                                                $fLatestSt = strtolower((string) ($fItem->latest_version?->status ?? 'draft'));
+                                                $isWaitingVal = ($fLatestSt === 'submitted');
                                             @endphp
                                             <option value="{{ $fItem->id }}"
                                                     data-pertanyaan="{{ e($fItem->pertanyaan) }}"
                                                     data-next-version-id="{{ $nextVId }}"
                                                     data-next-version-num="{{ $nextVNum }}"
                                                     data-tags="{{ e($fTags) }}"
-                                                    {{ (isset($selectedExistingFaq) && $selectedExistingFaq && $selectedExistingFaq->id === $fItem->id) ? 'selected' : '' }}>
-                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} (Versi baru: {{ $nextVId }})
+                                                    {{ $isWaitingVal ? 'disabled' : '' }}
+                                                    {{ (isset($selectedExistingFaq) && $selectedExistingFaq && $selectedExistingFaq->id === $fItem->id && !$isWaitingVal) ? 'selected' : '' }}>
+                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} {{ $isWaitingVal ? '(Menunggu Validasi - InActive)' : '(Versi baru: ' . $nextVId . ')' }}
                                             </option>
                                         @endforeach
                                     @endif
@@ -278,27 +293,36 @@
                             </div>
                         </div>
                     @else
-                        <!-- Pilihan Mode saat Edit FAQ yang sudah ada -->
-                        <div class="p-3 rounded-3 bg-light border mb-4">
-                            <label class="form-label-custom mb-2">Mode Penyimpanan Versi (`tfaqsversion`)</label>
-                            <div class="d-flex flex-wrap gap-3">
-                                <div class="form-check">
+                        <!-- Pilihan Cara Simpan Perubahan saat Edit -->
+                        <div class="mb-4">
+                            <label class="form-label-custom mb-1">Cara Menyimpan Perubahan</label>
+                            <div class="fs-12 text-muted mb-2">Pilih untuk menyimpan sebagai versi jawaban baru atau memperbarui draft yang ada.</div>
+                            <div class="faq-mode-grid">
+                                <label class="faq-mode-card {{ ($shouldCreateNewVerByDefault ?? true) ? 'is-selected' : '' }}" id="editCardNewVer" for="editModeNewVer">
                                     <input class="form-check-input" type="radio" name="edit_version_radio" id="editModeNewVer" value="new_version"
                                            {{ ($shouldCreateNewVerByDefault ?? true) ? 'checked' : '' }}
                                            onchange="switchEditVersionMode('new_version', '{{ $faq->id }}', '{{ $nextVersionId ?? $faq->generateNextVersionId() }}')">
-                                    <label class="form-check-label fs-13 fw-semibold text-dark" for="editModeNewVer">
-                                        Simpan sebagai Versi Jawaban Baru: <span class="badge bg-dark">{{ $nextVersionId ?? $faq->generateNextVersionId() }}</span>
-                                    </label>
-                                </div>
+                                    <div>
+                                        <div class="fw-bold fs-13 text-dark">
+                                            Buat Versi Jawaban Baru
+                                            <span class="badge bg-dark-subtle text-dark ms-1">{{ $nextVersionId ?? $faq->generateNextVersionId() }}</span>
+                                        </div>
+                                        <div class="fs-12 text-muted mt-0.5">Riwayat jawaban lama tetap tersimpan aman.</div>
+                                    </div>
+                                </label>
                                 @if($faqStatus === 'draft' && $latestVer)
-                                    <div class="form-check">
+                                    <label class="faq-mode-card {{ !($shouldCreateNewVerByDefault ?? true) ? 'is-selected' : '' }}" id="editCardUpdateDraft" for="editModeUpdateDraft">
                                         <input class="form-check-input" type="radio" name="edit_version_radio" id="editModeUpdateDraft" value="update_draft"
                                                {{ !($shouldCreateNewVerByDefault ?? true) ? 'checked' : '' }}
                                                onchange="switchEditVersionMode('update_draft', '{{ $faq->id }}', '{{ $latestVer->id }}')">
-                                        <label class="form-check-label fs-13 fw-semibold text-dark" for="editModeUpdateDraft">
-                                            Perbarui Draft Saat Ini: <span class="badge bg-secondary">{{ $latestVer->id }}</span>
-                                        </label>
-                                    </div>
+                                        <div>
+                                            <div class="fw-bold fs-13 text-dark">
+                                                Perbarui Draft Saat Ini
+                                                <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">{{ $latestVer->id }}</span>
+                                            </div>
+                                            <div class="fs-12 text-muted mt-0.5">Langsung ubah isi draft tanpa menambah nomor versi.</div>
+                                        </div>
+                                    </label>
                                 @endif
                             </div>
                         </div>
@@ -315,10 +339,21 @@
                             placeholder="Tulis pertanyaan yang sering diajukan mahasiswa..."
                             required>{{ old('pertanyaan', $isEditing ? $faq->pertanyaan : ($selectedExistingFaq?->pertanyaan ?? '')) }}</textarea>
 
-                        <!-- Peringatan Duplikat Identik 100% (Active Publish / Menunggu Validasi) -->
+                        <!-- Peringatan Duplikat Persis dengan Draft (Pertanyaan + Jawaban Sama Persis -> Diblokir) -->
+                        <div id="exactDraftDuplicateAlert" class="alert alert-danger rounded-3 p-3 mt-2 fs-13 d-none border-danger shadow-sm">
+                            <div class="d-flex align-items-start gap-2.5">
+                                <i class="bi bi-x-octagon-fill text-danger fs-5 mt-0.5"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-danger mb-1">Tidak Dapat Ditambahkan: Pertanyaan & Jawaban Sama Persis dengan Draft!</div>
+                                    <div id="exactDraftDuplicateBody" class="text-dark"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Peringatan Duplikat Identik 100% (Active Publish / Menunggu Validasi / Draft) -->
                         <div id="exactDuplicateAlert" class="alert alert-danger rounded-3 p-3 mt-2 fs-13 d-none border-danger">
                             <div class="d-flex align-items-start gap-2.5">
-                                <i class="bi bi-Octagon-fill bi-exclamation-octagon-fill text-danger fs-5 mt-0.5"></i>
+                                <i class="bi bi-exclamation-octagon-fill text-danger fs-5 mt-0.5"></i>
                                 <div class="flex-grow-1">
                                     <div class="fw-bold text-danger mb-1" id="exactDuplicateTitle">Peringatan: Pertanyaan Duplikat 100% Terdeteksi!</div>
                                     <div id="exactDuplicateBody" class="text-dark"></div>
@@ -329,10 +364,9 @@
                         <!-- Informasi Kemiripan Pertanyaan / Makna Serupa (Normalisasi + Similarity Score) -->
                         <div id="duplicateWarning" class="alert alert-warning rounded-3 p-3 mt-2 fs-13 d-none">
                             <div class="d-flex align-items-start gap-2.5">
-                                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 mt-0.5"></i>
                                 <div class="flex-grow-1">
-                                    <div class="fw-bold text-dark mb-1">Informasi Kemiripan Pertanyaan / Makna Serupa di Database</div>
-                                    <div class="fs-12 text-muted mb-2">Ditemukan kandidat FAQ dengan status <strong>Active Publish</strong> atau <strong>Menunggu Validasi</strong> yang memiliki kemiripan makna:</div>
+                                    <div class="fw-bold text-dark mb-1">Analisis Kemiripan Pertanyaan (Similarity Check)</div>
+                                    <div class="fs-12 text-muted mb-2">Ditemukan kandidat FAQ di database yang memiliki kemiripan makna dengan pertanyaan yang Anda inputkan:</div>
                                     <div id="duplicateList" class="d-flex flex-column gap-1.5"></div>
                                 </div>
                             </div>
@@ -347,9 +381,7 @@
                                 <button type="button" class="editor-toolbar-btn" data-cmd="bold" title="Tebal"><strong>B</strong></button>
                                 <button type="button" class="editor-toolbar-btn" data-cmd="italic" title="Miring"><em>I</em></button>
                                 <div class="editor-toolbar-divider"></div>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="createLink" title="Tautan"><i class="bi bi-link-45deg"></i> Link</button>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="insertOrderedList" title="Daftar Bernomor"><i class="bi bi-list-ol"></i> List</button>
-                                <button type="button" class="editor-toolbar-btn" data-cmd="insertImage" title="Sisipkan Gambar"><i class="bi bi-image"></i> Gambar</button>
+                                <button type="button" class="editor-toolbar-btn" data-cmd="insertOrderedList" title="Daftar"><i class="bi bi-list-ol"></i> List</button>
                             </div>
                             <div id="editorJawaban"
                                  class="editor-content"
@@ -359,35 +391,60 @@
                         <input type="hidden" name="jawaban" id="hiddenJawaban">
                     </div>
 
-                    <!-- Kata Kunci (Tag Input) -->
+                    <!-- Kata Kunci (Desain Baru Ramah Pengguna Awam) -->
                     <div class="mb-4">
-                        <label class="form-label-custom">Kata Kunci</label>
-                        <div id="tagContainer" class="tag-container" onclick="document.getElementById('tagInput').focus()">
-                            @if($isEditing && $faq->tags)
-                                @foreach($faq->tags as $t)
-                                    <span class="tag-chip">
-                                        {{ $t->nama }}
-                                        <button type="button" class="tag-remove" onclick="removeTag(this)">&times;</button>
-                                    </span>
-                                @endforeach
-                            @endif
-                            <input type="text"
-                                   id="tagInput"
-                                   class="tag-add-placeholder"
-                                   placeholder="Tambah kata kunci (tekan Enter)..."
-                                   onkeydown="handleTagInput(event)"
-                                   autocomplete="off">
+                        <label class="form-label-custom mb-1">Kata Kunci</label>
+                        <div class="fs-12 text-muted mb-2">Pilih dari daftar kata kunci di bawah, atau ketik kata kunci baru lalu klik <strong>Tambah</strong>.</div>
+
+                        <!-- Kotak Kata Kunci Terpilih -->
+                        <div class="tag-input-box-wrap">
+                            <div id="tagContainer" class="tag-container-clean" onclick="document.getElementById('tagInput').focus()">
+                                @if($isEditing && $faq->tags)
+                                    @foreach($faq->tags as $t)
+                                        <span class="tag-chip">
+                                            {{ $t->nama }}
+                                            <button type="button" class="tag-remove" onclick="removeTag(this)" title="Hapus kata kunci">&times;</button>
+                                        </span>
+                                    @endforeach
+                                @endif
+                                <input type="text"
+                                       id="tagInput"
+                                       class="tag-add-placeholder"
+                                       placeholder="Ketik kata kunci baru di sini..."
+                                       onkeydown="handleTagInput(event)"
+                                       autocomplete="off">
+                            </div>
+                            <button type="button" class="btn-tag-quick-add" onclick="addTagFromInput()">
+                                <i class="bi bi-plus-lg"></i> Tambah
+                            </button>
                         </div>
-                        <div class="fs-11 text-muted mt-1">
-                            Tekan <kbd>Enter</kbd> atau <kbd>,</kbd> untuk menambahkan kata kunci, atau klik dari daftar kata kunci di bawah:
-                        </div>
+
+                        <!-- Daftar Pilihan Kata Kunci yang Bisa Dicari & Diklik -->
                         @if(isset($tags) && $tags->isNotEmpty())
-                            <div class="d-flex flex-wrap gap-1 mt-2">
-                                @foreach($tags->take(10) as $existingTag)
-                                    <button type="button" class="btn btn-sm btn-light border rounded-pill fs-11 py-0 px-2" onclick="addTag('{{ addslashes($existingTag->nama) }}')">
-                                        + {{ $existingTag->nama }}
-                                    </button>
-                                @endforeach
+                            <div class="tag-library-box">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                    <span class="fs-12 fw-semibold text-dark">
+                                        <i class="bi bi-tags me-1" style="color: var(--brand-maroon);"></i>Pilih cepat dari daftar kata kunci:
+                                    </span>
+                                    <div class="tag-library-search">
+                                        <i class="bi bi-search"></i>
+                                        <input type="text" id="tagSuggestionSearch" placeholder="Cari kata kunci..." oninput="filterTagSuggestions(this.value)">
+                                    </div>
+                                </div>
+                                <div class="tag-suggestions-scroll" id="tagSuggestionsGrid">
+                                    @foreach($tags as $existingTag)
+                                        <button type="button"
+                                                class="tag-suggestion-pill"
+                                                data-tag-name="{{ $existingTag->nama }}"
+                                                onclick="toggleSuggestionTag({{ \Illuminate\Support\Js::from($existingTag->nama) }})">
+                                            <i class="bi bi-plus"></i>
+                                            <span>{{ $existingTag->nama }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                                <div id="tagSuggestionEmpty" class="fs-12 text-muted text-center py-2 d-none">
+                                    Tidak ada kata kunci yang cocok. Anda bisa langsung mengetikkannya di kotak di atas lalu klik Tambah.
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -400,38 +457,6 @@
                                 <i class="bi bi-book"></i>
                                 <span>Pilih dari Sumber Pustaka</span>
                             </button>
-
-                            <label class="btn-white-outline mb-0" style="cursor: pointer;">
-                                <i class="bi bi-upload"></i>
-                                <span>Unggah Dokumen (PDF/DOCX)</span>
-                                <input type="file" name="sumber_file" id="sumberFileInput" class="d-none" onchange="handleFilePicked(this)">
-                            </label>
-                        </div>
-
-                        <div class="row g-2 mb-2">
-                            <div class="col-12 col-md-8">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
-                                    <input type="text"
-                                           name="sumber_link"
-                                           id="inputSumberLink"
-                                           maxlength="45"
-                                           value="{{ old('sumber_link', ($isEditing && $latestVer && $latestVer->daftarPustaka && empty($latestVer->daftarPustaka->upload)) ? $latestVer->daftarPustaka->link : '') }}"
-                                           placeholder="Atau ketik dokumen/tautan sumber pustaka baru (maks. 45 karakter)..."
-                                           class="form-control fs-13">
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                @php
-                                    $currentVis = ($isEditing && $latestVer && $latestVer->daftarPustaka)
-                                        ? strtolower((string) $latestVer->daftarPustaka->type)
-                                        : 'public';
-                                @endphp
-                                <select name="sumber_visibility" id="inputSumberVisibility" class="form-select form-select-sm fs-13 rounded-2">
-                                    <option value="public" {{ $currentVis !== 'private' ? 'selected' : '' }}>Tipe: Public (Dilihat Mahasiswa)</option>
-                                    <option value="private" {{ $currentVis === 'private' ? 'selected' : '' }}>Tipe: Private (Internal FAQ)</option>
-                                </select>
-                            </div>
                         </div>
 
                         <div id="sourceList">
@@ -439,12 +464,13 @@
                                 @php
                                     $dp = $latestVer->daftarPustaka;
                                     $dpVis = strtolower((string) $dp->type) === 'private' ? 'Private' : 'Public';
+                                    $dpJudul = $dp->judul_tampil;
                                 @endphp
                                 <div class="source-item" id="source-selected">
                                     <div class="d-flex align-items-start">
                                         <span class="source-item-number">1</span>
                                         <div>
-                                            <div class="source-item-title">{{ $dp->link ?: 'Dokumen Sumber Pustaka #' . $dp->id }}</div>
+                                            <div class="source-item-title">{{ $dpJudul }}</div>
                                             <div class="source-item-meta">Tipe: {{ $dpVis }} &middot; {{ !empty($dp->upload) ? 'File Dokumen' : 'Tautan Resmi' }}</div>
                                         </div>
                                     </div>
@@ -461,7 +487,7 @@
 
                 <!-- Sticky Bottom Action Bar -->
                 <div class="sticky-bottom-bar d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    <a href="{{ route('dataentry.dashboard') }}" class="btn-cancel">Batal</a>
+                    <a href="{{ route('dataentry.daftarFAQ') }}" class="btn-cancel">Batal</a>
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" onclick="saveDraft()" class="btn-draft">Simpan Draft</button>
                         <button type="button" onclick="submitValidasi()" class="btn-submit-validasi">
@@ -484,24 +510,25 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="text" id="sourceSearchInput" class="form-control form-control-sm rounded-3 mb-3 fs-13" placeholder="Cari dokumen atau tautan sumber...">
+                <input type="text" id="sourceSearchInput" class="form-control form-control-sm rounded-3 mb-3 fs-13" placeholder="Cari judul sumber pustaka...">
                 <div id="sourceOptionsList" style="max-height: 300px; overflow-y: auto;">
                     @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
                         @foreach($daftarPustaka as $p)
                             @php
                                 $pVis = strtolower((string) $p->type) === 'private' ? 'Private' : 'Public';
                                 $pIsFile = !empty($p->upload);
+                                $pJudul = $p->judul_tampil;
                             @endphp
                             <div class="source-option p-3 border rounded-3 mb-2 d-flex align-items-center justify-content-between"
                                  style="cursor: pointer;"
-                                 onclick="selectSource('{{ $p->id }}', '{{ addslashes($p->link ?: 'Dokumen #' . $p->id) }}', 'Tipe: {{ $pVis }} · {{ $pIsFile ? 'Dokumen File' : 'Tautan' }}')">
+                                 onclick="selectSource('{{ $p->id }}', '{{ addslashes($pJudul) }}', 'Tipe: {{ $pVis }} · {{ $pIsFile ? 'Dokumen File' : 'Tautan' }}')">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: {{ $pIsFile ? '#EFF6FF' : '#F0FDF4' }}; color: {{ $pIsFile ? '#2563EB' : '#16A34A' }};">
                                         <i class="bi {{ $pIsFile ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-bold fs-13 text-dark">{{ $p->link ?: 'Dokumen ID #' . $p->id }}</div>
-                                        <div class="fs-11 text-muted">ID: #{{ $p->id }} &middot; Tipe: {{ $pVis }} ({{ $pVis === 'Public' ? 'Tampil di Mahasiswa' : 'Internal FAQ' }})</div>
+                                        <div class="fw-bold fs-13 text-dark">{{ $pJudul }}</div>
+                                        <div class="fs-11 text-muted">ID: {{ $p->id }} &middot; Tipe: {{ $pVis }} ({{ $pVis === 'Public' ? 'Tampil di Mahasiswa' : 'Internal FAQ' }})</div>
                                     </div>
                                 </div>
                                 <span class="badge {{ $pVis === 'Private' ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' : 'bg-success-subtle text-success-emphasis border-success-subtle' }} border fs-11">{{ $pVis }}</span>
@@ -525,7 +552,7 @@
             <form action="{{ route('dataentry.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="excelUploadForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold fs-16">Import File FAQ (Excel / CSV / PDF)</h5>
+                    <h5 class="modal-title fw-bold fs-16">Unggah File FAQ</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
@@ -542,12 +569,12 @@
 
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format Kolom Excel / CSV:</span>
+                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Contoh Template Unggah File:</span>
                             <a href="{{ route('dataentry.template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong> &middot; Kolom D: <strong>Sumber Pustaka</strong> &middot; Kolom E: <strong>Bagian Sumber</strong></div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -662,33 +689,99 @@
         });
     });
 
-    // Tag Input
+    // Tag Input & Quick Library Picker
+    function getSelectedTagsNormalized() {
+        return Array.from(document.querySelectorAll('#tagContainer .tag-chip')).map(chip => {
+            const clone = chip.cloneNode(true);
+            const rm = clone.querySelector('.tag-remove');
+            if (rm) rm.remove();
+            return clone.textContent.trim().toLowerCase();
+        }).filter(Boolean);
+    }
+
+    function syncTagUiState() {
+        const selected = new Set(getSelectedTagsNormalized());
+        document.querySelectorAll('#tagSuggestionsGrid .tag-suggestion-pill').forEach(btn => {
+            const name = (btn.getAttribute('data-tag-name') || '').trim().toLowerCase();
+            const isSelected = selected.has(name);
+            btn.classList.toggle('is-selected', isSelected);
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isSelected ? 'bi bi-check-lg' : 'bi bi-plus';
+            }
+        });
+    }
+
     function handleTagInput(e) {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
-            const input = document.getElementById('tagInput');
-            const val = input.value.replace(',', '').trim();
-            if (val) {
-                addTag(val);
-                input.value = '';
-            }
+            addTagFromInput();
         }
     }
 
+    function addTagFromInput() {
+        const input = document.getElementById('tagInput');
+        if (!input) return;
+        const val = input.value.replace(/,/g, '').trim();
+        if (val) {
+            addTag(val);
+            input.value = '';
+        }
+        input.focus();
+    }
+
     function addTag(text) {
+        const cleanText = String(text || '').trim();
+        if (!cleanText) return;
         const container = document.getElementById('tagContainer');
         const input = document.getElementById('tagInput');
-        const existing = Array.from(container.querySelectorAll('.tag-chip')).map(c => c.firstChild.textContent.trim().toLowerCase());
-        if (existing.includes(text.trim().toLowerCase())) return;
+        const existing = getSelectedTagsNormalized();
+        if (existing.includes(cleanText.toLowerCase())) {
+            syncTagUiState();
+            return;
+        }
 
         const chip = document.createElement('span');
         chip.className = 'tag-chip';
-        chip.innerHTML = `${escHtml(text)} <button type="button" class="tag-remove" onclick="removeTag(this)">&times;</button>`;
+        chip.innerHTML = `${escHtml(cleanText)} <button type="button" class="tag-remove" onclick="removeTag(this)" title="Hapus kata kunci">&times;</button>`;
         container.insertBefore(chip, input);
+        syncTagUiState();
+    }
+
+    function toggleSuggestionTag(tagName) {
+        const cleanLower = String(tagName || '').trim().toLowerCase();
+        const chips = Array.from(document.querySelectorAll('#tagContainer .tag-chip'));
+        const existingChip = chips.find(chip => {
+            const clone = chip.cloneNode(true);
+            const rm = clone.querySelector('.tag-remove');
+            if (rm) rm.remove();
+            return clone.textContent.trim().toLowerCase() === cleanLower;
+        });
+
+        if (existingChip) {
+            existingChip.remove();
+            syncTagUiState();
+        } else {
+            addTag(tagName);
+        }
+    }
+
+    function filterTagSuggestions(query) {
+        const q = String(query || '').trim().toLowerCase();
+        let visibleCount = 0;
+        document.querySelectorAll('#tagSuggestionsGrid .tag-suggestion-pill').forEach(btn => {
+            const name = (btn.getAttribute('data-tag-name') || '').toLowerCase();
+            const show = !q || name.includes(q);
+            btn.classList.toggle('d-none', !show);
+            if (show) visibleCount++;
+        });
+        const emptyEl = document.getElementById('tagSuggestionEmpty');
+        if (emptyEl) emptyEl.classList.toggle('d-none', visibleCount > 0);
     }
 
     function removeTag(btn) {
         btn.closest('.tag-chip').remove();
+        syncTagUiState();
     }
 
     function syncTags() {
@@ -725,6 +818,16 @@
         document.getElementById('sourceEmptyMsg').classList.add('d-none');
         bootstrap.Modal.getInstance(document.getElementById('sourceModal'))?.hide();
     }
+
+    document.getElementById('sourceSearchInput')?.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        document.querySelectorAll('#sourceOptionsList .source-option').forEach(opt => {
+            const text = opt.textContent.toLowerCase();
+            opt.classList.toggle('d-none', q !== '' && !text.includes(q));
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', syncTagUiState);
 
     function clearSelectedSource() {
         document.getElementById('hiddenPustakaId').value = '';
@@ -767,36 +870,87 @@
         }
     }
 
-    // Live Check Duplikat Identik (100%) & Kemiripan Makna (Similarity Score)
+    // Live Check Duplikat Identik (100%), Duplikat Draft (Pertanyaan + Jawaban Sama Persis), & Kemiripan Makna (Similarity Score)
     let dupTimeout = null;
     const currentEditingFaqId = '{{ $isEditing ? $faq->id : "" }}';
+    window._hasExactDraftMatch = false;
+    window._exactDraftMatchInfo = null;
 
-    document.getElementById('inputPertanyaan')?.addEventListener('input', function () {
+    function runFaqSimilarityCheck() {
         clearTimeout(dupTimeout);
-        const q = this.value.trim();
+        const modeFaq = document.getElementById('hiddenModeFaq')?.value;
+        const q = (document.getElementById('inputPertanyaan')?.value || '').trim();
+        const a = (document.getElementById('editorJawaban')?.textContent || '').trim();
+
+        const exactDraftBox = document.getElementById('exactDraftDuplicateAlert');
+        const exactDraftBody = document.getElementById('exactDraftDuplicateBody');
         const exactBox = document.getElementById('exactDuplicateAlert');
         const exactBody = document.getElementById('exactDuplicateBody');
         const warnBox = document.getElementById('duplicateWarning');
         const listBox = document.getElementById('duplicateList');
 
-        if (q.length < 3) {
+        // Saat memilih "Tambah Versi Jawaban Baru", pertanyaan FAQ tetap sama sehingga similarity check pertanyaan tidak ditampilkan
+        if (modeFaq === 'existing') {
+            exactBox?.classList.add('d-none');
+            warnBox?.classList.add('d-none');
+        }
+
+        if (q.length < 3 || (modeFaq === 'existing' && a.length === 0)) {
+            window._hasExactDraftMatch = false;
+            window._exactDraftMatchInfo = null;
+            exactDraftBox?.classList.add('d-none');
             exactBox?.classList.add('d-none');
             warnBox?.classList.add('d-none');
             return;
         }
 
+        const selectedExistingId = document.getElementById('existingFaqSelect')?.value || '';
+        const excludeId = currentEditingFaqId || (modeFaq === 'existing' ? selectedExistingId : '');
+
         dupTimeout = setTimeout(() => {
-            const url = `{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}${currentEditingFaqId ? '&exclude_id=' + encodeURIComponent(currentEditingFaqId) : ''}`;
+            const url = `{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}&a=${encodeURIComponent(a)}${excludeId ? '&exclude_id=' + encodeURIComponent(excludeId) : ''}`;
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    // 1. Jika terdeteksi Duplikat 100% (Active Publish atau Menunggu Validasi)
-                    if (data.has_exact_match && data.exact_match) {
+                    // 1. Jika Pertanyaan DAN Jawaban sama persis dengan FAQ berstatus Draft -> Tampilkan peringatan & blokir penambahan
+                    if (data.has_exact_draft_match && data.exact_draft_match) {
+                        const dm = data.exact_draft_match;
+                        window._hasExactDraftMatch = true;
+                        window._exactDraftMatchInfo = dm;
+                        if (exactDraftBody) {
+                            exactDraftBody.innerHTML = `
+                                <div class="mb-1">
+                                    Pertanyaan dan Jawaban yang Anda masukkan <strong>sama persis (100%)</strong> dengan FAQ <strong>${escHtml(dm.id)} (${escHtml(dm.version_id)})</strong> yang saat ini masih berstatus <span class="badge bg-secondary text-white">Draft</span>. Data ini tidak dapat dilanjutkan / ditambahkan.
+                                </div>
+                                <div class="p-2 bg-white rounded-2 border fs-12 text-secondary mt-1.5">
+                                    <div><strong>Pertanyaan:</strong> "${escHtml(dm.pertanyaan)}"</div>
+                                    <div class="mt-1"><strong>Jawaban:</strong> "${escHtml(dm.jawaban)}"</div>
+                                </div>
+                            `;
+                        }
+                        exactDraftBox?.classList.remove('d-none');
+                    } else {
+                        window._hasExactDraftMatch = false;
+                        window._exactDraftMatchInfo = null;
+                        exactDraftBox?.classList.add('d-none');
+                    }
+
+                    // Pada mode Tambah Versi Jawaban Baru, jangan tampilkan duplicate/similarity check pertanyaan
+                    if (modeFaq === 'existing') {
+                        exactBox?.classList.add('d-none');
+                        warnBox?.classList.add('d-none');
+                        return;
+                    }
+
+                    // 2. Jika terdeteksi Duplikat Pertanyaan 100%
+                    if (data.has_exact_match && data.exact_match && !data.has_exact_draft_match) {
                         const em = data.exact_match;
-                        const isPublish = em.status_label === 'Active Publish';
-                        const badgeClass = isPublish
-                            ? 'bg-success text-white'
-                            : 'bg-primary text-white';
+                        let badgeClass = 'bg-secondary text-white';
+                        if (em.status_label === 'Active Publish' || em.status_label === 'Disetujui') {
+                            badgeClass = 'bg-success text-white';
+                        } else if (em.status_label === 'Menunggu Validasi') {
+                            badgeClass = 'bg-primary text-white';
+                        }
 
                         exactBody.innerHTML = `
                             <div class="mb-1">
@@ -812,13 +966,19 @@
                         exactBox?.classList.add('d-none');
                     }
 
-                    // 2. Kandidat FAQ yang memiliki kemiripan teks / makna serupa
-                    const candidates = (data.candidates || []).filter(c => !c.is_exact);
+                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa (Similarity Check)
+                    const candidates = (data.candidates || []);
                     if (candidates.length > 0) {
                         listBox.innerHTML = candidates.map(d => {
-                            const stBadge = d.status_label === 'Active Publish'
-                                ? '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Active Publish</span>'
-                                : '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Menunggu Validasi</span>';
+                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(d.status_label || 'Draft') + '</span>';
+                            if (d.status_label === 'Active Publish' || d.status_label === 'Disetujui') {
+                                stBadge = '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">' + escHtml(d.status_label) + '</span>';
+                            } else if (d.status_label === 'Menunggu Validasi') {
+                                stBadge = '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Menunggu Validasi</span>';
+                            } else if (d.status_label === 'Ditolak') {
+                                stBadge = '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Ditolak</span>';
+                            }
+
                             const simBadge = d.similarity >= 70
                                 ? `<span class="badge bg-danger text-white">${d.similarity}% Mirip</span>`
                                 : `<span class="badge bg-warning text-dark">${d.similarity}% Mirip</span>`;
@@ -841,8 +1001,11 @@
                         warnBox?.classList.add('d-none');
                     }
                 }).catch(() => {});
-        }, 350);
-    });
+        }, 300);
+    }
+
+    document.getElementById('inputPertanyaan')?.addEventListener('input', runFaqSimilarityCheck);
+    document.getElementById('editorJawaban')?.addEventListener('input', runFaqSimilarityCheck);
 
     const defaultNewFaqId = '{{ $newFaqId ?? "FAQ-0001" }}';
 
@@ -852,10 +1015,15 @@
         const pertanyaanInput = document.getElementById('inputPertanyaan');
         const metaIdEl = document.getElementById('metaHeaderIdText');
 
+        document.getElementById('modeCardNew')?.classList.toggle('is-selected', mode === 'new');
+        document.getElementById('modeCardExisting')?.classList.toggle('is-selected', mode === 'existing');
+
         if (hiddenMode) hiddenMode.value = mode;
 
         if (mode === 'existing') {
             selectorBox?.classList.remove('d-none');
+            document.getElementById('exactDuplicateAlert')?.classList.add('d-none');
+            document.getElementById('duplicateWarning')?.classList.add('d-none');
             const sel = document.getElementById('existingFaqSelect');
             if (sel && sel.value) {
                 handleExistingFaqSelected(sel);
@@ -869,6 +1037,7 @@
             if (pertanyaanInput) {
                 pertanyaanInput.readOnly = false;
             }
+            runFaqSimilarityCheck();
         }
     }
 
@@ -902,6 +1071,9 @@
         const hiddenVerAction = document.getElementById('hiddenVersionAction');
         if (hiddenVerAction) hiddenVerAction.value = actionType;
 
+        document.getElementById('editCardNewVer')?.classList.toggle('is-selected', actionType === 'new_version');
+        document.getElementById('editCardUpdateDraft')?.classList.toggle('is-selected', actionType === 'update_draft');
+
         const verNum = versionId.replace(/^.*-V/i, '') || '1';
         const metaIdEl = document.getElementById('metaHeaderIdText');
         if (metaIdEl) {
@@ -932,10 +1104,60 @@
             return;
         }
 
-        document.getElementById('hiddenJawaban').value = ansHtml;
-        document.getElementById('formStatus').value = statusValue;
         syncTags();
-        document.getElementById('faqForm').submit();
+        const tagsVal = (document.getElementById('hiddenTags')?.value || '').trim();
+        const pustakaVal = (document.getElementById('hiddenPustakaId')?.value || '').trim();
+
+        if (statusValue === 'submitted' && (!tagsVal || !pustakaVal)) {
+            const missing = [];
+            if (!tagsVal) missing.push('Kata Kunci');
+            if (!pustakaVal) missing.push('Sumber Pustaka');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Data Belum Lengkap',
+                text: `Peringatan: ${missing.join(' dan ')} wajib dilengkapi terlebih dahulu sebelum mengajukan FAQ ke Validator.`,
+                confirmButtonColor: '#85172C'
+            });
+            return;
+        }
+
+        const selectedExistingId = document.getElementById('existingFaqSelect')?.value || '';
+        const excludeId = currentEditingFaqId || (modeFaq === 'existing' ? selectedExistingId : '');
+        const checkUrl = `{{ route('dataentry.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}&a=${encodeURIComponent(ansText)}${excludeId ? '&exclude_id=' + encodeURIComponent(excludeId) : ''}`;
+
+        fetch(checkUrl)
+            .then(r => r.json())
+            .then(data => {
+                if (data.has_exact_draft_match && data.exact_draft_match) {
+                    const dm = data.exact_draft_match;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Duplikat Draft Terdeteksi',
+                        html: `Pertanyaan dan Jawaban sama persis dengan FAQ berstatus <strong>Draft</strong> yang sudah ada (<strong>${escHtml(dm.id)} / ${escHtml(dm.version_id)}</strong>).<br><br>Data tidak dapat dilanjutkan atau ditambahkan.`,
+                        confirmButtonColor: '#85172C'
+                    });
+                    return;
+                }
+
+                document.getElementById('hiddenJawaban').value = ansHtml;
+                document.getElementById('formStatus').value = statusValue;
+                document.getElementById('faqForm').submit();
+            })
+            .catch(() => {
+                if (window._hasExactDraftMatch && window._exactDraftMatchInfo) {
+                    const dm = window._exactDraftMatchInfo;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Duplikat Draft Terdeteksi',
+                        html: `Pertanyaan dan Jawaban sama persis dengan FAQ berstatus <strong>Draft</strong> yang sudah ada (<strong>${escHtml(dm.id)} / ${escHtml(dm.version_id)}</strong>).<br><br>Data tidak dapat dilanjutkan atau ditambahkan.`,
+                        confirmButtonColor: '#85172C'
+                    });
+                    return;
+                }
+                document.getElementById('hiddenJawaban').value = ansHtml;
+                document.getElementById('formStatus').value = statusValue;
+                document.getElementById('faqForm').submit();
+            });
     }
 
     function saveDraft() {
@@ -943,6 +1165,23 @@
     }
 
     function submitValidasi() {
+        syncTags();
+        const tagsVal = (document.getElementById('hiddenTags')?.value || '').trim();
+        const pustakaVal = (document.getElementById('hiddenPustakaId')?.value || '').trim();
+
+        if (!tagsVal || !pustakaVal) {
+            const missing = [];
+            if (!tagsVal) missing.push('Kata Kunci');
+            if (!pustakaVal) missing.push('Sumber Pustaka');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Belum Ada ' + missing.join(' & '),
+                text: `Peringatan: FAQ yang ingin diajukan wajib memiliki ${missing.join(' dan ')}. Silakan lengkapi terlebih dahulu.`,
+                confirmButtonColor: '#85172C'
+            });
+            return;
+        }
+
         Swal.fire({
             title: 'Ajukan ke Validator?',
             text: 'FAQ ini akan dikirim ke Validator untuk diperiksa sebelum diterbitkan.',

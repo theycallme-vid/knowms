@@ -35,40 +35,37 @@ class FaqSeeder extends Seeder
         $adityaId = $deAditya?->id ?? $deMain->id;
         $dewiId   = $deDewi?->id   ?? $deMain->id;
 
-        // 1. Buat Daftar Pustaka Dummy (type: public / private)
-        $pustakaAkademik = DaftarPustaka::updateOrCreate(
-            ['link' => 'https://akademik.kampus.ac.id/pedoman-2026'],
-            ['type' => 'public']
-        );
+        // 1. Jalankan Seeder Sumber Pustaka (Link) & Kata Kunci terlebih dahulu
+        $this->call([
+            SumberPustakaSeeder::class,
+            KataKunciSeeder::class,
+        ]);
 
-        $pustakaBaak = DaftarPustaka::updateOrCreate(
-            ['link' => 'https://baak.kampus.ac.id/standar-operasional'],
-            ['type' => 'private']
-        );
+        $pustakaAkademik = DaftarPustaka::where('link', 'https://akademik.kampus.ac.id/pedoman-2026')->first()
+            ?? DaftarPustaka::first();
 
-        // 2. Buat Tags Fakultas & Kategori
-        $tagsData = [
-            'Umum',
-            'Teknik',
-            'Ekonomi & Bisnis',
-            'Hukum',
-            'Ilmu Sosial',
-            'Kedokteran',
-            'Sains & Teknologi',
-            'Ilmu Komputer',
-            'Akademik',
-            'KRS',
-            'Rencana studi',
-            'Yudisium',
-            'Surat akademik',
-            'Layanan mahasiswa',
-            'Transkrip',
-            'Administrasi akademik',
-            'Tugas akhir',
-            'Pindah prodi',
-            'Biaya Kuliah',
-            'Fasilitas',
-        ];
+        $pustakaBaak = DaftarPustaka::where('link', 'https://baak.kampus.ac.id/standar-operasional')->first()
+            ?? $pustakaAkademik;
+
+        // 2. Buat Tags Fakultas (sesuai PortalController::FAKULTAS_MAP) & Kategori Umum
+        $tagsData = array_merge(
+            ['Umum'],
+            array_values(\App\Http\Controllers\PortalController::FAKULTAS_MAP),
+            [
+                'Akademik',
+                'KRS',
+                'Rencana studi',
+                'Yudisium',
+                'Surat akademik',
+                'Layanan mahasiswa',
+                'Transkrip',
+                'Administrasi akademik',
+                'Tugas akhir',
+                'Pindah prodi',
+                'Biaya Kuliah',
+                'Fasilitas',
+            ]
+        );
 
         $tagMap = [];
         foreach ($tagsData as $tagName) {
@@ -86,7 +83,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Mahasiswa wajib menyelesaikan seluruh beban SKS tanpa nilai E, lulus ujian tugas akhir, bebas pinjaman perpustakaan serta laboratorium, dan mengunggah berkas sertifikat TOEFL serta transkrip akademik melalui portal Fakultas Teknik.',
                 'status'       => 'Submitted',
                 'versi_count'  => 1,
-                'tags'         => ['Akademik', 'Teknik'],
+                'tags'         => ['Akademik', 'Fakultas Teknik'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => null,
                 'created_at'   => Carbon::create(2026, 10, 21, 10, 18, 0),
@@ -158,7 +155,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Pengajuan konversi kegiatan magang mitra diajukan ke tim kurikulum departemen FEB untuk diverifikasi kesesuaian Capaian Pembelajaran Lulusan (CPL).',
                 'status'       => 'Submitted',
                 'versi_count'  => 1,
-                'tags'         => ['Ekonomi & Bisnis', 'Akademik'],
+                'tags'         => ['Fakultas Bisnis dan Ekonomika', 'Akademik'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => null,
                 'created_at'   => Carbon::create(2026, 10, 16, 14, 20, 0),
@@ -170,7 +167,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Terbuka untuk mahasiswa Fakultas Hukum semester 3 ke atas yang telah menempuh mata kuliah Hukum Acara Pidana dan Hukum Acara Perdata.',
                 'status'       => 'Submitted',
                 'versi_count'  => 1,
-                'tags'         => ['Hukum', 'Akademik'],
+                'tags'         => ['Fakultas Hukum', 'Akademik'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => null,
                 'created_at'   => Carbon::create(2026, 10, 16, 10, 05, 0),
@@ -196,7 +193,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Mahasiswa FEB wajib menyelesaikan seminar proposal setelah draf bab 1-3 disetujui kedua dosen pembimbing dan telah lulus mata kuliah metodologi penelitian dengan nilai minimal B.',
                 'status'       => 'Active',
                 'versi_count'  => 1,
-                'tags'         => ['Ekonomi & Bisnis', 'Akademik'],
+                'tags'         => ['Fakultas Bisnis dan Ekonomika', 'Akademik'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => 'Telah tayang untuk mahasiswa.',
                 'created_at'   => Carbon::create(2026, 10, 14, 9, 30, 0),
@@ -208,7 +205,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Mahasiswa Ilmu Komputer yang sedang menempuh tugas akhir dapat meminta akun cluster GPU melalui dosen pembimbing laboratorium kecerdasan komputasional.',
                 'status'       => 'Active',
                 'versi_count'  => 1,
-                'tags'         => ['Ilmu Komputer', 'Fasilitas'],
+                'tags'         => ['Fakultas Teknik', 'Fasilitas'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => 'Telah terverifikasi oleh laboratorium.',
                 'created_at'   => Carbon::create(2026, 10, 13, 13, 45, 0),
@@ -220,7 +217,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Mahasiswa harus telah dinyatakan lulus Sarjana Kedokteran, melunasi administrasi stase, dan mengikuti orientasi rumah sakit pendidikan jejaring.',
                 'status'       => 'Active',
                 'versi_count'  => 1,
-                'tags'         => ['Kedokteran', 'Akademik'],
+                'tags'         => ['Fakultas Kedokteran', 'Akademik'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => 'Sesuai regulasi Konsil Kedokteran.',
                 'created_at'   => Carbon::create(2026, 10, 12, 16, 00, 0),
@@ -232,7 +229,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Seluruh praktikan wajib mengenakan APD lengkap dan membuang sisa reagen kimia ke dalam wadah penampungan limbah khusus sesuai kode warna botol.',
                 'status'       => 'Approved',
                 'versi_count'  => 1,
-                'tags'         => ['Sains & Teknologi', 'Fasilitas'],
+                'tags'         => ['Fakultas Teknobiologi', 'Fasilitas'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => 'Panduan wajib laboratorium sains.',
                 'created_at'   => Carbon::create(2026, 10, 11, 10, 15, 0),
@@ -244,7 +241,7 @@ class FaqSeeder extends Seeder
                 'jawaban'      => 'Mata kuliah magang kurikulum lama dikonversi secara ekuivalen maksimal 4 SKS dengan persetujuan ketua program studi.',
                 'status'       => 'InActive',
                 'versi_count'  => 1,
-                'tags'         => ['Teknik'],
+                'tags'         => ['Fakultas Teknik'],
                 'pustaka_id'   => $pustakaAkademik->id,
                 'catatan'      => 'Dinonaktifkan karena berlakunya kurikulum baru 2026.',
                 'created_at'   => Carbon::create(2026, 10, 10, 8, 20, 0),

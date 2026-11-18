@@ -7,6 +7,8 @@ use Illuminate\Database\Seeder;
 use Database\Seeders\DirektoratSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
+use Database\Seeders\KataKunciSeeder;
+use Database\Seeders\SumberPustakaSeeder;
 use Database\Seeders\FaqSeeder;
 
 class DatabaseSeeder extends Seeder
@@ -22,6 +24,8 @@ class DatabaseSeeder extends Seeder
             DirektoratSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
+            KataKunciSeeder::class,
+            SumberPustakaSeeder::class,
             // FaqSeeder::class,
         ]);
     }

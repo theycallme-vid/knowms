@@ -38,18 +38,25 @@ Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->n
 // SUPER ADMIN ROUTES
 Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     // Dashboard Super Admin
-    Route::get('/admin/dashboard', function () {
-        return view('superadmin.dashboard');
-    })->name('admin.dashboard');
+    Route::get('/admin/dashboard', [PenggunaAksesController::class, 'dashboard'])->name('admin.dashboard');
 
-    Route::get('/superadmin/dashboard', function () {
-        return view('superadmin.dashboard');
-    })->name('superadmin.dashboard');
+    Route::get('/superadmin/dashboard', [PenggunaAksesController::class, 'dashboard'])->name('superadmin.dashboard');
 
     // Pengaturan Akun Super Admin
     Route::get('/superadmin/pengaturan-akun', [SuperAdminPengaturanAkunController::class, 'index'])->name('superadmin.pengaturanAkun');
     Route::post('/superadmin/pengaturan-akun/profil', [SuperAdminPengaturanAkunController::class, 'updateProfile'])->name('superadmin.pengaturanAkun.profile');
     Route::post('/superadmin/pengaturan-akun/kata-sandi', [SuperAdminPengaturanAkunController::class, 'updatePassword'])->name('superadmin.pengaturanAkun.password');
+});
+
+// DAFTAR FAQ & AKSI VALIDATOR (Dapat diakses Validator & Super Admin)
+Route::middleware(['auth', 'role:Super Admin,Validator'])->prefix('validator')->name('validator.')->group(function () {
+    Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
+    Route::get('/faq/{id}/detail', [ValidatorFaqController::class, 'show'])->name('faq.show');
+    Route::post('/faq/{id}/status', [ValidatorFaqController::class, 'updateStatus'])->name('faq.updateStatus');
+    Route::post('/faq-version/{versionId}/status', [ValidatorFaqController::class, 'updateVersionStatus'])->name('faqVersion.updateStatus');
+    Route::delete('/faq/{id}', [ValidatorFaqController::class, 'destroy'])->name('faq.destroy');
+    Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
+    Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
 });
 
 // PENGGUNA & HAK AKSES (Dapat diakses Super Admin & Validator sementara disamakan)
@@ -64,9 +71,8 @@ Route::middleware(['auth', 'role:Super Admin,Validator'])->group(function () {
 });
 
 // VALIDATOR ROUTES
-Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('validator.')->group(function () {
+Route::middleware(['auth', 'role:Super Admin,Validator'])->prefix('validator')->name('validator.')->group(function () {
     Route::get('/dashboard', [ValidatorFaqController::class, 'dashboard'])->name('dashboard');
-    Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
 
     // Halaman Validasi FAQ (Antrean Validasi) + Aksi Approve, Reject, Massal Approve & Publish
     Route::get('/validasi-faq', [ValidatorFaqController::class, 'validasiFaq'])->name('validasiFAQ');
@@ -74,13 +80,6 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
     Route::post('/validasi-faq/publish', [ValidatorFaqController::class, 'publish'])->name('validasiFAQ.publish');
     Route::post('/validasi-faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('validasiFAQ.approve');
     Route::post('/validasi-faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('validasiFAQ.reject');
-
-    // Alias route untuk kompatibilitas & menu titik 3 Daftar FAQ Validator
-    Route::get('/faq/{id}/detail', [ValidatorFaqController::class, 'show'])->name('faq.show');
-    Route::post('/faq/{id}/status', [ValidatorFaqController::class, 'updateStatus'])->name('faq.updateStatus');
-    Route::delete('/faq/{id}', [ValidatorFaqController::class, 'destroy'])->name('faq.destroy');
-    Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
-    Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
 
     // Halaman Pengguna & Akses untuk Validator (disamakan sementara dengan Super Admin)
     Route::get('/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('pengguna-akses');
@@ -94,8 +93,14 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
 // DATA ENTRY ROUTES
 Route::middleware(['auth', 'role:Data Entry'])->group(function () {
     Route::prefix('data-entry')->name('dataentry.')->group(function () {
-        // 1. Menu Daftar FAQ (Dashboard)
-        Route::get('/dashboard', [DataEntryFaqController::class, 'dashboard'])->name('dashboard');
+        // 1. Menu Daftar FAQ
+        Route::get('/daftar-faq', [DataEntryFaqController::class, 'daftarFAQ'])->name('daftarFAQ');
+        Route::get('/dashboard', fn () => redirect()->route('dataentry.daftarFAQ'));
+
+        // 1b. Menu Pengajuan FAQ (Antrean Pengajuan Data Entry + Checklist)
+        Route::get('/pengajuan-faq', [DataEntryFaqController::class, 'pengajuanFaq'])->name('pengajuan');
+        Route::post('/pengajuan-faq/bulk-submit', [DataEntryFaqController::class, 'bulkSubmitFaq'])->name('pengajuan.bulkSubmit');
+        Route::post('/pengajuan-faq/{id}/submit', [DataEntryFaqController::class, 'submitSingleFaq'])->name('pengajuan.submit');
 
         // 2. Menu Buat FAQ (Input Satuan & Pratinjau Import File)
         Route::get('/buat-faq', [DataEntryFaqController::class, 'create'])->name('buatfaq');
@@ -141,5 +146,6 @@ Route::middleware(['auth', 'role:Data Entry'])->group(function () {
         Route::post('/pengaturan-akun/kata-sandi', [DataEntryPengaturanAkunController::class, 'updatePassword'])->name('pengaturanAkun.password');
     });
 
-    Route::get('/dataentry/dashboard', [DataEntryFaqController::class, 'dashboard']);
+    Route::get('/dataentry/daftar-faq', fn () => redirect()->route('dataentry.daftarFAQ'));
+    Route::get('/dataentry/dashboard', fn () => redirect()->route('dataentry.daftarFAQ'));
 });

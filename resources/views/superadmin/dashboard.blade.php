@@ -161,12 +161,12 @@
             <!-- Page Header Area -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <div class="date-badge">RABU, 21 OKTOBER 2026</div>
+                    <div class="date-badge">{{ mb_strtoupper(($nowJkt ?? \Carbon\Carbon::now('Asia/Jakarta'))->translatedFormat('l, d F Y')) }} &middot; WIB (GMT+7)</div>
                     <h1 class="page-title mb-1">Dashboard</h1>
                     <p class="text-muted fs-13 mb-0">Pantau kualitas pengetahuan dan layanan informasi kampus dalam satu ruang.</p>
                 </div>
                 <div>
-                    <button class="btn btn-outline-secondary bg-white rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm text-dark fs-13 fw-medium" style="border-color: #E2E8F0;">
+                    <button type="button" onclick="window.print()" class="btn btn-outline-secondary bg-white rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm text-dark fs-13 fw-medium" style="border-color: #E2E8F0;">
                         <i class="bi bi-download"></i>
                         <span>Unduh laporan</span>
                     </button>
@@ -183,8 +183,8 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Total FAQ</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">248</div>
-                            <div class="fs-12 text-muted">+16 FAQ bulan ini</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $totalFaq ?? 0 }}</div>
+                            <div class="fs-12 text-muted">+{{ $faqThisMonth ?? 0 }} FAQ bulan ini</div>
                         </div>
                     </div>
                 </div>
@@ -196,9 +196,11 @@
                             <i class="bi bi-hourglass-split"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Menunggu validasi</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">12</div>
-                            <div class="fs-12" style="color: #DC2626;">4 pengajuan lebih dari 3 hari</div>
+                            <div class="fs-12 text-muted fw-medium mb-1">Menunggu Validasi</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $menungguCount ?? 0 }}</div>
+                            <div class="fs-12" style="color: #DC2626;">
+                                {{ ($overdueWaitingCount ?? 0) > 0 ? ($overdueWaitingCount . ' pengajuan lebih dari 3 hari') : 'Seluruh antrean terkendali' }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -211,8 +213,8 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Pengguna internal aktif</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">18</div>
-                            <div class="fs-12 text-muted">9 penulis &middot; 6 validator &middot; 3 admin</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $totalActiveUsers ?? 0 }}</div>
+                            <div class="fs-12 text-muted">{{ $deCount ?? 0 }} penulis &middot; {{ $valCount ?? 0 }} validator &middot; {{ $admCount ?? 0 }} admin</div>
                         </div>
                     </div>
                 </div>
@@ -225,9 +227,9 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fs-12 text-muted fw-medium mb-1">Pencarian minggu ini</div>
-                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">1.260</div>
+                            <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ number_format($weeklySearches ?? 0, 0, ',', '.') }}</div>
                             <div class="fs-12 text-muted">
-                                <span style="color: #059669; font-weight: 600;">&uarr; 14%</span> dari minggu sebelumnya
+                                <span style="color: #059669; font-weight: 600;">&uarr; Aktif</span> dalam 7 hari terakhir
                             </div>
                         </div>
                     </div>
@@ -243,7 +245,7 @@
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <h2 class="fw-bold fs-15 text-dark mb-1">Apa yang dicari mahasiswa?</h2>
-                                    <div class="text-muted fs-12">1.260 pencarian dalam 7 hari terakhir</div>
+                                    <div class="text-muted fs-12">{{ number_format($weeklySearches ?? 0, 0, ',', '.') }} pencarian dalam 7 hari terakhir</div>
                                 </div>
                             </div>
                             
@@ -255,7 +257,7 @@
 
                         <!-- Footer Tags -->
                         <div class="pt-3 mt-2 border-top border-light fs-12 text-muted">
-                            Paling dicari: <strong style="color: var(--brand-maroon);">KRS &middot; Pembayaran kuliah &middot; Cuti akademik</strong>
+                            Paling dicari: <strong style="color: var(--brand-maroon);">{{ implode(' · ', $topTags ?? ['KRS', 'Pembayaran kuliah', 'Cuti akademik']) }}</strong>
                         </div>
                     </div>
                 </div>
@@ -272,7 +274,7 @@
                                 <div class="position-relative" style="width: 125px; height: 125px; flex-shrink: 0;">
                                     <canvas id="contentHealthChart"></canvas>
                                     <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
-                                        <div class="fw-bold fs-15 text-dark lh-1">248</div>
+                                        <div class="fw-bold fs-15 text-dark lh-1">{{ $totalFaq ?? 0 }}</div>
                                         <div class="fs-11 text-muted" style="font-size: 0.65rem !important;">Total FAQ</div>
                                     </div>
                                 </div>
@@ -284,28 +286,35 @@
                                             <span class="legend-dot" style="background-color: #236B64;"></span>
                                             <span class="text-secondary">Terbit</span>
                                         </div>
-                                        <strong class="text-dark">180</strong>
+                                        <strong class="text-dark">{{ $terbitCount ?? 0 }}</strong>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between fs-12 py-1">
+                                        <div class="d-flex align-items-center">
+                                            <span class="legend-dot" style="background-color: #0284C7;"></span>
+                                            <span class="text-secondary">Disetujui</span>
+                                        </div>
+                                        <strong class="text-dark">{{ $disetujuiCount ?? 0 }}</strong>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between fs-12 py-1">
+                                        <div class="d-flex align-items-center">
+                                            <span class="legend-dot" style="background-color: #2563EB;"></span>
+                                            <span class="text-secondary">Menunggu Validasi</span>
+                                        </div>
+                                        <strong class="text-dark">{{ $menungguCount ?? 0 }}</strong>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between fs-12 py-1">
+                                        <div class="d-flex align-items-center">
+                                            <span class="legend-dot" style="background-color: #DC2626;"></span>
+                                            <span class="text-secondary">Ditolak</span>
+                                        </div>
+                                        <strong class="text-dark">{{ $ditolakCount ?? 0 }}</strong>
                                     </div>
                                     <div class="d-flex align-items-center justify-content-between fs-12 py-1">
                                         <div class="d-flex align-items-center">
                                             <span class="legend-dot" style="background-color: #1E293B;"></span>
                                             <span class="text-secondary">Draft</span>
                                         </div>
-                                        <strong class="text-dark">40</strong>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between fs-12 py-1">
-                                        <div class="d-flex align-items-center">
-                                            <span class="legend-dot" style="background-color: #DC2626;"></span>
-                                            <span class="text-secondary">Validasi</span>
-                                        </div>
-                                        <strong class="text-dark">12</strong>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between fs-12 py-1">
-                                        <div class="d-flex align-items-center">
-                                            <span class="legend-dot" style="background-color: #B45309;"></span>
-                                            <span class="text-secondary">Revisi</span>
-                                        </div>
-                                        <strong class="text-dark">16</strong>
+                                        <strong class="text-dark">{{ $draftCount ?? 0 }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -315,7 +324,7 @@
                         <div class="rounded-3 p-2 d-flex align-items-center gap-2" style="background-color: #ECFDF5; border: 1px solid #D1FAE5;">
                             <i class="bi bi-check-circle text-success fs-5"></i>
                             <div class="fs-11" style="color: #065F46; line-height: 1.35;">
-                                180 FAQ terbit telah melewati validasi sumber resmi.
+                                {{ $terbitCount ?? 0 }} FAQ terbit telah melewati validasi sumber resmi.
                             </div>
                         </div>
                     </div>
@@ -328,42 +337,42 @@
                             <h2 class="fw-bold fs-15 text-dark mb-3">Tindakan cepat</h2>
 
                             <!-- Action Item 1 -->
-                            <a href="/superadmin/pengguna-akses" class="quick-action-item">
+                            <a href="{{ route('superadmin.pengguna-akses') }}" class="quick-action-item">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: #EFF6FF; color: #2563EB;">
                                         <i class="bi bi-person-plus fs-6"></i>
                                     </div>
                                     <div>
                                         <div class="fw-bold fs-13 text-dark lh-sm">Kelola pengguna</div>
-                                        <div class="fs-11 text-muted">18 akun internal</div>
+                                        <div class="fs-11 text-muted">{{ $totalActiveUsers ?? 0 }} akun internal aktif</div>
                                     </div>
                                 </div>
                                 <i class="bi bi-chevron-right text-muted fs-12"></i>
                             </a>
 
                             <!-- Action Item 2 -->
-                            <a href="#" class="quick-action-item">
+                            <a href="{{ route('superadmin.pengguna-akses') }}" class="quick-action-item">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: #EEF2FF; color: #4F46E5;">
                                         <i class="bi bi-key fs-6"></i>
                                     </div>
                                     <div>
                                         <div class="fw-bold fs-13 text-dark lh-sm">Atur hak akses</div>
-                                        <div class="fs-11 text-muted">3 peran pengelola</div>
+                                        <div class="fs-11 text-muted">{{ $totalRolesCount ?? 3 }} peran pengelola</div>
                                     </div>
                                 </div>
                                 <i class="bi bi-chevron-right text-muted fs-12"></i>
                             </a>
 
                             <!-- Action Item 3 -->
-                            <a href="#" class="quick-action-item">
+                            <a href="{{ route('validator.daftarFAQ') }}" class="quick-action-item">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: #F0FDF4; color: #0D9488;">
                                         <i class="bi bi-journal-check fs-6"></i>
                                     </div>
                                     <div>
                                         <div class="fw-bold fs-13 text-dark lh-sm">Kelola seluruh FAQ</div>
-                                        <div class="fs-11 text-muted">248 pengetahuan kampus</div>
+                                        <div class="fs-11 text-muted">{{ $totalFaq ?? 0 }} pengetahuan kampus</div>
                                     </div>
                                 </div>
                                 <i class="bi bi-chevron-right text-muted fs-12"></i>
@@ -381,9 +390,9 @@
             <!-- Bottom Section: Aktivitas Terbaru Table -->
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2 class="fw-bold fs-15 text-dark mb-0">Aktivitas terbaru</h2>
-                    <a href="#" class="fs-13 fw-semibold text-decoration-none" style="color: var(--brand-maroon);">
-                        Lihat seluruh aktivitas &rarr;
+                    <h2 class="fw-bold fs-15 text-dark mb-0">Aktivitas terbaru (Zona Waktu Jakarta WIB)</h2>
+                    <a href="{{ route('validator.daftarFAQ') }}" class="fs-13 fw-semibold text-decoration-none" style="color: var(--brand-maroon);">
+                        Lihat seluruh FAQ &rarr;
                     </a>
                 </div>
 
@@ -391,69 +400,32 @@
                     <table class="table activity-table mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 16%;">WAKTU</th>
+                                <th style="width: 18%;">WAKTU (WIB)</th>
                                 <th style="width: 20%;">PENGGUNA</th>
-                                <th style="width: 20%;">AKTIVITAS</th>
+                                <th style="width: 18%;">AKTIVITAS</th>
                                 <th style="width: 32%;">DETAIL</th>
                                 <th style="width: 12%; text-align: right;">STATUS</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Row 1 -->
-                            <tr>
-                                <td class="text-secondary fs-12">21 Okt &middot; 10.42</td>
-                                <td>
-                                    <div class="fw-bold text-dark fs-13">Ratna Kusuma</div>
-                                    <div class="fs-11 text-muted">Validator</div>
-                                </td>
-                                <td class="text-dark fs-13">Menerbitkan FAQ</td>
-                                <td class="text-secondary fs-13">Prosedur pengajuan cuti akademik</td>
-                                <td style="text-align: right;">
-                                    <span class="badge-status badge-status-terbit">Terbit</span>
-                                </td>
-                            </tr>
-
-                            <!-- Row 2 -->
-                            <tr>
-                                <td class="text-secondary fs-12">21 Okt &middot; 10.18</td>
-                                <td>
-                                    <div class="fw-bold text-dark fs-13">Nadia Putri</div>
-                                    <div class="fs-11 text-muted">Data Entry</div>
-                                </td>
-                                <td class="text-dark fs-13">Mengajukan FAQ</td>
-                                <td class="text-secondary fs-13">Persyaratan yudisium Fakultas Teknik</td>
-                                <td style="text-align: right;">
-                                    <span class="badge-status badge-status-validasi">Validasi</span>
-                                </td>
-                            </tr>
-
-                            <!-- Row 3 -->
-                            <tr>
-                                <td class="text-secondary fs-12">21 Okt &middot; 09.56</td>
-                                <td>
-                                    <div class="fw-bold text-dark fs-13">Dimas Pratama</div>
-                                    <div class="fs-11 text-muted">Super Admin</div>
-                                </td>
-                                <td class="text-dark fs-13">Memperbarui akses</td>
-                                <td class="text-secondary fs-13">Hak Validator untuk Sari Wulandari</td>
-                                <td style="text-align: right;">
-                                    <span class="badge-status badge-status-selesai">Selesai</span>
-                                </td>
-                            </tr>
-
-                            <!-- Row 4 -->
-                            <tr>
-                                <td class="text-secondary fs-12">21 Okt &middot; 09.31</td>
-                                <td>
-                                    <div class="fw-bold text-dark fs-13">Ratna Kusuma</div>
-                                    <div class="fs-11 text-muted">Validator</div>
-                                </td>
-                                <td class="text-dark fs-13">Meminta revisi</td>
-                                <td class="text-secondary fs-13">Batas pembayaran UKT semester genap</td>
-                                <td style="text-align: right;">
-                                    <span class="badge-status badge-status-revisi">Revisi</span>
-                                </td>
-                            </tr>
+                            @forelse(($activities ?? collect()) as $act)
+                                <tr>
+                                    <td class="text-secondary fs-12">{{ $act->waktu }}</td>
+                                    <td>
+                                        <div class="fw-bold text-dark fs-13">{{ $act->pengguna }}</div>
+                                        <div class="fs-11 text-muted">{{ $act->role }}</div>
+                                    </td>
+                                    <td class="text-dark fs-13">{{ $act->aktivitas }}</td>
+                                    <td class="text-secondary fs-13">{{ $act->detail }}</td>
+                                    <td style="text-align: right;">
+                                        <span class="badge-status {{ $act->badge_class }}">{{ $act->status }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4 fs-12">Belum ada aktivitas tercatat.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -561,19 +533,24 @@
         gradientFill.addColorStop(0, 'rgba(133, 23, 44, 0.16)');
         gradientFill.addColorStop(1, 'rgba(133, 23, 44, 0.00)');
 
-        // Custom plugin to draw the "260" pill marker at the peak/last data point
+        const trendLabelsData = @json($trendLabels ?? ['15 Okt', '16 Okt', '17 Okt', '18 Okt', '19 Okt', '20 Okt', '21 Okt']);
+        const trendCountsData = @json($trendCounts ?? [10, 15, 12, 18, 20, 16, 22]);
+        const maxTrendVal = Math.max(...trendCountsData, 10);
+        const lastTrendVal = String(trendCountsData[trendCountsData.length - 1] ?? 0);
+
+        // Custom plugin to draw the pill marker at the peak/last data point
         const peakCalloutPlugin = {
             id: 'peakCallout',
             afterDatasetsDraw(chart) {
                 const { ctx } = chart;
                 const meta = chart.getDatasetMeta(0);
-                const lastPoint = meta.data[meta.data.length - 1]; // 21 Okt point
+                const lastPoint = meta.data[meta.data.length - 1];
 
                 if (!lastPoint) return;
 
                 const x = lastPoint.x;
                 const y = lastPoint.y;
-                const text = '260';
+                const text = lastTrendVal;
 
                 ctx.save();
                 ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
@@ -611,16 +588,16 @@
         new Chart(ctxLine, {
             type: 'line',
             data: {
-                labels: ['15 Okt', '16 Okt', '17 Okt', '18 Okt', '19 Okt', '20 Okt', '21 Okt'],
+                labels: trendLabelsData,
                 datasets: [{
                     label: 'Pencarian',
-                    data: [130, 168, 155, 220, 190, 205, 260],
+                    data: trendCountsData,
                     borderColor: '#85172C',
                     borderWidth: 2.5,
                     backgroundColor: gradientFill,
                     fill: true,
                     tension: 0.35,
-                    pointRadius: [0, 0, 0, 0, 0, 0, 0],
+                    pointRadius: trendCountsData.map(() => 0),
                     pointHoverRadius: 6,
                     pointHoverBackgroundColor: '#85172C',
                     pointHoverBorderColor: '#FFFFFF',
@@ -660,9 +637,8 @@
                     },
                     y: {
                         min: 0,
-                        max: 300,
+                        suggestedMax: Math.ceil(maxTrendVal * 1.25),
                         ticks: {
-                            stepSize: 100,
                             color: '#94A3B8',
                             font: { size: 11, family: 'Plus Jakarta Sans' }
                         },
@@ -679,17 +655,26 @@
 
         // --- 2. Donut Chart: Kesehatan Konten ---
         const ctxDonut = document.getElementById('contentHealthChart').getContext('2d');
+        const healthData = [
+            {{ $terbitCount ?? 0 }},
+            {{ $disetujuiCount ?? 0 }},
+            {{ $menungguCount ?? 0 }},
+            {{ $ditolakCount ?? 0 }},
+            {{ $draftCount ?? 0 }}
+        ];
+        const hasHealthData = healthData.some(v => v > 0);
         new Chart(ctxDonut, {
             type: 'doughnut',
             data: {
-                labels: ['Terbit', 'Draft', 'Validasi', 'Revisi'],
+                labels: ['Terbit', 'Disetujui', 'Menunggu Validasi', 'Ditolak', 'Draft'],
                 datasets: [{
-                    data: [180, 40, 12, 16],
+                    data: hasHealthData ? healthData : [1, 0, 0, 0, 0],
                     backgroundColor: [
-                        '#236B64', // Terbit (dark emerald / teal)
-                        '#1E293B', // Draft (navy)
-                        '#DC2626', // Validasi (red)
-                        '#B45309'  // Revisi (amber)
+                        '#236B64', // Terbit
+                        '#0284C7', // Disetujui
+                        '#2563EB', // Menunggu Validasi
+                        '#DC2626', // Ditolak
+                        '#1E293B'  // Draft
                     ],
                     borderWidth: 2,
                     borderColor: '#FFFFFF',

@@ -303,14 +303,18 @@ body {
     color: #FFFFFF;
     border: none;
     border-radius: 8px;
-    padding: 0.55rem 1.25rem;
-    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     transition: background-color 0.2s ease, transform 0.1s ease;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    gap: 0.4rem;
+    width: auto;
     text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-maroon:hover {
@@ -324,15 +328,19 @@ body {
     color: var(--text-heading);
     border: 1px solid #E2E8F0;
     border-radius: 8px;
-    padding: 0.55rem 1.25rem;
-    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    gap: 0.4rem;
+    width: auto;
     text-decoration: none;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-white-outline:hover {
@@ -366,12 +374,15 @@ body {
 
 /* Badges */
 .badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.72rem;
-    font-weight: 500;
-    padding: 0.35rem 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.72rem;
     border-radius: 9999px;
-    display: inline-block;
     white-space: nowrap;
+    line-height: 1.25;
 }
 
 .badge-status-draft {
@@ -390,8 +401,16 @@ body {
 }
 
 .badge-status-terbit {
-    background-color: #DCFCE7;
-    color: #15803D;
+    background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+    color: #FFFFFF;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.24);
+}
+
+.badge-status-disetujui {
+    background-color: #EDE9FE;
+    color: #6D28D9;
+    border: 1px solid #DDD6FE;
 }
 
 /* Modern Table Styling */
@@ -948,10 +967,14 @@ body {
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    justify-content: center;
+    gap: 0.35rem;
+    width: auto;
     transition: all 0.15s ease;
     text-decoration: none;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-outline-maroon:hover {
@@ -1283,8 +1306,47 @@ body {
     border-radius: 16px !important;
     border: 1px solid var(--card-border) !important;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1) !important;
-    padding: 1.5rem 1.25rem 1.25rem !important;
-    width: 26rem !important;
+    padding: 1.35rem 1.35rem 1.2rem !important;
+    max-width: 94vw !important;
+}
+
+.swal2-popup.kms-view-modal {
+    width: 820px !important;
+    max-width: 94vw !important;
+    padding: 1.5rem 1.75rem 1.35rem !important;
+    border-radius: 18px !important;
+}
+
+.swal2-popup.kms-view-modal .swal2-close {
+    position: absolute !important;
+    top: 1rem !important;
+    right: 1rem !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    background-color: #F8FAFC !important;
+    color: #64748B !important;
+    font-size: 1.35rem !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s ease !important;
+}
+
+.swal2-popup.kms-view-modal .swal2-close:hover {
+    background-color: #F1F5F9 !important;
+    color: #0F172A !important;
+}
+
+.swal2-popup.kms-view-modal .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+.swal2-popup.kms-view-modal .swal2-actions {
+    margin: 1.25rem auto 0 !important;
 }
 
 .swal2-title {
@@ -1534,4 +1596,200 @@ body {
     .content-area {
         padding: 1rem 1rem 2rem;
     }
+}
+
+/* ── Buat / Edit FAQ: Pilihan Jenis FAQ & Kata Kunci Modern ── */
+.faq-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+@media (max-width: 767.98px) {
+    .faq-mode-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.faq-mode-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 12px;
+    background-color: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    margin: 0;
+}
+
+.faq-mode-card:hover {
+    border-color: #D1D5DB;
+    background-color: #FAF9F7;
+}
+
+.faq-mode-card.is-selected {
+    border-color: var(--brand-maroon);
+    background-color: #FFF8F9;
+    box-shadow: 0 2px 8px rgba(133, 23, 44, 0.08);
+}
+
+.faq-mode-card .form-check-input {
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.faq-mode-card .form-check-input:checked {
+    background-color: var(--brand-maroon);
+    border-color: var(--brand-maroon);
+}
+
+/* Kata Kunci Modern Picker */
+.tag-input-box-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 0.45rem 0.65rem;
+    background-color: #FFFFFF;
+    min-height: 46px;
+}
+
+.tag-input-box-wrap:focus-within {
+    border-color: var(--brand-maroon);
+    box-shadow: 0 0 0 3px rgba(133, 23, 44, 0.08);
+}
+
+.tag-container-clean {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    flex: 1;
+    cursor: text;
+}
+
+.tag-container-clean .tag-chip {
+    background-color: #FDF2F4;
+    color: #85172C;
+    border: 1px solid #F3D1D8;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.28rem 0.68rem;
+}
+
+.tag-container-clean .tag-chip .tag-remove {
+    color: #9F1239;
+    font-size: 0.85rem;
+    margin-left: 0.1rem;
+}
+
+.tag-container-clean .tag-chip .tag-remove:hover {
+    color: #881337;
+}
+
+.btn-tag-quick-add {
+    background-color: #F8FAFC;
+    color: #334155;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 0.3rem 0.72rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-tag-quick-add:hover {
+    background-color: var(--brand-maroon);
+    color: #FFFFFF;
+    border-color: var(--brand-maroon);
+}
+
+.tag-library-box {
+    margin-top: 0.75rem;
+    background-color: #FAF9F7;
+    border: 1px solid #ECEAE6;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+}
+
+.tag-library-search {
+    position: relative;
+    width: 210px;
+    max-width: 100%;
+}
+
+.tag-library-search i {
+    position: absolute;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    font-size: 0.78rem;
+}
+
+.tag-library-search input {
+    width: 100%;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 0.3rem 0.65rem 0.3rem 1.85rem;
+    font-size: 0.76rem;
+    background-color: #FFFFFF;
+    outline: none;
+}
+
+.tag-library-search input:focus {
+    border-color: var(--brand-maroon);
+}
+
+.tag-suggestions-scroll {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    max-height: 145px;
+    overflow-y: auto;
+    padding-top: 0.25rem;
+}
+
+.tag-suggestion-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background-color: #FFFFFF;
+    color: #334155;
+    border: 1px solid #CBD5E1;
+    border-radius: 9999px;
+    padding: 0.28rem 0.75rem;
+    font-size: 0.76rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tag-suggestion-pill:hover {
+    border-color: var(--brand-maroon);
+    color: var(--brand-maroon);
+    background-color: #FFF8F9;
+}
+
+.tag-suggestion-pill.is-selected {
+    background-color: var(--brand-maroon);
+    color: #FFFFFF;
+    border-color: var(--brand-maroon);
+    font-weight: 600;
+}
+
+.source-option {
+    transition: all 0.15s ease;
+    background-color: #FFFFFF;
+}
+
+.source-option:hover {
+    border-color: var(--brand-maroon) !important;
+    background-color: #FFF9FA;
 }

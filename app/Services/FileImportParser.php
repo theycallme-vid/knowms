@@ -221,12 +221,12 @@ class FileImportParser
             return [];
         }
 
-        // Coba deteksi jika baris menggunakan pemisah "|" atau ";"
+        // Coba deteksi jika baris menggunakan pemisah "|" atau ";" atau Tab
         $delimitedRows = [];
         foreach ($cleanLines as $line) {
             if (str_contains($line, '|')) {
                 $delimitedRows[] = array_map('trim', explode('|', $line));
-            } elseif (substr_count($line, ';') >= 2) {
+            } elseif (substr_count($line, ';') >= 1) {
                 $delimitedRows[] = array_map('trim', explode(';', $line));
             }
         }
@@ -411,8 +411,11 @@ class FileImportParser
                 $headerCheck = strtolower($col0 . ' ' . $col1);
                 if (
                     str_contains($headerCheck, 'pertanyaan') ||
+                    str_contains($headerCheck, 'jawaban') ||
                     str_contains($headerCheck, 'question') ||
+                    str_contains($headerCheck, 'answer') ||
                     str_contains($headerCheck, 'kode') ||
+                    str_contains($headerCheck, 'kolom a') ||
                     $col0 === 'no' ||
                     $col0 === 'no.'
                 ) {
@@ -426,7 +429,7 @@ class FileImportParser
                 $hasLeadingCodeOrNo = true;
             }
 
-            if ($hasLeadingCodeOrNo && count($row) >= 2) {
+            if ($hasLeadingCodeOrNo && count($row) >= 3) {
                 $pertanyaan    = trim($row[1] ?? '');
                 $jawaban       = trim($row[2] ?? '');
                 $tagsRaw       = trim($row[3] ?? '');
@@ -440,11 +443,24 @@ class FileImportParser
                 $pustakaBagian = trim($row[4] ?? '');
             }
 
+            // Jika file 1 kolom dengan format "Pertanyaan | Jawaban" atau "Pertanyaan ; Jawaban"
+            if ($pertanyaan !== '' && $jawaban === '') {
+                if (str_contains($pertanyaan, '|')) {
+                    [$qPart, $aPart] = array_pad(explode('|', $pertanyaan, 2), 2, '');
+                    $pertanyaan = trim($qPart);
+                    $jawaban    = trim($aPart);
+                } elseif (str_contains($pertanyaan, ';')) {
+                    [$qPart, $aPart] = array_pad(explode(';', $pertanyaan, 2), 2, '');
+                    $pertanyaan = trim($qPart);
+                    $jawaban    = trim($aPart);
+                }
+            }
+
             if ($pertanyaan === '' && $jawaban === '') {
                 continue;
             }
 
-            // Pecah kata kunci dengan koma atau titik koma
+            // Pecah kata kunci dengan koma atau titik koma (jika ada)
             $tags = [];
             if ($tagsRaw !== '') {
                 $tags = array_values(array_filter(
@@ -458,8 +474,8 @@ class FileImportParser
             $versionNum = 1;
             $versionId = $faqId . '-V1';
 
-            // 2. Analisis Duplikat Identik (100%) & Kemiripan Makna terhadap DB (Active Publish / Menunggu Validasi)
-            $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 30.0);
+            // 2. Analisis Duplikat Identik (100%) & Kemiripan Makna terhadap DB (Active Publish / Menunggu Validasi / Draft)
+            $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 30.0, $jawaban);
             $normQ = $analysis['normalized_input'] ?? '';
 
             $inFileDuplicateOf = null;
@@ -471,25 +487,29 @@ class FileImportParser
 
             // Status 'ready' (Siap diajukan) jika Pertanyaan, Jawaban, Kata Kunci, dan Sumber Pustaka semuanya terisi
             $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && $pustakaJudul !== '');
+            $hasExactMatch = (bool) ($analysis['has_exact_match'] ?? false);
+            $hasExactDraftMatch = (bool) ($analysis['has_exact_draft_match'] ?? false);
 
             $items[] = [
-                'row_key'            => $versionId,
-                'id'                 => $faqId,
-                'version_id'         => $versionId,
-                'version_num'        => $versionNum,
-                'version'            => 'Versi ' . $versionNum,
-                'pertanyaan'         => $pertanyaan,
-                'jawaban'            => $jawaban,
-                'tags'               => $tags,
-                'pustaka_judul'      => $pustakaJudul,
-                'pustaka_bagian'     => $pustakaBagian !== '' ? $pustakaBagian : ($pustakaJudul !== '' ? 'Dokumen Rujukan Resmi' : 'Belum diisi'),
-                'status'             => $isReady ? 'ready' : 'incomplete',
-                'checked'            => $isReady && !($analysis['has_exact_match'] ?? false),
-                'has_exact_match'    => (bool) ($analysis['has_exact_match'] ?? false),
-                'exact_match'        => $analysis['exact_match'] ?? null,
-                'similar_candidates' => $analysis['candidates'] ?? [],
-                'max_similarity'     => $analysis['max_similarity'] ?? 0.0,
-                'in_file_duplicate'  => $inFileDuplicateOf,
+                'row_key'               => $versionId,
+                'id'                    => $faqId,
+                'version_id'            => $versionId,
+                'version_num'           => $versionNum,
+                'version'               => 'Versi ' . $versionNum,
+                'pertanyaan'            => $pertanyaan,
+                'jawaban'               => $jawaban,
+                'tags'                  => $tags,
+                'pustaka_judul'         => $pustakaJudul,
+                'pustaka_bagian'        => $pustakaBagian !== '' ? $pustakaBagian : ($pustakaJudul !== '' ? 'Dokumen Rujukan Resmi' : 'Belum diisi'),
+                'status'                => ($isReady && !$hasExactDraftMatch) ? 'ready' : 'incomplete',
+                'checked'               => $isReady && !$hasExactMatch && !$hasExactDraftMatch,
+                'has_exact_match'       => $hasExactMatch,
+                'exact_match'           => $analysis['exact_match'] ?? null,
+                'has_exact_draft_match' => $hasExactDraftMatch,
+                'exact_draft_match'     => $analysis['exact_draft_match'] ?? null,
+                'similar_candidates'    => $analysis['candidates'] ?? [],
+                'max_similarity'        => $analysis['max_similarity'] ?? 0.0,
+                'in_file_duplicate'     => $inFileDuplicateOf,
             ];
         }
 
@@ -530,82 +550,90 @@ class FileImportParser
     }
 
     /**
-     * Mengonversi baris mentah hasil pembacaan file Excel/CSV/PDF menjadi daftar Sumber Pustaka (tdaftarpustaka).
-     * Wajib membaca 2 kolom:
-     * - Kolom 1: Link Sumber Pustaka
-     * - Kolom 2: Tipe (Private / Public)
+     * Mengonversi baris mentah hasil pembacaan file Excel/CSV/PDF menjadi daftar Sumber Pustaka Khusus Tautan/Link (tdaftarpustaka).
+     * Wajib membaca 3 kolom:
+     * - Kolom 1: Judul Link
+     * - Kolom 2: Link-nya (Maks. 60 karakter)
+     * - Kolom 3: Tipe (Private / Public)
      * Sekaligus memvalidasi apakah setiap baris sudah sesuai atau belum untuk dipantau pada tabel pratinjau.
      */
     public static function mapRowsToSumberPustaka(array $rows): array
     {
         $sources = [];
-        $linkColIdx = 0;
-        $typeColIdx = 1;
+        $judulColIdx = 0;
+        $linkColIdx  = 1;
+        $typeColIdx  = 2;
 
         foreach ($rows as $rowIndex => $row) {
             $col0 = trim((string) ($row[0] ?? ''));
             $col1 = trim((string) ($row[1] ?? ''));
             $col2 = trim((string) ($row[2] ?? ''));
+            $col3 = trim((string) ($row[3] ?? ''));
 
-            if ($col0 === '' && $col1 === '' && $col2 === '') {
+            if ($col0 === '' && $col1 === '' && $col2 === '' && $col3 === '') {
                 continue;
             }
 
-            // Deteksi baris header untuk menentukan posisi kolom Link Sumber Pustaka & Tipe (Private/Public)
+            // Deteksi baris header untuk menentukan posisi 3 kolom: Judul Link, Link-nya, & Tipe (Private/Public)
             if ($rowIndex === 0) {
                 $h0 = strtolower($col0);
                 $h1 = strtolower($col1);
                 $h2 = strtolower($col2);
-                $headerCombined = $h0 . ' ' . $h1 . ' ' . $h2;
+                $h3 = strtolower($col3);
+                $headerCombined = $h0 . ' ' . $h1 . ' ' . $h2 . ' ' . $h3;
 
                 if (
+                    str_contains($headerCombined, 'judul') ||
                     str_contains($headerCombined, 'link') ||
                     str_contains($headerCombined, 'sumber') ||
                     str_contains($headerCombined, 'pustaka') ||
-                    str_contains($headerCombined, 'dokumen') ||
                     str_contains($headerCombined, 'tautan') ||
                     str_contains($headerCombined, 'tipe') ||
                     $h0 === 'no' ||
                     $h0 === 'no.'
                 ) {
                     if ($h0 === 'no' || $h0 === 'no.') {
-                        if (str_contains($h1, 'tipe') || str_contains($h1, 'type')) {
-                            $typeColIdx = 1;
-                            $linkColIdx = 2;
-                        } else {
-                            $linkColIdx = 1;
-                            $typeColIdx = 2;
-                        }
-                    } elseif (str_contains($h0, 'tipe') || str_contains($h0, 'type')) {
-                        $typeColIdx = 0;
-                        $linkColIdx = 1;
+                        $judulColIdx = 1;
+                        $linkColIdx  = 2;
+                        $typeColIdx  = 3;
                     } else {
-                        $linkColIdx = 0;
-                        $typeColIdx = 1;
+                        $judulColIdx = 0;
+                        $linkColIdx  = 1;
+                        $typeColIdx  = 2;
                     }
                     continue;
                 }
             }
 
-            // Jika baris diawali nomor urut tetapi tidak ada header
-            if ($linkColIdx === 0 && preg_match('/^\d+$/', $col0) && ($col1 !== '' || $col2 !== '')) {
-                $rawLink = $col1;
-                $rawType = $col2;
-            } else {
-                $rawLink = trim((string) ($row[$linkColIdx] ?? ''));
-                $rawType = trim((string) ($row[$typeColIdx] ?? ''));
+            // Jika baris dari PDF hanya terbaca sebagai 1 kolom teks gabungan, pisahkan secara cerdas menjadi 3 bagian (Judul, Link, Tipe)
+            if ($col0 !== '' && $col1 === '' && $col2 === '') {
+                if (preg_match('/^(.*?)\s+(https?:\/\/\S+|\S+\.\S+\/\S*)\s+(public|private)$/i', $col0, $m)) {
+                    $col0 = trim($m[1]);
+                    $col1 = trim($m[2]);
+                    $col2 = trim($m[3]);
+                }
             }
 
-            // Jika terbalik (misal kolom 0 berisi Public/Private dan kolom 1 berisi link)
-            if (in_array(strtolower($rawLink), ['public', 'private'], true) && !in_array(strtolower($rawType), ['public', 'private'], true) && $rawType !== '') {
-                [$rawLink, $rawType] = [$rawType, $rawLink];
+            // Jika baris diawali nomor urut pada kolom 0
+            if ($judulColIdx === 0 && preg_match('/^\d+$/', $col0) && ($col1 !== '' || $col2 !== '' || $col3 !== '')) {
+                $rawJudul = $col1;
+                $rawLink  = $col2;
+                $rawType  = $col3;
+            } else {
+                $rawJudul = trim((string) ($row[$judulColIdx] ?? ($judulColIdx === 0 ? $col0 : '')));
+                $rawLink  = trim((string) ($row[$linkColIdx] ?? ($linkColIdx === 1 ? $col1 : '')));
+                $rawType  = trim((string) ($row[$typeColIdx] ?? ($typeColIdx === 2 ? $col2 : '')));
             }
 
             $issues = [];
+            if ($rawJudul === '') {
+                $issues[] = 'Judul Link kosong';
+            }
+
             if ($rawLink === '') {
                 $issues[] = 'Link Sumber Pustaka kosong';
-            } elseif (mb_strlen($rawLink) > 45) {
-                $issues[] = 'Link melebihi 45 karakter (dipotong otomatis)';
+            } elseif (mb_strlen($rawLink) > 60) {
+                $issues[] = 'Link melebihi 60 karakter (dipotong otomatis)';
             }
 
             $typeLower = strtolower($rawType);
@@ -617,17 +645,20 @@ class FileImportParser
             }
 
             $normalizedType = $typeLower === 'private' ? 'Private' : 'Public';
-            $cleanLink = mb_substr($rawLink, 0, 45);
-            $isValid = ($cleanLink !== '' && $isValidType);
+            $cleanJudul = mb_substr($rawJudul, 0, 100);
+            $cleanLink  = mb_substr($rawLink, 0, 60);
+            $isValid    = ($cleanJudul !== '' && $cleanLink !== '' && $isValidType);
 
             $sources[] = [
+                'judul'        => $cleanJudul,
+                'raw_judul'    => $rawJudul,
                 'link'         => $cleanLink,
                 'raw_link'     => $rawLink,
                 'type'         => $normalizedType,
                 'raw_type'     => $rawType !== '' ? $rawType : '-',
                 'is_valid'     => $isValid,
                 'status_label' => $isValid ? 'Sesuai' : 'Belum Sesuai',
-                'notes'        => empty($issues) ? 'Kolom Link Sumber Pustaka & Tipe sudah sesuai' : implode('; ', $issues),
+                'notes'        => empty($issues) ? 'Ketiga kolom (Judul Link, Link, & Tipe) sudah sesuai' : implode('; ', $issues),
             ];
         }
 

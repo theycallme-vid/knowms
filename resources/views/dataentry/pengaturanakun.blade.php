@@ -51,9 +51,13 @@
 
             <!-- Navigation Links -->
             <nav class="nav flex-column">
-                <a href="{{ route('dataentry.dashboard') }}" class="nav-link-custom">
+                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
+                </a>
+                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom">
+                    <i class="bi bi-send-check"></i>
+                    <span>Pengajuan FAQ</span>
                 </a>
                 <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom">
                     <i class="bi bi-plus-lg"></i>
