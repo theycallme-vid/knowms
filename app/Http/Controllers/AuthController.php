@@ -86,8 +86,8 @@ class AuthController extends Controller
 
         return match ($roleName) {
             'Super Admin' => redirect()->intended(route('admin.dashboard')),
-            'Validator'   => redirect()->intended(route('validator.dashboard')),
-            'Data Entry'  => redirect()->intended(route('dataentry.dashboard')),
+            'Validator'   => redirect()->intended(route('validator.daftarFAQ')),
+            'Data Entry'  => redirect()->intended(route('dataentry.daftarFAQ')),
             default       => redirect()->route('login'),
         };
     }
