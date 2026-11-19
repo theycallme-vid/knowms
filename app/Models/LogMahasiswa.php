@@ -48,8 +48,6 @@ class LogMahasiswa extends Model
         $summary = [];
 
         try {
-            Setting::ensureDefaults();
-
             $query = DB::table('tlogmahasiswa')
                 ->whereNotNull('tFaqs_id')
                 ->select(

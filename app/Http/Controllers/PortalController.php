@@ -218,15 +218,32 @@ class PortalController extends Controller
     public function logFaqAccess(Request $request)
     {
         $validated = $request->validate([
-            'faq_id'          => ['required', 'string', 'max:20'],
-            'jenis_interaksi' => ['nullable', 'string', 'in:view,like,dislike'],
-            'keyword'         => ['nullable', 'string', 'max:255'],
-            'hasil'           => ['nullable', 'integer', 'in:0,1'],
+            'faq_id'                  => ['nullable', 'string', 'max:20'],
+            'jenis_interaksi'         => ['nullable', 'string', 'in:view,like,dislike'],
+            'keyword'                 => ['nullable', 'string', 'max:255'],
+            'hasil'                   => ['nullable', 'integer', 'in:0,1'],
+            'items'                   => ['nullable', 'array', 'max:100'],
+            'items.*.faq_id'          => ['required', 'string', 'max:20'],
+            'items.*.jenis_interaksi' => ['nullable', 'string', 'in:view,like,dislike'],
+            'items.*.keyword'         => ['nullable', 'string', 'max:255'],
+            'items.*.hasil'           => ['nullable', 'integer', 'in:0,1'],
         ]);
 
-        try {
-            Setting::ensureDefaults();
+        $items = $validated['items'] ?? (!empty($validated['faq_id']) ? [[
+            'faq_id'          => $validated['faq_id'],
+            'jenis_interaksi' => $validated['jenis_interaksi'] ?? null,
+            'keyword'         => $validated['keyword'] ?? null,
+            'hasil'           => $validated['hasil'] ?? 1,
+        ]] : []);
 
+        if (empty($items)) {
+            return response()->json([
+                'status'    => 'noop',
+                'synced_at' => now()->format('H:i:s'),
+            ]);
+        }
+
+        try {
             $tsessionId = session('tsession_id');
             if (!$tsessionId) {
                 $kodeFak = session('kode_fakultas');
@@ -243,67 +260,78 @@ class PortalController extends Controller
                 session(['tsession_id' => $tsessionId]);
             }
 
-            $faqId = $validated['faq_id'];
-            $rawKw = trim((string) ($validated['keyword'] ?? ''));
-            $hasil = (int) ($validated['hasil'] ?? 1);
+            $lastFaqId = null;
+            $now = now();
 
-            $jenisInteraksi = $validated['jenis_interaksi'] ?? null;
-            if (!$jenisInteraksi) {
-                if ($rawKw === 'feedback-membantu') {
-                    $jenisInteraksi = 'like';
-                } elseif ($rawKw === 'feedback-belum' || $hasil === 0) {
-                    $jenisInteraksi = 'dislike';
-                } else {
-                    $jenisInteraksi = 'view';
+            foreach ($items as $item) {
+                $faqId = $item['faq_id'];
+                $lastFaqId = $faqId;
+                $rawKw = trim((string) ($item['keyword'] ?? ''));
+                $hasil = (int) ($item['hasil'] ?? 1);
+
+                $jenisInteraksi = $item['jenis_interaksi'] ?? null;
+                if (!$jenisInteraksi) {
+                    if ($rawKw === 'feedback-membantu') {
+                        $jenisInteraksi = 'like';
+                    } elseif ($rawKw === 'feedback-belum' || $hasil === 0) {
+                        $jenisInteraksi = 'dislike';
+                    } else {
+                        $jenisInteraksi = 'view';
+                    }
                 }
-            }
 
-            if ($jenisInteraksi === 'view') {
-                // Cegah duplikat view dalam 1 sesi yang sama untuk FAQ yang sama
-                $alreadyViewed = LogMahasiswa::where('tSession_id', $tsessionId)
-                    ->where('tFaqs_id', $faqId)
-                    ->where('jenis_interaksi', 'view')
-                    ->exists();
+                if ($jenisInteraksi === 'view') {
+                    // Cegah duplikat view dalam 1 sesi yang sama untuk FAQ yang sama
+                    $alreadyViewed = LogMahasiswa::where('tSession_id', $tsessionId)
+                        ->where('tFaqs_id', $faqId)
+                        ->where('jenis_interaksi', 'view')
+                        ->exists();
 
-                if (!$alreadyViewed) {
-                    LogMahasiswa::create([
-                        'jenis_interaksi' => 'view',
-                        'keyword'         => $rawKw !== '' ? $rawKw : 'buka-faq',
-                        'hasil'           => 1,
-                        'waktu_pencarian' => now(),
+                    if (!$alreadyViewed) {
+                        LogMahasiswa::create([
+                            'jenis_interaksi' => 'view',
+                            'keyword'         => $rawKw !== '' ? $rawKw : 'buka-faq',
+                            'hasil'           => 1,
+                            'waktu_pencarian' => $now,
+                            'tSession_id'     => $tsessionId,
+                            'tFaqs_id'        => $faqId,
+                        ]);
+                    }
+                } else {
+                    // Untuk feedback (like / dislike), 1 sesi hanya memiliki maksimal 1 feedback per FAQ
+                    $existingFeedback = LogMahasiswa::where('tSession_id', $tsessionId)
+                        ->where('tFaqs_id', $faqId)
+                        ->whereIn('jenis_interaksi', ['like', 'dislike'])
+                        ->first();
+
+                    $feedbackPayload = [
+                        'jenis_interaksi' => $jenisInteraksi,
+                        'keyword'         => $jenisInteraksi === 'like' ? 'feedback-membantu' : 'feedback-belum',
+                        'hasil'           => $jenisInteraksi === 'like' ? 1 : 0,
+                        'waktu_pencarian' => $now,
                         'tSession_id'     => $tsessionId,
                         'tFaqs_id'        => $faqId,
-                    ]);
-                }
-            } else {
-                // Untuk feedback (like / dislike), 1 sesi hanya memiliki maksimal 1 feedback per FAQ (bisa berubah dari like ke dislike atau sebaliknya)
-                $existingFeedback = LogMahasiswa::where('tSession_id', $tsessionId)
-                    ->where('tFaqs_id', $faqId)
-                    ->whereIn('jenis_interaksi', ['like', 'dislike'])
-                    ->first();
+                    ];
 
-                $feedbackPayload = [
-                    'jenis_interaksi' => $jenisInteraksi,
-                    'keyword'         => $jenisInteraksi === 'like' ? 'feedback-membantu' : 'feedback-belum',
-                    'hasil'           => $jenisInteraksi === 'like' ? 1 : 0,
-                    'waktu_pencarian' => now(),
-                    'tSession_id'     => $tsessionId,
-                    'tFaqs_id'        => $faqId,
-                ];
-
-                if ($existingFeedback) {
-                    $existingFeedback->update($feedbackPayload);
-                } else {
-                    LogMahasiswa::create($feedbackPayload);
+                    if ($existingFeedback) {
+                        $existingFeedback->update($feedbackPayload);
+                    } else {
+                        LogMahasiswa::create($feedbackPayload);
+                    }
                 }
             }
 
-            $summary = LogMahasiswa::getFaqInteractionSummary([$faqId]);
-            $counts = $summary[$faqId] ?? ['views' => 0, 'likes' => 0, 'dislikes' => 0];
+            // shortcut: query full summary per sync batch (1x per 30s per active client), cache if log rows > 100k
+            $summary = LogMahasiswa::getFaqInteractionSummary();
+            $counts = ($lastFaqId && isset($summary[$lastFaqId]))
+                ? $summary[$lastFaqId]
+                : ['views' => 0, 'likes' => 0, 'dislikes' => 0];
 
             return response()->json([
-                'status' => 'ok',
-                'counts' => $counts,
+                'status'     => 'ok',
+                'synced_at'  => $now->format('H:i:s'),
+                'counts'     => $counts,
+                'counts_map' => $summary,
             ]);
         } catch (Throwable $e) {
             return response()->json(['status' => 'ignored'], 200);

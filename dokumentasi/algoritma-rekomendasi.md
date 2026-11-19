@@ -45,8 +45,15 @@ Semua interaksi mahasiswa/guest pada halaman FAQ dicatat ke tabel **`tlogmahasis
    * **Kapan tercatat:** Saat mahasiswa menekan tombol **"Belum"** di bawah jawaban FAQ (`hasil = 0`).
    * **Anti-Spam Feedback:** Dalam 1 sesi, 1 mahasiswa hanya bisa memberikan 1 feedback per FAQ (jika awalnya klik *Like* lalu berubah ke *Dislike*, data feedback pada sesi tersebut diperbarui, bukan digandakan).
 
+### Mekanisme Auto-Synchronize 30 Detik (Hanya Saat Ada Aktivitas / Tidak Idle)
+* **Update UI Instan (*Optimistic UI*) & Antrean Lokal:** Saat mahasiswa/guest mengklik FAQ (*view*) atau menekan *Like/Dislike*, angka pada kartu FAQ di layar langsung bertambah seketika dan interaksi dimasukkan ke antrean lokal (`pendingSyncQueue`).
+* **Auto-Sync Tiap 30 Detik (`Last synchronize HH:mm:ss`):** Setiap **30 detik**, sistem memeriksa apakah ada aktivitas di antrean lokal:
+  * **Jika ada aktivitas:** Seluruh interaksi dalam 30 detik terakhir dikirim sekaligus dalam **1 request batch** ke `POST /faq/log-access`, memperbarui angka seluruh kartu FAQ dengan data terbaru dari server, dan memperbarui indikator **`Last synchronize HH:mm:ss`**.
+  * **Jika komputer *idle* (tidak mengirim aktivitas apa pun):** Sistem **tidak** mengirim request ke server sama sekali (0 beban server).
+  * **Anti-Hilang Saat Keluar / Auto-Logout:** Jika sesi berakhir (pop-up idle timeout / klik *Akhiri Sesi*) atau tab ditutup sebelum siklus 30 detik tiba, sisa antrean otomatis di-*flush* seketika menggunakan `navigator.sendBeacon` / `fetch keepalive`.
+
 ### Di Mana Statistik Views, Like, & Dislike Bisa Dilihat?
-* **Halaman FAQ Mahasiswa & Guest:** Tampil langsung di setiap kartu FAQ (`👁 X dilihat · 👍 Y · 👎 Z`) dan angkanya bertambah secara *real-time* ketika diklik.
+* **Halaman FAQ Mahasiswa & Guest:** Tampil langsung di setiap kartu FAQ (`👁 X dilihat · 👍 Y · 👎 Z`) dilengkapi indikator **`Last synchronize HH:mm:ss`** di bagian atas daftar FAQ.
 * **Halaman Daftar FAQ & Modal Detail (Super Admin, Validator, Data Entry):** Tampil di baris tabel di samping tag kata kunci serta di dalam *pop-up modal View Detail*.
 * **Dashboard Super Admin (`/superadmin/dashboard`):** Terdapat 2 tabel ringkasan khusus:
   1. **FAQ Paling Banyak Dilihat & Disukai** (Top 5 berdasarkan *views* dan *likes*).
@@ -74,7 +81,7 @@ $$\begin{aligned}
 Sistem memeriksa apakah kata kunci/pertanyaan FAQ mengandung nama fakultas:
 * **Cocok dengan Fakultas mahasiswa** (misal mahasiswa Teknik & FAQ bertag Teknik): **`+15 poin`** (default `rec_bonus_own_fakultas`).
 * **Topik Umum / Lintas Fakultas** (tidak spesifik ke fakultas lain): **`+5 poin`** (default `rec_bonus_umum_fakultas`).
-* **Milik Fakultas Lain** (misal mahasiswa Teknik tetapi FAQ bertag Kedokteran/Hukum): **`-30 poin`** (default `rec_penalty_other_fakultas`), dan disembunyikan dari tab *Top FAQ* kecuali dicari lewat kotak pencarian.
+* **Milik Fakultas Lain** (misal mahasiswa Teknik tetapi FAQ bertag Kedokteran/Hukum): **`-30 poin`** (default `rec_penalty_other_fakultas`), dan ditandai `is_other_fakultas = true` sehingga tidak masuk tab **Rekomendasi FAQ** (tetap bisa tampil di tab **Top FAQ** atau saat dicari lewat kotak pencarian).
 
 ### C. Komponen 3: Skor Kesesuaian Tingkat Angkatan / Semester
 Sistem mencocokkan kata kunci/pertanyaan FAQ dengan kebutuhan akademik di semester mahasiswa saat ini:
@@ -101,7 +108,36 @@ Ada FAQ **"Syarat Pendaftaran Sidang Tugas Akhir Fakultas Teknik"** yang pernah 
 5. Like: $2 \times 3 = 6$
 6. Bonus Fakultas Teknik: $+15$
 7. Bonus Semester 7 (topik Tugas Akhir): $+18$
-* **Total Skor Rekomendasi:** $30 + 15 + 12 + 3 + 6 + 15 + 18 = \mathbf{99\text{ poin}}$ (langsung menempati urutan #1 di Top FAQ mahasiswa tersebut).
+* **Total Skor Rekomendasi:** $30 + 15 + 12 + 3 + 6 + 15 + 18 = \mathbf{99\text{ poin}}$ (langsung menempati urutan #1 di tab **Rekomendasi FAQ** mahasiswa tersebut).
+
+### Perbedaan Tab `Top FAQ` vs `Rekomendasi FAQ` & Penomoran Visual
+Pada halaman FAQ Mahasiswa (`resources/views/mahasiswa/faq.blade.php`), kedua tab tersebut dipisahkan agar jelas fungsinya:
+* **Top FAQ (`top`):** Menampilkan **seluruh FAQ** (termasuk semua fakultas) dan diurutkan murni berdasarkan jumlah **`views_count` tertinggi**.
+* **Rekomendasi FAQ (`rekomendasi`):** Hanya menampilkan FAQ yang relevan untuk mahasiswa tersebut (`is_other_fakultas = false`, yaitu FAQ umum + fakultas sendiri) dan diurutkan berdasarkan **`recommendation_score` tertinggi** (tie-break: `views_count` tertinggi, lalu ID FAQ).
+* **Penomoran Visual (`01`, `02`, `03`, ...):** Diatur ulang secara dinamis oleh JavaScript (`filterFaq()`) setiap kali berpindah tab atau mengetik di pencarian, sehingga nomor urut tampilan selalu rapi mulai dari `01` tanpa melompat.
+
+---
+
+## 3A. Catatan Konsep & Arsitektur (FAQ Teknis)
+
+### 1. Apakah setiap FAQ wajib punya data Fakultas dan Angkatan?
+**Tidak.** Tabel `tfaqs` (`App\Models\Faq`) tidak memiliki kolom `fakultas` maupun `angkatan`. Data Entry cukup menuliskan pertanyaan dan memasang `tag` topik seperti biasa (tag nama fakultas hanya perlu ditambahkan jika FAQ memang khusus fakultas tertentu).
+* Jika FAQ tidak menyebut nama fakultas apa pun, sistem otomatis menganggapnya **FAQ Umum** (mendapat bonus `rec_bonus_umum_fakultas`) dan tetap masuk tab **Rekomendasi FAQ**.
+* Kecocokan semester/angkatan sifatnya bonus tambahan (`0` jika netral, bukan penalti).
+
+### 2. Apakah skor disimpan per fakultas/angkatan di database?
+**Tidak.** Yang tersimpan di database hanyalah catatan interaksi mentah (`tlogmahasiswa` + `tsession`). Skor **dihitung secara dinamis (*on-the-fly*)** menyesuaikan NRP mahasiswa yang sedang login:
+* Satu FAQ yang sama (misal *Praktikum Lab Teknik*, dibuka 5x oleh FT 2024 dan 2x oleh Psikologi 2025) akan mendapat **skor tinggi** saat dibuka oleh mahasiswa **FT 2024**, tetapi mendapat **skor rendah** saat dibuka oleh mahasiswa **Psikologi 2025**.
+
+### 3. Apakah menghitung tiap reload memberatkan server?
+* **Untuk skala saat ini: sangat ringan.** Query ke `tlogmahasiswa` sudah diringkas langsung oleh MySQL menggunakan `GROUP BY`, sehingga PHP hanya mengalikan angka ringkasan untuk puluhan/ratusan FAQ (hitungan milidetik).
+* Jika di masa depan jumlah log mencapai ratusan ribu–jutaan baris, optimasi paling praktis adalah menambahkan **cache per segmen** (misal `Cache::remember` per `"kodeFakultas-kodeAngkatan"` selama 5–10 menit, dan dihapus otomatis saat ada perubahan bobot).
+
+### 4. Kenapa tidak menggunakan tabel `tsnapshots`?
+Tabel `tsnapshots` (`App\Models\Snapshot`) dirancang untuk **rekap statistik laporan global per periode tanggal** (`periode_awal`, `periode_akhir`, `total_pencarian`, `total_sukses`, `total_gagal`, `total_mhs_aktif`, `total_form_cs`, `top_keywords`), bukan untuk ranking per FAQ karena:
+1. Tidak menyimpan `tFaqs_id` maupun jumlah *view/like/dislike* per FAQ.
+2. Tidak memisahkan segmen fakultas dan angkatan.
+3. Sifatnya rekap periodik, tidak diperbarui otomatis secara *real-time* saat ada interaksi baru atau saat Super Admin mengubah bobot di **Pengaturan Sistem**.
 
 ---
 

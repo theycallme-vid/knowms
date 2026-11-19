@@ -208,15 +208,7 @@
                     Dari rencana studi hingga tugas akhir, akses informasi akademik yang kamu butuhkan untuk melangkah lebih maju.
                 </p>
 
-                <!-- Search Input Form -->
-                <form class="hero-search mb-2" onsubmit="event.preventDefault(); filterFaq();" role="search">
-                    <i class="bi bi-search"></i>
-                    <input type="text" id="faqSearch" placeholder='Cari pertanyaan, misalnya "cara mengisi KRS"' aria-label="Cari pertanyaan">
-                    <button type="submit" class="btn-maroon border-0 shadow-sm">
-                        <span>Cari jawaban</span>
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
-                </form>
+                @include('partials.faq-google-search', ['part' => 'bar'])
 
                 <!-- Quick Keywords -->
                 <div class="fs-11 text-muted mt-2">
@@ -252,6 +244,8 @@
 <!-- ========================================================================= -->
 <main class="guest-container py-5">
 
+    @include('partials.faq-google-search', ['part' => 'results'])
+
     <!-- ============================ KATEGORI ============================ -->
     <section class="mb-5" aria-label="Jelajahi kategori">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -283,10 +277,16 @@
                 <h2 id="faqHeading" class="display-serif fs-2 mb-1">Mulai dari yang sering ditanyakan</h2>
                 <p class="text-muted fs-13 mb-0">Lima pertanyaan populer mahasiswa. Jawaban praktis, tanpa perlu mencari jauh.</p>
             </div>
-            <span class="tag-soft shadow-sm">
-                <i class="bi bi-stars"></i>
-                <span id="faqCount">FAQ Populer &middot; 5 pertanyaan</span>
-            </span>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="tag-soft shadow-sm" title="Sinkronisasi otomatis setiap 30 detik saat ada aktivitas">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span id="lastSyncLabel">Last synchronize {{ now()->format('H:i:s') }}</span>
+                </span>
+                <span class="tag-soft shadow-sm">
+                    <i class="bi bi-stars"></i>
+                    <span id="faqCount">FAQ Populer &middot; 5 pertanyaan</span>
+                </span>
+            </div>
         </div>
 
         <!-- Accordion FAQ List -->
@@ -592,6 +592,18 @@
     const faqLogUrl = "{{ route('faq.log-access') }}";
     const csrfToken = "{{ csrf_token() }}";
     const viewedFaqIds = new Set();
+    const sessionFeedbackMap = new Map();
+    const pendingSyncQueue = new Map();
+    const AUTO_SYNC_INTERVAL_MS = 30000;
+
+    function formatSyncTime() {
+        return new Date().toTimeString().slice(0, 8);
+    }
+
+    function setLastSyncText(timeStr) {
+        const el = document.getElementById('lastSyncLabel');
+        if (el) el.textContent = 'Last synchronize ' + (timeStr || formatSyncTime());
+    }
 
     function updateFaqStatDom(faqId, counts) {
         if (!faqId || !counts) return;
@@ -600,35 +612,82 @@
         document.querySelectorAll(`[data-stat-dislikes="${faqId}"]`).forEach(el => { el.textContent = counts.dislikes ?? 0; });
     }
 
+    function adjustFaqStatDomDelta(faqId, dViews, dLikes, dDislikes) {
+        const readVal = attr => Number(document.querySelector(`[${attr}="${faqId}"]`)?.textContent || 0);
+        updateFaqStatDom(faqId, {
+            views: Math.max(0, readVal('data-stat-views') + dViews),
+            likes: Math.max(0, readVal('data-stat-likes') + dLikes),
+            dislikes: Math.max(0, readVal('data-stat-dislikes') + dDislikes)
+        });
+    }
+
     function logFaqInteraction(faqId, jenisInteraksi = 'view', keyword = '', hasil = 1) {
         if (!faqId) return;
         if (jenisInteraksi === 'view') {
             if (viewedFaqIds.has(faqId)) return;
             viewedFaqIds.add(faqId);
+            adjustFaqStatDomDelta(faqId, 1, 0, 0);
+            pendingSyncQueue.set(faqId + ':view', {
+                faq_id: faqId,
+                jenis_interaksi: 'view',
+                keyword: keyword || (document.getElementById('faqSearch')?.value || '').trim() || 'buka-faq-guest',
+                hasil: 1
+            });
+        } else {
+            const prev = sessionFeedbackMap.get(faqId);
+            if (prev === jenisInteraksi) return;
+            sessionFeedbackMap.set(faqId, jenisInteraksi);
+            const dLikes = (jenisInteraksi === 'like' ? 1 : 0) - (prev === 'like' ? 1 : 0);
+            const dDislikes = (jenisInteraksi === 'dislike' ? 1 : 0) - (prev === 'dislike' ? 1 : 0);
+            adjustFaqStatDomDelta(faqId, 0, dLikes, dDislikes);
+            pendingSyncQueue.set(faqId + ':feedback', {
+                faq_id: faqId,
+                jenis_interaksi: jenisInteraksi,
+                keyword: keyword || (jenisInteraksi === 'like' ? 'feedback-membantu' : 'feedback-belum'),
+                hasil: hasil
+            });
+        }
+    }
+
+    function flushFaqSyncQueue(isUnload = false) {
+        // Hanya sinkronisasi jika komputer ini punya aktivitas yang dikirim (jika idle / antrean kosong, tidak hit server)
+        if (pendingSyncQueue.size === 0) return;
+
+        const items = Array.from(pendingSyncQueue.values());
+        pendingSyncQueue.clear();
+        const payload = JSON.stringify({ _token: csrfToken, items: items });
+
+        if (isUnload && navigator.sendBeacon) {
+            navigator.sendBeacon(faqLogUrl, new Blob([payload], { type: 'application/json' }));
+            setLastSyncText();
+            return;
         }
 
         fetch(faqLogUrl, {
             method: 'POST',
+            keepalive: isUnload,
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({
-                faq_id: faqId,
-                jenis_interaksi: jenisInteraksi,
-                keyword: keyword || (document.getElementById('faqSearch')?.value || '').trim() || 'buka-faq-guest',
-                hasil: hasil
-            })
+            body: payload
         })
         .then(r => r.json())
         .then(res => {
-            if (res && res.counts) {
-                updateFaqStatDom(faqId, res.counts);
+            if (res && res.counts_map) {
+                Object.entries(res.counts_map).forEach(([id, counts]) => updateFaqStatDom(id, counts));
             }
+            setLastSyncText(res?.synced_at);
         })
         .catch(() => {});
     }
+
+    setInterval(() => flushFaqSyncQueue(false), AUTO_SYNC_INTERVAL_MS);
+    window.addEventListener('pagehide', () => flushFaqSyncQueue(true));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushFaqSyncQueue(true);
+    });
 
     function submitFaqFeedback(faqId, hasil, btnEl) {
         const jenis = hasil === 1 ? 'like' : 'dislike';
@@ -655,20 +714,12 @@
         filterFaq();
     }
 
-    function quickSearch(term) {
-        document.getElementById('faqSearch').value = term;
-        filterFaq();
-    }
-
     function filterFaq() {
-        const q = (document.getElementById('faqSearch').value || '').toLowerCase().trim();
         let visible = 0;
         
         document.querySelectorAll('#faqList .faq-item').forEach(item => {
             const itemCats = (item.dataset.cat || '').split(' ');
-            const matchCat = activeCat === 'top' || itemCats.includes(activeCat);
-            const matchText = !q || (item.dataset.text || '').includes(q);
-            const show = matchCat && matchText;
+            const show = activeCat === 'top' || itemCats.includes(activeCat);
             item.classList.toggle('d-none', !show);
             if (show) visible++;
         });
@@ -683,8 +734,6 @@
             countEl.innerText = (activeCat === 'top' ? 'Top FAQ' : 'Hasil kategori') + ' · ' + visible + ' pertanyaan';
         }
     }
-
-    document.getElementById('faqSearch').addEventListener('input', filterFaq);
 
     // =========================================================================
     // SISTEM IDLE TIMEOUT & POP-UP HITUNG MUNDUR (GUEST - DARI TSETTINGS)
@@ -797,6 +846,8 @@
             idleTimeoutTimer = null;
         }
 
+        flushFaqSyncQueue(true);
+
         if (endSessionForm) {
             endSessionForm.submit();
         } else {
@@ -812,6 +863,8 @@
     // Mulai timer inaktivitas saat halaman dibuka
     resetIdleTimer();
 </script>
+
+@include('partials.faq-google-search', ['part' => 'script'])
 
 </body>
 </html>

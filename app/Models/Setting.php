@@ -156,15 +156,18 @@ class Setting extends Model
         }
 
         try {
-            self::ensureDefaults();
             $rows = self::pluck('value', 'key');
+            if ($rows->count() < count(self::DEFAULTS)) {
+                self::ensureDefaults();
+                $rows = self::pluck('value', 'key');
+            }
             foreach ($rows as $k => $v) {
                 if (array_key_exists($k, $result) && is_numeric($v)) {
                     $result[$k] = (int) $v;
                 }
             }
         } catch (Throwable $e) {
-            // Fallback ke DEFAULTS
+            self::ensureDefaults();
         }
 
         return $result;
