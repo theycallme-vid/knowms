@@ -91,10 +91,16 @@ body {
 }
 
 .navbar-logo-img {
-    height: 50px;
+    height: 64px;
     width: auto;
     object-fit: contain;
     display: block;
+}
+
+@media (max-width: 576px) {
+    .navbar-logo-img {
+        height: 52px;
+    }
 }
 
 .mhs-nav-link {

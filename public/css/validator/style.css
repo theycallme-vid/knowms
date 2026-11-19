@@ -1584,9 +1584,14 @@ body {
 }
 
 .swal2-popup.kms-view-modal {
-    width: 820px !important;
-    max-width: 94vw !important;
-    padding: 1.5rem 1.75rem 1.35rem !important;
+    width: 1080px !important;
+    max-width: 95vw !important;
+    height: 84vh !important;
+    max-height: 84vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 1.5rem 1.75rem 1.25rem !important;
     border-radius: 18px !important;
 }
 
@@ -1605,6 +1610,7 @@ body {
     align-items: center !important;
     justify-content: center !important;
     transition: all 0.15s ease !important;
+    z-index: 15 !important;
 }
 
 .swal2-popup.kms-view-modal .swal2-close:hover {
@@ -1613,13 +1619,21 @@ body {
 }
 
 .swal2-popup.kms-view-modal .swal2-html-container {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
     margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
+    padding: 0.15rem 0.65rem 0.5rem 0.15rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
 
 .swal2-popup.kms-view-modal .swal2-actions {
-    margin: 1.25rem auto 0 !important;
+    flex-shrink: 0 !important;
+    margin: 0.85rem 0 0 !important;
+    padding-top: 0.75rem !important;
+    border-top: 1px solid #EDE7E1 !important;
+    width: 100% !important;
+    justify-content: flex-end !important;
 }
 
 /* ── Responsive ── */

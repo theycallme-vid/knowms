@@ -131,6 +131,41 @@ Route::middleware(['auth', 'role:Super Admin,Validator'])->prefix('validator')->
     Route::post('/validasi-faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('validasiFAQ.approve');
     Route::post('/validasi-faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('validasiFAQ.reject');
 
+    // Buat FAQ & Pratinjau Unggahan File untuk Validator (Langsung Berstatus Diterima & Siap Terbit)
+    Route::get('/buat-faq', [ValidatorFaqController::class, 'create'])->name('buatfaq');
+    Route::post('/buat-faq', [ValidatorFaqController::class, 'store'])->name('buatfaq.store');
+    Route::get('/pratinjau-unggah', [ValidatorFaqController::class, 'pratinjau'])->name('pratinjau');
+    Route::post('/upload-excel', [ValidatorFaqController::class, 'uploadExcel'])->name('uploadExcel');
+    Route::post('/pratinjau-unggah/update-item', [ValidatorFaqController::class, 'updatePreviewItem'])->name('pratinjau.updateItem');
+    Route::post('/pratinjau-unggah/delete-item', [ValidatorFaqController::class, 'deletePreviewItem'])->name('pratinjau.deleteItem');
+    Route::post('/pratinjau-unggah/submit', [ValidatorFaqController::class, 'submitPratinjau'])->name('pratinjau.submit');
+    Route::get('/template/faq', [DataEntryFaqController::class, 'downloadTemplateFaq'])->name('template.faq');
+    Route::get('/faq/check/duplicate', [ValidatorFaqController::class, 'checkDuplicate'])->name('faq.checkDuplicate');
+    Route::get('/faq/{id}/edit', [ValidatorFaqController::class, 'edit'])->name('faq.edit');
+    Route::match(['put', 'patch', 'post'], '/faq/{id}/update', [ValidatorFaqController::class, 'update'])->name('faq.update');
+
+    // Daftar Kata Kunci (ttag) untuk Validator
+    Route::get('/kata-kunci', [ValidatorFaqController::class, 'kataKunciIndex'])->name('katakunci');
+    Route::post('/kata-kunci', [ValidatorFaqController::class, 'kataKunciStore'])->name('katakunci.store');
+    Route::post('/kata-kunci/{id}/update', [ValidatorFaqController::class, 'kataKunciUpdate'])->name('katakunci.update');
+    Route::delete('/kata-kunci/{id}', [ValidatorFaqController::class, 'kataKunciDestroy'])->name('katakunci.destroy');
+    Route::post('/kata-kunci/upload', [ValidatorFaqController::class, 'kataKunciUpload'])->name('katakunci.upload');
+    Route::post('/kata-kunci/save-import', [ValidatorFaqController::class, 'kataKunciSaveImport'])->name('katakunci.saveImport');
+    Route::post('/kata-kunci/cancel-import', [ValidatorFaqController::class, 'kataKunciCancelImport'])->name('katakunci.cancelImport');
+    Route::get('/template/kata-kunci', [DataEntryFaqController::class, 'downloadTemplateKataKunci'])->name('template.katakunci');
+
+    // Sumber Pustaka (tdaftarpustaka) untuk Validator
+    Route::get('/sumber-pustaka', [ValidatorFaqController::class, 'sumberPustakaIndex'])->name('sumberpustaka');
+    Route::post('/sumber-pustaka', [ValidatorFaqController::class, 'sumberPustakaStore'])->name('sumberpustaka.store');
+    Route::post('/sumber-pustaka/{id}/update', [ValidatorFaqController::class, 'sumberPustakaUpdate'])->name('sumberpustaka.update');
+    Route::delete('/sumber-pustaka/{id}', [ValidatorFaqController::class, 'sumberPustakaDestroy'])->name('sumberpustaka.destroy');
+    Route::post('/sumber-pustaka/upload', [ValidatorFaqController::class, 'sumberPustakaUpload'])->name('sumberpustaka.upload');
+    Route::post('/sumber-pustaka/save-import', [ValidatorFaqController::class, 'sumberPustakaSaveImport'])->name('sumberpustaka.saveImport');
+    Route::post('/sumber-pustaka/cancel-import', [ValidatorFaqController::class, 'sumberPustakaCancelImport'])->name('sumberpustaka.cancelImport');
+    Route::get('/template/sumber-pustaka', [DataEntryFaqController::class, 'downloadTemplatePustaka'])->name('template.pustaka');
+    Route::get('/pustaka/{id}/view', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.view');
+    Route::get('/pustaka/{id}/download', [DataEntryFaqController::class, 'downloadPustaka'])->name('pustaka.download');
+
     // Halaman Pengguna & Akses untuk Validator (disamakan sementara dengan Super Admin)
     Route::get('/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('pengguna-akses');
 
