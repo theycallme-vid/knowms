@@ -384,12 +384,6 @@
             <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="navbar-logo-img">
         </a>
 
-        <div class="d-none d-md-flex align-items-center gap-1">
-            <a href="{{ url('/') }}" class="mhs-nav-link">Beranda</a>
-            <a href="{{ route('mahasiswa.faq') }}" class="mhs-nav-link active">FAQ</a>
-            <a href="#" class="mhs-nav-link">Panduan akademik</a>
-        </div>
-
         <div class="d-flex align-items-center gap-2">
             <a href="{{ route('mahasiswa.faq') }}" class="rv-back-btn">
                 <i class="bi bi-arrow-left"></i>
@@ -404,22 +398,10 @@
 <!-- ========================================================================= -->
 <header class="rv-hero">
     <div class="mhs-container">
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb" class="fs-11 mb-3">
-            <a href="{{ url('/') }}" class="text-decoration-none text-muted">Beranda</a>
-            <span class="mx-2 text-muted">&gt;</span>
-            <a href="{{ route('mahasiswa.faq') }}" class="text-decoration-none text-muted">FAQ Mahasiswa</a>
-            <span class="mx-2 text-muted">&gt;</span>
-            <strong style="color: var(--brand-maroon);">Riwayat Versi Jawaban</strong>
-        </nav>
 
         <h1 class="rv-question-title mb-2">
             {{ $faq->pertanyaan }}
         </h1>
-
-        <p class="text-muted fs-13 mb-0">
-            Menampilkan {{ count($versions) }} versi jawaban &middot; Diurutkan dari yang terbaru di atas.
-        </p>
     </div>
 </header>
 

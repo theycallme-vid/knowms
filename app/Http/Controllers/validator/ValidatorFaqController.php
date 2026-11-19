@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\validator;
 
 use App\Http\Controllers\Controller;
+use App\Models\DaftarPustaka;
 use App\Models\Faq;
 use App\Models\FaqVersion;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\FaqSimilarityService;
+use App\Services\FileImportParser;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -530,5 +533,926 @@ class ValidatorFaqController extends Controller
             return redirect()->back()
                 ->with('error', 'Gagal menghapus FAQ: ' . $e->getMessage());
         }
+    }
+
+    /* =========================================================================
+     * BUAT FAQ, UBAH FAQ & PRATINJAU UNGGAHAN FILE UNTUK VALIDATOR
+     * (Langsung masuk ke Validasi FAQ berstatus 'Diterima' & siap diterbitkan)
+     * ========================================================================= */
+
+    public function create(Request $request)
+    {
+        DaftarPustaka::ensurePublicPrivateEnum();
+        FaqVersion::ensureIndonesianStatusEnum();
+        FaqVersion::processDueScheduledPublications();
+
+        $newFaqId = Faq::generateNextId();
+        $tags = Tag::orderBy('nama', 'asc')->get();
+        $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
+        $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
+
+        $selectedExistingFaq = null;
+        if ($request->filled('faq_id')) {
+            $selectedExistingFaq = $allFaqs->firstWhere('id', $request->query('faq_id'));
+        }
+
+        return view('validator.buatfaq', compact(
+            'newFaqId',
+            'tags',
+            'daftarPustaka',
+            'allFaqs',
+            'selectedExistingFaq'
+        ));
+    }
+
+    public function edit(Request $request, $id)
+    {
+        DaftarPustaka::ensurePublicPrivateEnum();
+        FaqVersion::ensureIndonesianStatusEnum();
+        FaqVersion::processDueScheduledPublications();
+
+        $faq = Faq::with(['versions.daftarPustaka', 'tags'])->findOrFail($id);
+        $latest = $faq->latest_version;
+        $st = $latest ? strtolower((string) $latest->status) : 'draf';
+
+        $tags = Tag::orderBy('nama', 'asc')->get();
+        $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
+        $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
+        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active'], true);
+
+        return view('validator.buatfaq', [
+            'faq'             => $faq,
+            'isEdit'          => true,
+            'forceNewVersion' => $forceNewVersion,
+            'newFaqId'        => $faq->id,
+            'nextVersionId'   => $faq->generateNextVersionId(),
+            'latestVersion'   => $latest,
+            'tags'            => $tags,
+            'daftarPustaka'   => $daftarPustaka,
+            'allFaqs'         => $allFaqs,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'pertanyaan'      => 'required|string',
+            'jawaban'         => 'required|string',
+            'tags'            => 'nullable|string',
+            'pustaka_id'      => 'nullable|integer|exists:tdaftarpustaka,id',
+            'sumber_link'     => 'nullable|string|max:60',
+            'mode_faq'        => 'nullable|in:new,existing',
+            'existing_faq_id' => 'nullable|string|exists:tfaqs,id',
+        ], [
+            'pertanyaan.required' => 'Pertanyaan FAQ wajib diisi.',
+            'jawaban.required'    => 'Jawaban FAQ wajib diisi.',
+            'sumber_link.max'     => 'Panjang URL / rujukan tautan maksimal 60 karakter.',
+        ]);
+
+        try {
+            DaftarPustaka::ensurePublicPrivateEnum();
+            FaqVersion::ensureIndonesianStatusEnum();
+            DB::beginTransaction();
+
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+            $isExistingMode = ($request->input('mode_faq') === 'existing' && $request->filled('existing_faq_id'));
+
+            $similarityService = new FaqSimilarityService();
+            $excludeCheckId = $isExistingMode ? $request->existing_faq_id : null;
+            $exactDraftMatch = $similarityService->findExactDraftMatch($request->pertanyaan, $request->jawaban, $excludeCheckId);
+            if ($exactDraftMatch !== null) {
+                DB::rollBack();
+                return redirect()->back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        "Peringatan: Tidak dapat menambahkan FAQ karena Pertanyaan dan Jawaban sama persis dengan FAQ yang sudah ada ({$exactDraftMatch['id']} / {$exactDraftMatch['version_id']})."
+                    );
+            }
+
+            $tagIds = [];
+            if ($request->filled('tags')) {
+                $rawTags = explode(',', $request->tags);
+                foreach ($rawTags as $tagText) {
+                    $cleanTag = substr(trim($tagText), 0, 100);
+                    if ($cleanTag !== '') {
+                        $t = Tag::firstOrCreate(['nama' => $cleanTag]);
+                        $tagIds[] = $t->id;
+                    }
+                }
+            }
+
+            if (empty($tagIds)) {
+                DB::rollBack();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum menyimpan FAQ.');
+            }
+
+            if ($isExistingMode) {
+                $faq = Faq::with('versions')->findOrFail($request->existing_faq_id);
+                $faqId = $faq->id;
+                $versionId = $faq->generateNextVersionId();
+            } else {
+                $faqId = Faq::generateNextId();
+                $faq = Faq::create([
+                    'id'           => $faqId,
+                    'id_dataentry' => $validatorId,
+                    'pertanyaan'   => $request->pertanyaan,
+                ]);
+                $versionId = $faqId . '-V1';
+            }
+
+            $pustakaId = null;
+            if ($request->filled('pustaka_id')) {
+                $pustakaId = (int) $request->pustaka_id;
+            } elseif ($request->filled('sumber_link')) {
+                $linkText = substr(trim($request->sumber_link), 0, 60);
+                $pustaka = DaftarPustaka::firstOrCreate([
+                    'link' => $linkText,
+                ], [
+                    'judul'  => $linkText,
+                    'upload' => null,
+                ]);
+                $pustakaId = $pustaka->id;
+            }
+
+            // Langsung berstatus 'Diterima' & divalidasi oleh Validator saat ini (siap diterbitkan di Validasi FAQ)
+            FaqVersion::create([
+                'id'                 => $versionId,
+                'tDaftarPustakas_id' => $pustakaId,
+                'tFaqs_id'           => $faqId,
+                'id_validator'       => $validatorId,
+                'jawaban'            => $request->jawaban,
+                'status'             => 'Diterima',
+                'catatan'            => null,
+            ]);
+
+            $faq->tags()->syncWithoutDetaching(array_unique($tagIds));
+
+            DB::commit();
+
+            return redirect()->route('validator.validasiFAQ')
+                ->with('success', "FAQ {$faqId} ({$versionId}) berhasil disimpan ke Validasi FAQ (status Diterima) dan siap diterbitkan!");
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan FAQ: ' . $e->getMessage());
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'pertanyaan'     => 'required|string',
+            'jawaban'        => 'required|string',
+            'version_action' => 'nullable|in:update_draft,new_version',
+            'tags'           => 'nullable|string',
+            'pustaka_id'     => 'nullable|integer|exists:tdaftarpustaka,id',
+            'sumber_link'    => 'nullable|string|max:60',
+        ]);
+
+        try {
+            DaftarPustaka::ensurePublicPrivateEnum();
+            FaqVersion::ensureIndonesianStatusEnum();
+            DB::beginTransaction();
+
+            $faq = Faq::with('versions')->findOrFail($id);
+            $latest = $faq->latest_version;
+            $currentStatus = $latest ? strtolower((string) $latest->status) : 'draf';
+            $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+
+            $similarityService = new FaqSimilarityService();
+            $exactDraftMatch = $similarityService->findExactDraftMatch($request->pertanyaan, $request->jawaban, $faq->id);
+            if ($exactDraftMatch !== null) {
+                DB::rollBack();
+                return redirect()->back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        "Peringatan: Tidak dapat memperbarui FAQ karena Pertanyaan dan Jawaban sama persis dengan FAQ berstatus Draf yang sudah ada ({$exactDraftMatch['id']} / {$exactDraftMatch['version_id']})."
+                    );
+            }
+
+            $tagIds = [];
+            if ($request->filled('tags')) {
+                $rawTags = explode(',', $request->tags);
+                foreach ($rawTags as $tagText) {
+                    $cleanTag = substr(trim($tagText), 0, 100);
+                    if ($cleanTag !== '') {
+                        $t = Tag::firstOrCreate(['nama' => $cleanTag]);
+                        $tagIds[] = $t->id;
+                    }
+                }
+            }
+
+            if (empty($tagIds)) {
+                DB::rollBack();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum menyimpan perubahan FAQ.');
+            }
+
+            $faq->update([
+                'pertanyaan' => $request->pertanyaan,
+            ]);
+
+            $pustakaId = null;
+            if ($request->filled('pustaka_id')) {
+                $pustakaId = (int) $request->pustaka_id;
+            } elseif ($request->filled('sumber_link')) {
+                $linkText = substr(trim($request->sumber_link), 0, 60);
+                $pustaka = DaftarPustaka::firstOrCreate([
+                    'link' => $linkText,
+                ], [
+                    'judul'  => $linkText,
+                    'upload' => null,
+                ]);
+                $pustakaId = $pustaka->id;
+            }
+
+            $versionAction = $request->input('version_action', 'new_version');
+            $shouldCreateNewVersion = ($versionAction === 'new_version') || in_array($currentStatus, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active'], true);
+
+            if ($shouldCreateNewVersion || !$latest) {
+                $savedVersionId = $faq->generateNextVersionId();
+                FaqVersion::create([
+                    'id'                 => $savedVersionId,
+                    'tDaftarPustakas_id' => $pustakaId,
+                    'tFaqs_id'           => $faq->id,
+                    'id_validator'       => $validatorId,
+                    'jawaban'            => $request->jawaban,
+                    'status'             => 'Diterima',
+                    'catatan'            => null,
+                ]);
+            } else {
+                $savedVersionId = $latest->id;
+                $latest->update([
+                    'tDaftarPustakas_id' => $pustakaId,
+                    'id_validator'       => $validatorId,
+                    'jawaban'            => $request->jawaban,
+                    'status'             => 'Diterima',
+                    'catatan'            => null,
+                ]);
+            }
+
+            $faq->tags()->sync(array_unique($tagIds));
+
+            DB::commit();
+
+            return redirect()->route('validator.validasiFAQ')
+                ->with('success', "FAQ {$faq->id} ({$savedVersionId}) berhasil disimpan dengan status Diterima dan siap diterbitkan!");
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui FAQ: ' . $e->getMessage());
+        }
+    }
+
+    public function checkDuplicate(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $a = $request->has('a') ? trim((string) $request->query('a', '')) : null;
+        $excludeId = $request->query('exclude_id');
+        $threshold = (float) $request->query('threshold', 50.0);
+
+        $service = new FaqSimilarityService();
+        $result = $service->analyzeQuestion($q, $excludeId, $threshold, $a);
+
+        return response()->json([
+            'status'                => 'success',
+            'has_exact_match'       => $result['has_exact_match'],
+            'exact_match'           => $result['exact_match'],
+            'has_exact_draft_match' => $result['has_exact_draft_match'],
+            'exact_draft_match'     => $result['exact_draft_match'],
+            'max_similarity'        => $result['max_similarity'],
+            'duplicates'            => $result['candidates'],
+        ]);
+    }
+
+    public function pratinjau(Request $request)
+    {
+        $items = session('uploaded_faqs', []);
+        $fileName = session('uploaded_filename', 'Belum ada file diunggah');
+
+        if (empty($items)) {
+            $nextIdStr = Faq::generateNextId();
+            $startNum = (int) preg_replace('/\D/', '', $nextIdStr) ?: 1;
+
+            $items = [
+                [
+                    'row_key'        => sprintf('FAQ-%04d-V1', $startNum),
+                    'id'             => sprintf('FAQ-%04d', $startNum),
+                    'version_id'     => sprintf('FAQ-%04d-V1', $startNum),
+                    'version'        => 'Versi 1',
+                    'is_new_version' => false,
+                    'pertanyaan'     => 'Bagaimana prosedur pengajuan cuti akademik?',
+                    'jawaban'        => 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender. Konsultasikan ke dosen pembimbing akademik (PA) terlebih dahulu.',
+                    'tags'           => ['cuti akademik', 'pengajuan', 'mahasiswa S1', 'Akademik'],
+                    'pustaka_judul'  => 'Pedoman Akademik 2026/2027',
+                    'pustaka_bagian' => 'Bagian Cuti Akademik',
+                    'status'         => 'ready',
+                    'checked'        => true,
+                ],
+            ];
+            $fileName = 'FAQ_Akademik_2026.xlsx';
+            session([
+                'uploaded_faqs'     => $items,
+                'uploaded_filename' => $fileName,
+            ]);
+        }
+
+        $tags = Tag::orderBy('nama', 'asc')->get();
+        $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
+
+        return view('validator.preview', compact('items', 'fileName', 'tags', 'daftarPustaka'));
+    }
+
+    public function uploadExcel(Request $request)
+    {
+        $request->validate([
+            'file_faq' => 'required|file|max:10240',
+        ], [
+            'file_faq.required' => 'Silakan pilih file Excel / CSV / PDF terlebih dahulu.',
+            'file_faq.max'      => 'Ukuran file maksimal 10MB.',
+        ]);
+
+        $file = $request->file('file_faq');
+        $filename = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (!in_array($extension, ['xlsx', 'xls', 'csv', 'txt', 'pdf'])) {
+            return redirect()->back()->with('error', 'Format file tidak didukung. Gunakan file .XLSX, .CSV, atau .PDF.');
+        }
+
+        $nextIdStr = Faq::generateNextId();
+        $startNum = (int) preg_replace('/\D/', '', $nextIdStr) ?: 1;
+
+        $rawRows = FileImportParser::parseRows($file->getRealPath(), $extension);
+        $faqs = FileImportParser::mapRowsToFaqPreview($rawRows, $startNum);
+
+        if (empty($faqs)) {
+            return redirect()->back()->with(
+                'error',
+                "File {$filename} tidak berisi baris pertanyaan & jawaban yang dapat dibaca. Pastikan mengikuti format kolom: Kolom A: Pertanyaan | Kolom B: Jawaban."
+            );
+        }
+
+        session([
+            'uploaded_filename' => $filename,
+            'uploaded_faqs'     => $faqs,
+        ]);
+
+        return redirect()->route('validator.pratinjau')
+            ->with('success', 'Berhasil membaca ' . count($faqs) . " baris FAQ dari file {$filename}!");
+    }
+
+    public function updatePreviewItem(Request $request)
+    {
+        $rowId = $request->input('id');
+        $pertanyaan = trim((string) $request->input('pertanyaan', ''));
+        $jawaban = trim((string) $request->input('jawaban', ''));
+        $tagsRaw = trim((string) $request->input('tags', ''));
+        $pustakaJudul = trim((string) $request->input('pustaka_judul', ''));
+        $pustakaBagian = trim((string) $request->input('pustaka_bagian', ''));
+
+        $tags = array_values(array_filter(
+            array_map('trim', preg_split('/[,;]+/', $tagsRaw)),
+            fn($t) => $t !== ''
+        ));
+
+        $similarityService = new FaqSimilarityService();
+        $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 50.0, $jawaban);
+        $hasExactDraftMatch = (bool) ($analysis['has_exact_draft_match'] ?? false);
+
+        $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && !$hasExactDraftMatch);
+        $status = $isReady ? 'ready' : 'incomplete';
+
+        $items = session('uploaded_faqs', []);
+        $updatedItem = null;
+
+        foreach ($items as &$item) {
+            $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+            if ($itemKey === $rowId || $item['id'] === $rowId) {
+                $item['pertanyaan']            = $pertanyaan;
+                $item['jawaban']               = $jawaban;
+                $item['tags']                  = $tags;
+                $item['pustaka_judul']         = $pustakaJudul;
+                $item['pustaka_bagian']        = $pustakaBagian !== '' ? $pustakaBagian : 'Dokumen Rujukan Resmi';
+                $item['status']                = $status;
+                $item['checked']               = $isReady && !($analysis['has_exact_match'] ?? false);
+                $item['has_exact_match']       = (bool) ($analysis['has_exact_match'] ?? false);
+                $item['exact_match']           = $analysis['exact_match'] ?? null;
+                $item['has_exact_draft_match'] = $hasExactDraftMatch;
+                $item['exact_draft_match']     = $analysis['exact_draft_match'] ?? null;
+                $item['similar_candidates']    = $analysis['candidates'] ?? [];
+                $item['max_similarity']        = $analysis['max_similarity'] ?? 0.0;
+                $updatedItem = $item;
+                break;
+            }
+        }
+        unset($item);
+
+        session(['uploaded_faqs' => $items]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'item'   => $updatedItem,
+            ]);
+        }
+
+        return redirect()->route('validator.pratinjau')->with('success', "Baris {$rowId} berhasil diperbarui.");
+    }
+
+    public function deletePreviewItem(Request $request)
+    {
+        $rowId = $request->input('id');
+        $items = session('uploaded_faqs', []);
+
+        $items = array_values(array_filter($items, function ($item) use ($rowId) {
+            $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+            return $itemKey !== $rowId && $item['id'] !== $rowId;
+        }));
+        session(['uploaded_faqs' => $items]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['status' => 'success']);
+        }
+
+        return redirect()->route('validator.pratinjau')->with('success', "Baris {$rowId} dihapus dari pratinjau.");
+    }
+
+    /**
+     * Menyimpan hasil pratinjau unggahan file dari Validator langsung dengan status 'Diterima'
+     * agar langsung tampil di halaman Validasi FAQ dan tinggal diterbitkan tanpa perlu disetujui lagi.
+     */
+    public function submitPratinjau(Request $request)
+    {
+        $selectedIds = $request->input('selected_ids', []);
+        $itemsJson = $request->input('items_json');
+
+        if (!empty($itemsJson)) {
+            $decoded = json_decode($itemsJson, true);
+            if (is_array($decoded)) {
+                $items = $decoded;
+            }
+        }
+
+        if (empty($items)) {
+            $items = session('uploaded_faqs', []);
+        }
+
+        if (empty($selectedIds)) {
+            return redirect()->back()->with('error', 'Pilih minimal 1 FAQ menggunakan kotak centang terlebih dahulu.');
+        }
+
+        $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
+        $similarityService = new FaqSimilarityService();
+
+        $missingTags = [];
+        $exactDraftConflicts = [];
+
+        foreach ($items as $item) {
+            $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+            if (in_array($itemKey, $selectedIds) || in_array($item['id'], $selectedIds)) {
+                $pertanyaanText = trim((string) ($item['pertanyaan'] ?? ''));
+                $jawabanText = trim((string) ($item['jawaban'] ?? ''));
+                $itemTags = is_array($item['tags'] ?? null) ? array_filter($item['tags'], fn($t) => trim((string) $t) !== '') : [];
+
+                $draftMatch = $similarityService->findExactDraftMatch($pertanyaanText, $jawabanText);
+                if ($draftMatch !== null) {
+                    $exactDraftConflicts[] = ($item['id'] ?? $itemKey) . " (sama persis dengan {$draftMatch['id']} / {$draftMatch['version_id']})";
+                }
+
+                if (empty($itemTags)) {
+                    $missingTags[] = $item['id'] ?? $itemKey;
+                }
+            }
+        }
+
+        if (!empty($exactDraftConflicts)) {
+            return redirect()->back()->with(
+                'error',
+                'Peringatan: Tidak dapat melanjutkan karena Pertanyaan dan Jawaban sama persis dengan FAQ yang sudah ada: ' . implode(', ', $exactDraftConflicts) . '.'
+            );
+        }
+
+        if (!empty($missingTags)) {
+            return redirect()->back()->with(
+                'error',
+                'Peringatan: FAQ (' . implode(', ', $missingTags) . ') belum memiliki Kata Kunci. Silakan lengkapi melalui tombol Ubah terlebih dahulu.'
+            );
+        }
+
+        try {
+            DaftarPustaka::ensurePublicPrivateEnum();
+            FaqVersion::ensureIndonesianStatusEnum();
+            DB::beginTransaction();
+            $savedCount = 0;
+            $remainingItems = [];
+
+            foreach ($items as $item) {
+                $itemKey = $item['row_key'] ?? $item['version_id'] ?? $item['id'];
+                if (in_array($itemKey, $selectedIds) || in_array($item['id'], $selectedIds)) {
+                    $pertanyaanText = trim((string) ($item['pertanyaan'] ?? ''));
+
+                    $candidateId = trim((string) ($item['id'] ?? ''));
+                    if ($candidateId === '' || Faq::where('id', $candidateId)->exists()) {
+                        $faqId = Faq::generateNextId();
+                    } else {
+                        $faqId = $candidateId;
+                    }
+
+                    $faq = Faq::create([
+                        'id'           => $faqId,
+                        'id_dataentry' => $validatorId,
+                        'pertanyaan'   => $pertanyaanText,
+                    ]);
+                    $versionId = $faqId . '-V1';
+
+                    $pustakaId = null;
+                    $pustakaJudul = trim((string) ($item['pustaka_judul'] ?? ''));
+                    if ($pustakaJudul !== '' && !in_array(strtolower($pustakaJudul), ['belum diisi', 'tidak ada (opsional)'], true)) {
+                        $dp = DaftarPustaka::where('judul', $pustakaJudul)
+                            ->orWhere('link', $pustakaJudul)
+                            ->first();
+                        if (!$dp) {
+                            $dp = DaftarPustaka::firstOrCreate([
+                                'link' => substr($pustakaJudul, 0, 45),
+                            ], [
+                                'judul' => substr($pustakaJudul, 0, 100),
+                            ]);
+                        }
+                        $pustakaId = $dp->id;
+                    }
+
+                    // Langsung berstatus 'Diterima' & divalidasi oleh Validator saat ini (siap diterbitkan di Validasi FAQ)
+                    FaqVersion::create([
+                        'id'                 => $versionId,
+                        'tDaftarPustakas_id' => $pustakaId,
+                        'tFaqs_id'           => $faqId,
+                        'id_validator'       => $validatorId,
+                        'jawaban'            => $item['jawaban'] ?? '',
+                        'status'             => 'Diterima',
+                        'catatan'            => null,
+                    ]);
+
+                    if (!empty($item['tags']) && is_array($item['tags'])) {
+                        $tagIds = [];
+                        foreach ($item['tags'] as $tagName) {
+                            $clean = substr(trim((string) $tagName), 0, 100);
+                            if ($clean !== '') {
+                                $t = Tag::firstOrCreate(['nama' => $clean]);
+                                $tagIds[] = $t->id;
+                            }
+                        }
+                        if (!empty($tagIds)) {
+                            $faq->tags()->syncWithoutDetaching(array_unique($tagIds));
+                        }
+                    }
+
+                    $savedCount++;
+                } else {
+                    $remainingItems[] = $item;
+                }
+            }
+
+            DB::commit();
+
+            if (empty($remainingItems)) {
+                session()->forget(['uploaded_faqs', 'uploaded_filename']);
+            } else {
+                session(['uploaded_faqs' => $remainingItems]);
+            }
+
+            return redirect()->route('validator.validasiFAQ')
+                ->with('success', "{$savedCount} FAQ dari unggahan berkas berhasil masuk ke Validasi FAQ (status Diterima) dan siap diterbitkan!");
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal menyimpan FAQ dari pratinjau: ' . $e->getMessage());
+        }
+    }
+
+    /* =========================================================================
+     * DAFTAR KATA KUNCI (TABEL ttag) UNTUK VALIDATOR
+     * ========================================================================= */
+
+    public function kataKunciIndex()
+    {
+        $tags = Tag::withCount('faqs')->orderBy('id', 'asc')->get();
+        $previewKeywords = session('uploaded_keywords', []);
+        $previewKeywordsFile = session('uploaded_keywords_file', null);
+
+        return view('validator.katakunci', compact('tags', 'previewKeywords', 'previewKeywordsFile'));
+    }
+
+    public function kataKunciStore(Request $request)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+        ], [
+            'nama.required' => 'Nama kata kunci wajib diisi.',
+        ]);
+
+        $parts = preg_split('/[,;]+/', $request->nama);
+        $added = 0;
+
+        foreach ($parts as $p) {
+            $clean = substr(trim($p), 0, 100);
+            if ($clean !== '') {
+                Tag::firstOrCreate(['nama' => $clean]);
+                $added++;
+            }
+        }
+
+        return redirect()->route('validator.katakunci')
+            ->with('success', "{$added} kata kunci berhasil disimpan ke database!");
+    }
+
+    public function kataKunciUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:100',
+        ]);
+
+        $tag = Tag::findOrFail($id);
+        $tag->update(['nama' => trim($request->nama)]);
+
+        return redirect()->route('validator.katakunci')
+            ->with('success', "Kata kunci berhasil diperbarui menjadi '{$tag->nama}'.");
+    }
+
+    public function kataKunciDestroy($id)
+    {
+        $tag = Tag::findOrFail($id);
+        $nama = $tag->nama;
+        $tag->faqs()->detach();
+        $tag->delete();
+
+        return redirect()->route('validator.katakunci')
+            ->with('success', "Kata kunci '{$nama}' berhasil dihapus.");
+    }
+
+    public function kataKunciUpload(Request $request)
+    {
+        $request->validate([
+            'file_katakunci' => 'required|file|max:10240',
+        ], [
+            'file_katakunci.required' => 'Pilih file Excel / CSV / PDF kata kunci terlebih dahulu.',
+        ]);
+
+        $file = $request->file('file_katakunci');
+        $filename = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $rows = FileImportParser::parseRows($file->getRealPath(), $extension);
+        $keywords = FileImportParser::mapRowsToKeywords($rows);
+
+        if (empty($keywords)) {
+            return redirect()->route('validator.katakunci')
+                ->with('error', "Tidak ditemukan kata kunci yang dapat dibaca dari file {$filename}.");
+        }
+
+        session([
+            'uploaded_keywords'      => $keywords,
+            'uploaded_keywords_file' => $filename,
+        ]);
+
+        return redirect()->route('validator.katakunci')
+            ->with('success', 'Berhasil membaca ' . count($keywords) . " kata kunci dari {$filename}. Silakan tinjau pratinjau di bawah sebelum disimpan!");
+    }
+
+    public function kataKunciSaveImport(Request $request)
+    {
+        $selectedKeywords = $request->input('keywords', []);
+        if (empty($selectedKeywords)) {
+            $selectedKeywords = session('uploaded_keywords', []);
+        }
+
+        $saved = 0;
+        foreach ($selectedKeywords as $kw) {
+            $clean = substr(trim((string) $kw), 0, 100);
+            if ($clean !== '') {
+                Tag::firstOrCreate(['nama' => $clean]);
+                $saved++;
+            }
+        }
+
+        session()->forget(['uploaded_keywords', 'uploaded_keywords_file']);
+
+        return redirect()->route('validator.katakunci')
+            ->with('success', "{$saved} kata kunci dari file import berhasil disimpan ke tabel ttag!");
+    }
+
+    public function kataKunciCancelImport()
+    {
+        session()->forget(['uploaded_keywords', 'uploaded_keywords_file']);
+        return redirect()->route('validator.katakunci')->with('success', 'Pratinjau import kata kunci dibatalkan.');
+    }
+
+    /* =========================================================================
+     * SUMBER PUSTAKA (TABEL tdaftarpustaka) UNTUK VALIDATOR
+     * ========================================================================= */
+
+    public function sumberPustakaIndex()
+    {
+        DaftarPustaka::ensurePublicPrivateEnum();
+        $pustakas = DaftarPustaka::withCount('faqVersions')->orderBy('id', 'asc')->get();
+        $previewSources = session('uploaded_sources', []);
+        $previewSourcesFile = session('uploaded_sources_file', null);
+
+        return view('validator.sumberpustaka', compact('pustakas', 'previewSources', 'previewSourcesFile'));
+    }
+
+    public function sumberPustakaStore(Request $request)
+    {
+        DaftarPustaka::ensurePublicPrivateEnum();
+
+        $request->validate([
+            'judul'       => 'required|string|max:100',
+            'source_kind' => 'required|in:link,upload',
+            'link'        => 'nullable|string|max:60',
+            'file_upload' => 'nullable|file|max:10240',
+        ], [
+            'judul.required' => 'Judul Dokumen / Tautan wajib diisi.',
+            'judul.max'      => 'Judul maksimal 100 karakter.',
+            'link.max'       => 'Link / Tautan sumber pustaka maksimal 60 karakter.',
+        ]);
+
+        $judulText = substr(trim($request->judul), 0, 100);
+        $sourceKind = $request->input('source_kind', 'link');
+
+        if ($sourceKind === 'upload') {
+            if (!$request->hasFile('file_upload')) {
+                return redirect()->back()->with('error', 'Untuk jenis input Dokumen, Anda wajib mengunggah file dokumen.');
+            }
+
+            $file = $request->file('file_upload');
+            $filename = substr($file->getClientOriginalName(), 0, 60);
+
+            DaftarPustaka::create([
+                'judul'  => $judulText,
+                'link'   => $filename,
+                'upload' => file_get_contents($file->getRealPath()),
+            ]);
+
+            return redirect()->route('validator.sumberpustaka')
+                ->with('success', "Dokumen '{$judulText}' berhasil diunggah ke Sumber Pustaka!");
+        }
+
+        if (!$request->filled('link')) {
+            return redirect()->back()->with('error', 'Untuk jenis input Tautan, kolom Link / Tautan wajib diisi.');
+        }
+
+        $linkText = substr(trim($request->link), 0, 60);
+        DaftarPustaka::create([
+            'judul'  => $judulText,
+            'link'   => $linkText,
+            'upload' => null,
+        ]);
+
+        return redirect()->route('validator.sumberpustaka')
+            ->with('success', "Tautan sumber pustaka '{$judulText}' berhasil ditambahkan!");
+    }
+
+    public function sumberPustakaUpdate(Request $request, $id)
+    {
+        DaftarPustaka::ensurePublicPrivateEnum();
+
+        $pustaka = DaftarPustaka::findOrFail($id);
+
+        $request->validate([
+            'judul'       => 'required|string|max:100',
+            'link'        => 'nullable|string|max:60',
+            'file_upload' => 'nullable|file|max:10240',
+        ], [
+            'judul.required' => 'Judul Dokumen / Tautan wajib diisi.',
+            'link.max'       => 'Link / Tautan sumber pustaka maksimal 60 karakter.',
+        ]);
+
+        $newJudul = substr(trim($request->judul), 0, 100);
+        $isFileRecord = !empty($pustaka->upload);
+
+        if ($request->hasFile('file_upload')) {
+            $file = $request->file('file_upload');
+            $filename = substr($file->getClientOriginalName(), 0, 60);
+
+            $pustaka->update([
+                'judul'  => $newJudul,
+                'link'   => $filename,
+                'upload' => file_get_contents($file->getRealPath()),
+            ]);
+
+            return redirect()->route('validator.sumberpustaka')
+                ->with('success', "Berkas sumber pustaka '{$newJudul}' berhasil diperbarui!");
+        }
+
+        if ($isFileRecord) {
+            $pustaka->update([
+                'judul' => $newJudul,
+            ]);
+
+            return redirect()->route('validator.sumberpustaka')
+                ->with('success', "Dokumen sumber pustaka '{$newJudul}' berhasil diperbarui!");
+        }
+
+        if (!$request->filled('link')) {
+            return redirect()->back()->with('error', 'Link sumber pustaka tidak boleh kosong.');
+        }
+
+        $newLink = substr(trim($request->link), 0, 60);
+        $pustaka->update([
+            'judul' => $newJudul,
+            'link'  => $newLink,
+        ]);
+
+        return redirect()->route('validator.sumberpustaka')
+            ->with('success', "Sumber pustaka '{$newJudul}' berhasil diperbarui!");
+    }
+
+    public function sumberPustakaUpload(Request $request)
+    {
+        $request->validate([
+            'file_pustaka' => 'required|file|max:10240',
+        ]);
+
+        $file = $request->file('file_pustaka');
+        $filename = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $rows = FileImportParser::parseRows($file->getRealPath(), $extension);
+        $sources = FileImportParser::mapRowsToSumberPustaka($rows);
+
+        if (empty($sources)) {
+            return redirect()->route('validator.sumberpustaka')
+                ->with('error', "Tidak ditemukan daftar tautan sumber pustaka yang dapat dibaca dari file {$filename}. Pastikan file mengikuti format 2 kolom: (1. Judul Tautan, 2. Tautan/Link).");
+        }
+
+        session([
+            'uploaded_sources'      => $sources,
+            'uploaded_sources_file' => $filename,
+        ]);
+
+        return redirect()->route('validator.sumberpustaka')
+            ->with('success', 'Berhasil membaca ' . count($sources) . " baris tautan dari {$filename}. Silakan pantau kesesuaian pada pratinjau di bawah!");
+    }
+
+    public function sumberPustakaSaveImport(Request $request)
+    {
+        DaftarPustaka::ensurePublicPrivateEnum();
+
+        $selectedIndexes = $request->input('selected_indexes', []);
+        $sources = session('uploaded_sources', []);
+
+        $saved = 0;
+        foreach ($sources as $idx => $src) {
+            if (empty($selectedIndexes) || in_array((string) $idx, $selectedIndexes, true)) {
+                $judulName = substr(trim($src['judul'] ?? ''), 0, 100);
+                $linkName  = substr(trim($src['link'] ?? ''), 0, 60);
+
+                if ($judulName === '' && $linkName !== '') {
+                    $judulName = $linkName;
+                }
+
+                if ($linkName !== '') {
+                    DaftarPustaka::updateOrCreate([
+                        'link' => $linkName,
+                    ], [
+                        'judul'  => $judulName,
+                        'upload' => null,
+                    ]);
+                    $saved++;
+                }
+            }
+        }
+
+        session()->forget(['uploaded_sources', 'uploaded_sources_file']);
+
+        return redirect()->route('validator.sumberpustaka')
+            ->with('success', "{$saved} tautan sumber pustaka berhasil disimpan ke tabel tdaftarpustaka!");
+    }
+
+    public function sumberPustakaCancelImport()
+    {
+        session()->forget(['uploaded_sources', 'uploaded_sources_file']);
+        return redirect()->route('validator.sumberpustaka')->with('success', 'Pratinjau import sumber pustaka dibatalkan.');
+    }
+
+    public function sumberPustakaDestroy($id)
+    {
+        $pustaka = DaftarPustaka::withCount('faqVersions')->findOrFail($id);
+        $nama = $pustaka->judul_tampil;
+        if ($pustaka->faq_versions_count > 0) {
+            return redirect()->route('validator.sumberpustaka')
+                ->with('error', "Sumber pustaka '{$nama}' sedang digunakan oleh {$pustaka->faq_versions_count} versi FAQ dan tidak dapat dihapus.");
+        }
+
+        $pustaka->delete();
+
+        return redirect()->route('validator.sumberpustaka')
+            ->with('success', "Sumber pustaka '{$nama}' berhasil dihapus.");
     }
 }

@@ -380,20 +380,7 @@
         <a href="{{ url('/') }}" class="d-flex align-items-center text-decoration-none">
             <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="navbar-logo-img">
         </a>
-
-        <!-- Center: Nav Links -->
-        <div class="d-none d-md-flex align-items-center gap-1">
-            <a href="#" class="mhs-nav-link">Beranda</a>
-            <a href="{{ url('/') }}" class="mhs-nav-link active">FAQ</a>
-            <a href="#" class="mhs-nav-link">Panduan akademik</a>
-        </div>
-
         <!-- Right: Notifications & Profile -->
-        <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-link text-secondary p-1 position-relative text-decoration-none" aria-label="Notifikasi">
-                <i class="bi bi-bell fs-5"></i>
-            </button>
-        </div>
     </div>
 </nav>
 
@@ -402,13 +389,6 @@
 <!-- ========================================================================= -->
 <header class="hero-section">
     <div class="mhs-container hero-inner">
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb" class="fs-11 mb-4">
-            <a href="#" class="text-decoration-none text-muted">Beranda</a>
-            <span class="mx-1.5 text-muted">&gt;</span>
-            <strong style="color: var(--brand-maroon);">FAQ Mahasiswa</strong>
-        </nav>
-
         <div class="row align-items-center g-4">
             <!-- Left Column: Title, Subtitle & Search Bar -->
             <div class="col-lg-8 col-xl-8">

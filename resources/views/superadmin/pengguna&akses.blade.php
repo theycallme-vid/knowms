@@ -131,6 +131,18 @@
                         <i class="bi bi-list-check"></i>
                         <span>Validasi FAQ</span>
                     </a>
+                    <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Buat FAQ</span>
+                    </a>
+                    <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
+                        <i class="bi bi-tags"></i>
+                        <span>Daftar Kata Kunci</span>
+                    </a>
+                    <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
+                        <i class="bi bi-book"></i>
+                        <span>Sumber Pustaka</span>
+                    </a>
                     <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom active">
                         <i class="bi bi-people"></i>
                         <span>Pengguna &amp; Akses</span>

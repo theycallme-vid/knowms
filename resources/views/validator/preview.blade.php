@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buat FAQ - Ruang Validator | KMS</title>
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
+
+    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Data Entry External CSS -->
+    <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
+</head>
+<body>
+
+<div class="d-flex">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div>
+            <!-- KMS Brand Header -->
+            <div class="sidebar-brand">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
+            </div>
+
+            <!-- Role Badge -->
+            <div>
+                <span class="role-pill">Ruang Validator</span>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="nav flex-column">
+                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Daftar FAQ</span>
+                </a>
+                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
+                    <i class="bi bi-list-check"></i>
+                    <span>Validasi FAQ</span>
+                </a>
+                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom active">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Buat FAQ</span>
+                </a>
+                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
+                    <i class="bi bi-tags"></i>
+                    <span>Daftar Kata Kunci</span>
+                </a>
+                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
+                    <i class="bi bi-book"></i>
+                    <span>Sumber Pustaka</span>
+                </a>
+                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
+                    <i class="bi bi-people"></i>
+                    <span>Pengguna &amp; Akses</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Bottom Section of Sidebar -->
+        <div>
+            <hr class="sidebar-divider">
+            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
+                <i class="bi bi-gear"></i>
+                <span>Pengaturan Akun</span>
+            </a>
+            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Keluar</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1 min-vw-0">
+        <!-- Top Navbar (Tanpa Pencarian) -->
+        @php
+            $tbUser = auth()->user();
+            if ($tbUser && !$tbUser->relationLoaded('role')) {
+                $tbUser->load('role');
+            }
+            $tbRole = $tbUser?->getRoleName() ?: 'Validator';
+            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $tbUser?->email ?? '';
+            $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('') ?: 'KM';
+        @endphp
+        <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- Left: Mobile Toggle & Breadcrumb -->
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+                <div class="top-breadcrumb d-flex align-items-center">
+                    <i class="bi bi-house me-2"></i>
+                    <span>Ruang kerja</span>
+                    <span class="crumb-sep">/</span>
+                    <span>{{ $tbRole }}</span>
+                    <span class="crumb-sep">/</span>
+                    <span class="crumb-current">Buat FAQ</span>
+                </div>
+            </div>
+
+            <!-- Right: Notification & Profile -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="top-icon-btn" aria-label="Notifikasi">
+                    <i class="bi bi-bell fs-5"></i>
+                </button>
+
+                <div class="dropdown">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="avatar-circle">{{ $tbInitials }}</div>
+                        <div class="d-none d-sm-block text-start lh-sm">
+                            <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
+                        </div>
+                        <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end profile-dropdown mt-2">
+                        <li>
+                            <div class="px-3 py-2 mb-1 border-bottom">
+                                <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                                <div class="fs-11 text-muted">{{ $tbEmail }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
+                                <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="javascript:void(0)" onclick="openLogoutModal()">
+                                <i class="bi bi-box-arrow-right"></i> Keluar
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <a href="{{ route('validator.daftarFAQ') }}" class="back-link mb-0">
+                    <i class="bi bi-chevron-left"></i>
+                    <span>Daftar FAQ</span>
+                </a>
+                <span class="text-muted fs-12">&middot;</span>
+                <a href="{{ route('validator.buatfaq') }}" class="back-link mb-0">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Mode Input Satuan</span>
+                </a>
+            </div>
+
+            <!-- Header: Judul Buat FAQ + Badge Pratinjau unggahan & Nama File + Unggah File -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h1 class="page-title mb-0">Buat FAQ</h1>
+                        <span class="badge-pratinjau">Pratinjau unggahan</span>
+                    </div>
+                    <p class="text-muted fs-14 mb-0 mt-1">
+                        Tinjau setiap FAQ dari file yang diunggah sebelum diajukan ke validator.
+                    </p>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <div class="file-pill-box">
+                        <i class="bi bi-file-earmark-spreadsheet text-success"></i>
+                        <span id="activeFileName">{{ $fileName ?? 'FAQ_Akademik_2026.xlsx' }}</span>
+                    </div>
+                    <button type="button" class="btn-outline-maroon text-nowrap" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="bi bi-upload"></i><span>Unggah File</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Pills & Search Bar -->
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" onclick="setFilter('all', this)" class="preview-filter-pill active" data-filter="all">
+                        <span>Semua</span>
+                        <span class="preview-filter-count" id="badgeCountAll">{{ count($items) }}</span>
+                    </button>
+                    <button type="button" onclick="setFilter('incomplete', this)" class="preview-filter-pill" data-filter="incomplete">
+                        <span>Belum lengkap</span>
+                        <span class="preview-filter-count" id="badgeCountIncomplete">0</span>
+                    </button>
+                    <button type="button" onclick="setFilter('ready', this)" class="preview-filter-pill" data-filter="ready">
+                        <span>Siap diajukan</span>
+                        <span class="preview-filter-count" id="badgeCountReady">0</span>
+                    </button>
+                </div>
+
+                <div class="position-relative" style="min-width: 260px;">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted fs-12"></i>
+                    <input type="text" id="searchInput" oninput="filterFaqs()" class="form-control form-control-sm rounded-3 ps-5 fs-13" placeholder="Cari pertanyaan...">
+                </div>
+            </div>
+
+            @php
+                $simService = app(\App\Services\FaqSimilarityService::class);
+                $exactDuplicateCount = 0;
+                $similarCount = 0;
+
+                foreach ($items as $idx => $it) {
+                    if (!array_key_exists('has_exact_match', $it)) {
+                        $an = $simService->analyzeQuestion((string) ($it['pertanyaan'] ?? ''), null, 50.0);
+                        $items[$idx]['has_exact_match'] = $an['has_exact_match'];
+                        $items[$idx]['exact_match'] = $an['exact_match'];
+                        $items[$idx]['similar_candidates'] = $an['candidates'];
+                        $items[$idx]['max_similarity'] = $an['max_similarity'];
+                    }
+                    if (!empty($items[$idx]['has_exact_match'])) {
+                        $exactDuplicateCount++;
+                    } elseif (!empty($items[$idx]['similar_candidates'])) {
+                        $similarCount++;
+                    }
+                }
+            @endphp
+
+            @if($exactDuplicateCount > 0 || $similarCount > 0)
+                <div class="alert {{ $exactDuplicateCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }} rounded-4 p-3 mb-3 fs-13">
+                    <div class="d-flex align-items-start gap-2.5">
+                        <i class="bi {{ $exactDuplicateCount > 0 ? 'bi-exclamation-octagon-fill text-danger' : 'bi-info-circle-fill text-warning' }} fs-5 mt-0.5"></i>
+                        <div>
+                            <div class="fw-bold text-dark mb-0.5">Hasil Pengecekan Duplikat &amp; Kemiripan File Import</div>
+                            <div class="text-secondary fs-12">
+                                @if($exactDuplicateCount > 0)
+                                    Terdapat <strong class="text-danger">{{ $exactDuplicateCount }} baris pertanyaan</strong> yang terdeteksi <strong>100% sama (duplikat)</strong> dengan FAQ yang sedang berstatus <strong>Terbit</strong> atau <strong>Menunggu Validasi</strong> di database.
+                                @endif
+                                @if($similarCount > 0)
+                                    Ditemukan pula <strong>{{ $similarCount }} baris pertanyaan</strong> yang memiliki kemiripan makna dengan FAQ yang sudah ada.
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Tabel Pratinjau -->
+            <div class="preview-table-card">
+                <div class="table-responsive">
+                    <table class="table faq-table align-middle mb-0" id="previewTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px;" class="text-center">
+                                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input" onchange="toggleSelectAll(this)">
+                                </th>
+                                <th style="width: 120px;">KODE / VERSI</th>
+                                <th style="min-width: 280px;">PERTANYAAN & JAWABAN</th>
+                                <th style="min-width: 190px;">KATA KUNCI</th>
+                                <th style="min-width: 190px;">SUMBER PUSTAKA</th>
+                                <th style="width: 130px;">STATUS</th>
+                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            @foreach($items as $item)
+                                @php
+                                    $rowKey = $item['row_key'] ?? $item['version_id'] ?? ($item['id'] . '-V1');
+                                    $verId = $item['version_id'] ?? ($item['id'] . '-V1');
+                                    $verLabel = $item['version'] ?? 'Versi 1';
+                                @endphp
+                                <tr class="faq-row {{ !empty($item['checked']) ? 'preview-row-selected' : '' }}"
+                                    data-status="{{ $item['status'] }}"
+                                    data-id="{{ $item['id'] }}"
+                                    data-row-key="{{ $rowKey }}"
+                                    data-version-id="{{ $verId }}"
+                                    data-version="{{ $verLabel }}"
+                                    data-pertanyaan="{{ e($item['pertanyaan']) }}"
+                                    data-jawaban="{{ e($item['jawaban']) }}"
+                                    data-tags="{{ e(implode(', ', $item['tags'] ?? [])) }}"
+                                    data-pustaka-judul="{{ e($item['pustaka_judul'] ?? '') }}"
+                                    data-pustaka-bagian="{{ e($item['pustaka_bagian'] ?? '') }}"
+                                    id="row-{{ $rowKey }}">
+                                    <td class="text-center">
+                                        <input type="checkbox"
+                                               class="form-check-input row-checkbox"
+                                               value="{{ $rowKey }}"
+                                               {{ !empty($item['checked']) ? 'checked' : '' }}
+                                               onchange="handleRowCheckboxChange(this, '{{ $rowKey }}')">
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-dark fs-12">{{ $item['id'] }}</div>
+                                        <div class="fs-11 text-muted">{{ $verId }} ({{ $verLabel }})</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-dark fs-13 line-clamp-1 mb-0.5 faq-pertanyaan">{{ $item['pertanyaan'] }}</div>
+                                        <div class="fs-12 text-muted line-clamp-1 faq-jawaban">{{ strip_tags($item['jawaban']) }}</div>
+
+                                        <div class="faq-similarity-box mt-1">
+                                            @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
+                                                @php
+                                                    $em = $item['exact_match'];
+                                                    $stLabel = $em['status_label'] ?? 'Terbit';
+                                                @endphp
+                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">
+                                                    <i class="bi bi-exclamation-octagon-fill"></i>
+                                                    <span>Peringatan: Mirip 100% dengan <strong>{{ $em['id'] }}</strong> (Kondisi: <strong>{{ $stLabel }}</strong>)</span>
+                                                </div>
+                                            @elseif(!empty($item['similar_candidates']))
+                                                @php
+                                                    $topCand = $item['similar_candidates'][0];
+                                                    $candLabel = $topCand['status_label'] ?? 'Terbit';
+                                                @endphp
+                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-warning-subtle text-dark border border-warning-subtle fs-11">
+                                                    <i class="bi bi-info-circle-fill text-warning"></i>
+                                                    <span>Mirip <strong>{{ $topCand['similarity'] }}%</strong> dengan <strong>{{ $topCand['id'] }}</strong> ({{ $candLabel }}: "{{ \Illuminate\Support\Str::limit($topCand['pertanyaan'], 48) }}")</span>
+                                                </div>
+                                            @endif
+
+                                            @if(!empty($item['in_file_duplicate']))
+                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-secondary-subtle text-secondary border fs-11 mt-0.5">
+                                                    <i class="bi bi-files"></i>
+                                                    <span>Duplikat di dalam file yang sama dengan <strong>{{ $item['in_file_duplicate'] }}</strong></span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1 faq-tags-container">
+                                            @if(!empty($item['tags']))
+                                                @foreach($item['tags'] as $tag)
+                                                    <span class="keyword-pill-blue">{{ $tag }}</span>
+                                                @endforeach
+                                            @else
+                                                <div class="fw-bold text-danger fs-12">Belum diisi</div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if(!empty($item['pustaka_judul']))
+                                            <div class="fw-bold text-dark fs-13 line-clamp-1 faq-pustaka-judul">{{ $item['pustaka_judul'] }}</div>
+                                        @else
+                                            <div class="text-muted fs-12 faq-pustaka-judul">Tidak ada (Opsional)</div>
+                                        @endif
+                                    </td>
+                                    <td class="faq-status-cell">
+                                        @php
+                                            $exactStatusLabel = $item['exact_match']['status_label'] ?? '';
+                                            $isWaitingValPreview = (strtolower($item['status'] ?? '') === 'submitted') || ($exactStatusLabel === 'Menunggu Validasi');
+                                        @endphp
+                                        @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
+                                            <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-11 d-inline-block mb-1">
+                                                Duplikat 100% ({{ $exactStatusLabel ?: 'Terbit' }})
+                                            </span>
+                                        @endif
+                                        @if($isWaitingValPreview)
+                                            <span class="badge-status badge-status-validasi">Menunggu Validasi</span>
+                                        @elseif($item['status'] === 'ready')
+                                            <span class="badge-ready">Siap diajukan</span>
+                                        @else
+                                            <span class="badge-incomplete">Belum lengkap</span>
+                                        @endif
+                                    </td>
+                                    <td style="text-align: right;" class="text-nowrap">
+                                        <div class="d-inline-flex align-items-center gap-2">
+                                            @if($isWaitingValPreview)
+                                                <button type="button" class="btn-table-edit action-icon-disabled" style="opacity: 0.5; cursor: not-allowed;" title="Terkunci — Sedang Menunggu Validasi" disabled>
+                                                    <i class="bi bi-pencil"></i> Ubah
+                                                </button>
+                                            @else
+                                                <button type="button" class="btn-table-edit" onclick="openEditModal('{{ $rowKey }}')">
+                                                    <i class="bi bi-pencil"></i> Ubah
+                                                </button>
+                                            @endif
+                                            <button type="button" class="btn-table-delete" onclick="deleteRow('{{ $rowKey }}')">
+                                                <i class="bi bi-trash3"></i> Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Tabel -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center px-4 py-3 border-top bg-white fs-12 text-muted">
+                    <div>
+                        Menampilkan <span id="visibleCounter">{{ count($items) }}</span> dari <span id="totalCounter">{{ count($items) }}</span> FAQ &middot; <span id="selectedCounterText">0 dipilih</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="page-pill"><i class="bi bi-chevron-left"></i></span>
+                        <span class="page-pill active">1</span>
+                        <span class="page-pill"><i class="bi bi-chevron-right"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Submit Pratinjau -->
+            <form id="submitPratinjauForm" action="{{ route('validator.pratinjau.submit') }}" method="POST">
+                @csrf
+                <input type="hidden" name="action" id="submitActionInput" value="submit">
+                <input type="hidden" name="items_json" id="itemsJsonInput">
+                <div id="selectedIdsContainer"></div>
+
+                <!-- Sticky Bottom Action Bar (Validator: Langsung Masuk ke Validasi FAQ & Siap Terbit) -->
+                <div class="sticky-bottom-bar d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="selected-pill-badge" id="bottomPillCount">0 dipilih</span>
+                        <span class="fs-12 text-muted">FAQ yang disimpan akan langsung masuk ke halaman Validasi FAQ (status Diterima) dan siap diterbitkan.</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" onclick="submitSelectedForValidation()" class="btn-submit-validasi">
+                            <i class="bi bi-send-check"></i>
+                            <span id="btnSubmitValidationText">Simpan &amp; Siap Terbit (0)</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Edit Baris Pratinjau FAQ -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold fs-16" id="modalEditTitle">Edit FAQ</h5>
+                    <div class="fs-12 text-muted">Lengkapi pertanyaan, jawaban, pilih kata kunci, dan sumber pustaka agar siap diajukan.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editRowId">
+
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Pertanyaan FAQ</label>
+                    <textarea id="modalEditPertanyaan" rows="2" class="form-control fs-13 rounded-3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Jawaban FAQ</label>
+                    <textarea id="modalEditJawaban" rows="3" class="form-control fs-13 rounded-3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-custom form-label-required">Kata Kunci (Pilih dari Daftar Kata Kunci)</label>
+                    <input type="hidden" id="modalEditTags">
+
+                    <!-- Kata kunci yang sudah dipilih -->
+                    <div id="modalSelectedTagsBox" class="d-flex flex-wrap gap-1 p-2 rounded-3 border bg-white mb-2" style="min-height: 38px;">
+                        <span class="text-muted fs-12">Belum ada kata kunci dipilih</span>
+                    </div>
+
+                    <!-- Pencarian & Daftar Kata Kunci yang Bisa Di-scroll -->
+                    <div class="p-2.5 bg-light border rounded-3">
+                        <div class="position-relative mb-2">
+                            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted fs-12"></i>
+                            <input type="text"
+                                   id="searchModalTagInput"
+                                   class="form-control form-control-sm rounded-3 ps-4 fs-12"
+                                   placeholder="Cari kata kunci di Daftar Kata Kunci..."
+                                   oninput="filterModalTagChoices(this.value)">
+                        </div>
+                        <div id="modalTagChoiceContainer" class="d-flex flex-wrap gap-1" style="max-height: 115px; overflow-y: auto;">
+                            @if(isset($tags) && $tags->isNotEmpty())
+                                @foreach($tags as $t)
+                                    <button type="button"
+                                            class="btn btn-sm btn-white border rounded-pill fs-11 py-0.5 px-2.5 modal-tag-choice"
+                                            data-tag-name="{{ $t->nama }}"
+                                            onclick="appendExistingTagToModal('{{ addslashes($t->nama) }}')">
+                                        + {{ $t->nama }}
+                                    </button>
+                                @endforeach
+                            @else
+                                <span class="text-muted fs-12">Belum ada kata kunci terdaftar di Daftar Kata Kunci.</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label-custom form-label-required">Dokumen / Link Sumber Pustaka</label>
+                    <select id="modalEditJudulPustaka" class="form-select fs-13 rounded-3">
+                        <option value="">-- Pilih Sumber Pustaka yang Sudah Terdaftar --</option>
+                        @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
+                            @foreach($daftarPustaka as $dp)
+                                <option value="{{ $dp->judul_tampil }}">{{ $dp->judul_tampil }} ({{ ucfirst(strtolower($dp->type)) }})</option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-sm btn-maroon px-3" onclick="saveEditedFaq()">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Unggah File Baru -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <form action="{{ route('validator.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="reuploadExcelForm">
+                @csrf
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold fs-16">Unggah File FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="upload-dropzone mb-3">
+                        <i class="bi bi-file-earmark-spreadsheet fs-1 text-success mb-2 d-block"></i>
+                        <div class="fw-semibold text-dark fs-14 mb-1">Tarik & lepas file di sini</div>
+                        <div class="text-muted fs-12 mb-3">Mendukung format .XLSX, .CSV, atau .PDF hingga 10MB</div>
+                        <label class="btn btn-sm btn-white-outline">
+                            <i class="bi bi-folder2-open"></i> Pilih Dokumen
+                            <input type="file" name="file_faq" accept=".xlsx,.xls,.csv,.pdf" class="d-none" onchange="handleNewExcelUpload(this)">
+                        </label>
+                    </div>
+
+                    <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Contoh Template Unggah File:</span>
+                            <a href="{{ route('validator.template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                                <i class="bi bi-download me-1"></i>Unduh Template
+                            </a>
+                        </div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-maroon px-3">Unggah & Tinjau</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5.3 JS & SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MODAL KONFIRMASI KELUAR (LOGOUT)
+══════════════════════════════════════════════════════════════════ -->
+@php
+    $lmUser = auth()->user();
+    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
+    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
+        ->filter()
+        ->take(2)
+        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+        ->implode('') ?: 'KM';
+@endphp
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+    @csrf
+</form>
+
+<div class="modal fade" id="modalLogoutConfirm" tabindex="-1" aria-labelledby="modalLogoutTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content kms-modal-content">
+            <div class="kms-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="kms-modal-badge-icon" style="background-color: #FEF2F2; color: #DC2626;">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </span>
+                    <h5 class="kms-modal-title" id="modalLogoutTitle">Konfirmasi Keluar</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
+            </div>
+            <div class="kms-modal-body">
+                Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
+                <div class="logout-user-card">
+                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="lh-sm">
+                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
+                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kms-modal-footer">
+                <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-kms-primary" id="btnConfirmLogout" onclick="submitLogout(this)">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Ya, Keluar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const el = document.getElementById('modalLogoutConfirm');
+        if (window.bootstrap && el) {
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        } else if (confirm('Apakah Anda yakin ingin keluar dari sistem KMS?')) {
+            document.getElementById('logout-form').submit();
+        }
+    }
+
+    function confirmLogout() {
+        openLogoutModal();
+    }
+
+    function submitLogout(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Memproses...</span>';
+        }
+        document.getElementById('logout-form').submit();
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    let currentFilter = 'all';
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('show');
+        document.getElementById('sidebarBackdrop').classList.toggle('d-none');
+    }
+
+
+
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function updateCounters() {
+        const rows = document.querySelectorAll('.faq-row');
+        const total = rows.length;
+        let readyCount = 0;
+        let incompleteCount = 0;
+        let selectedCount = 0;
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const st = row.getAttribute('data-status');
+            const cb = row.querySelector('.row-checkbox');
+            if (st === 'ready') readyCount++;
+            if (st === 'incomplete') incompleteCount++;
+            if (cb && cb.checked) selectedCount++;
+            if (row.style.display !== 'none') visibleCount++;
+        });
+
+        document.getElementById('badgeCountAll').textContent = total;
+        document.getElementById('badgeCountReady').textContent = readyCount;
+        document.getElementById('badgeCountIncomplete').textContent = incompleteCount;
+
+        const selectedText = `${selectedCount} dipilih`;
+        document.getElementById('bottomPillCount').textContent = selectedText;
+        document.getElementById('selectedCounterText').textContent = selectedText;
+        document.getElementById('btnSubmitValidationText').textContent = `Simpan & Siap Terbit (${selectedCount})`;
+        document.getElementById('totalCounter').textContent = total;
+        document.getElementById('visibleCounter').textContent = visibleCount;
+    }
+
+    function setFilter(filterType, element) {
+        currentFilter = filterType;
+        document.querySelectorAll('.preview-filter-pill').forEach(btn => btn.classList.remove('active'));
+        if (element) element.classList.add('active');
+        filterFaqs();
+    }
+
+    function filterFaqs() {
+        const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+        document.querySelectorAll('.faq-row').forEach(row => {
+            const st = row.getAttribute('data-status');
+            const text = row.textContent.toLowerCase();
+            const matchFilter = (currentFilter === 'all') || (st === currentFilter);
+            const matchSearch = !query || text.includes(query);
+            row.style.display = (matchFilter && matchSearch) ? '' : 'none';
+        });
+        updateCounters();
+    }
+
+    function toggleSelectAll(masterCb) {
+        const isChecked = masterCb.checked;
+        document.querySelectorAll('.faq-row:not([style*="display: none"])').forEach(row => {
+            const cb = row.querySelector('.row-checkbox');
+            if (cb) {
+                cb.checked = isChecked;
+                row.classList.toggle('preview-row-selected', isChecked);
+            }
+        });
+        updateCounters();
+    }
+
+    function handleRowCheckboxChange(cb, rowId) {
+        const row = document.getElementById('row-' + rowId);
+        if (row) row.classList.toggle('preview-row-selected', cb.checked);
+        updateCounters();
+    }
+
+    // Edit Modal
+    function openEditModal(rowId) {
+        const row = document.getElementById('row-' + rowId);
+        if (!row) return;
+
+        const faqCode = row.getAttribute('data-id') || rowId;
+        const verId = row.getAttribute('data-version-id') || rowId;
+        const currentPustaka = row.getAttribute('data-pustaka-judul') || '';
+
+        document.getElementById('editRowId').value = rowId;
+        document.getElementById('modalEditTitle').textContent = `Edit FAQ - ${faqCode} (${verId})`;
+        document.getElementById('modalEditPertanyaan').value = row.getAttribute('data-pertanyaan') || '';
+        document.getElementById('modalEditJawaban').value = row.getAttribute('data-jawaban') || '';
+        document.getElementById('modalEditTags').value = row.getAttribute('data-tags') || '';
+
+        const searchTagInput = document.getElementById('searchModalTagInput');
+        if (searchTagInput) {
+            searchTagInput.value = '';
+            filterModalTagChoices('');
+        }
+
+        const pustakaSelect = document.getElementById('modalEditJudulPustaka');
+        if (pustakaSelect) {
+            let matched = false;
+            Array.from(pustakaSelect.options).forEach(opt => {
+                if (opt.value && opt.value.toLowerCase() === currentPustaka.toLowerCase()) {
+                    pustakaSelect.value = opt.value;
+                    matched = true;
+                }
+            });
+            if (!matched) pustakaSelect.value = '';
+        }
+
+        highlightModalTagChoices();
+
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
+    }
+
+    function filterModalTagChoices(query) {
+        const q = (query || '').toLowerCase().trim();
+        document.querySelectorAll('.modal-tag-choice').forEach(btn => {
+            const name = (btn.getAttribute('data-tag-name') || '').toLowerCase();
+            btn.style.display = (!q || name.includes(q)) ? '' : 'none';
+        });
+    }
+
+    function appendExistingTagToModal(tagName, forceAddOnly = false) {
+        const input = document.getElementById('modalEditTags');
+        if (!input) return;
+
+        const currentTags = input.value
+            ? input.value.split(',').map(t => t.trim()).filter(Boolean)
+            : [];
+
+        const existingIndex = currentTags.findIndex(t => t.toLowerCase() === tagName.trim().toLowerCase());
+        if (existingIndex === -1) {
+            currentTags.push(tagName.trim());
+        } else if (!forceAddOnly) {
+            currentTags.splice(existingIndex, 1);
+        }
+
+        input.value = currentTags.join(', ');
+        highlightModalTagChoices();
+    }
+
+    function removeTagFromModal(tagName) {
+        appendExistingTagToModal(tagName, false);
+    }
+
+    function highlightModalTagChoices() {
+        const input = document.getElementById('modalEditTags');
+        if (!input) return;
+
+        const rawTags = input.value
+            ? input.value.split(',').map(t => t.trim()).filter(Boolean)
+            : [];
+        const activeTags = rawTags.map(t => t.toLowerCase());
+
+        const selectedBox = document.getElementById('modalSelectedTagsBox');
+        if (selectedBox) {
+            if (rawTags.length > 0) {
+                selectedBox.innerHTML = rawTags.map(t => `
+                    <span class="keyword-pill-blue d-inline-flex align-items-center gap-1">
+                        <span>${escHtml(t)}</span>
+                        <button type="button" class="btn-close" style="font-size: 0.55rem;" onclick="removeTagFromModal('${escHtml(t).replace(/'/g, "\\'")}')"></button>
+                    </span>
+                `).join('');
+            } else {
+                selectedBox.innerHTML = `<span class="text-muted fs-12">Belum ada kata kunci dipilih</span>`;
+            }
+        }
+
+        document.querySelectorAll('.modal-tag-choice').forEach(btn => {
+            const name = (btn.getAttribute('data-tag-name') || '').trim();
+            const isSelected = activeTags.includes(name.toLowerCase());
+            if (isSelected) {
+                btn.classList.remove('btn-white', 'border');
+                btn.classList.add('btn-primary', 'text-white');
+                btn.textContent = '✓ ' + name;
+            } else {
+                btn.classList.add('btn-white', 'border');
+                btn.classList.remove('btn-primary', 'text-white');
+                btn.textContent = '+ ' + name;
+            }
+        });
+    }
+
+    function saveEditedFaq() {
+        const rowId = document.getElementById('editRowId').value;
+        const row = document.getElementById('row-' + rowId);
+        if (!row) return;
+
+        const pertanyaan = document.getElementById('modalEditPertanyaan').value.trim();
+        const jawaban = document.getElementById('modalEditJawaban').value.trim();
+        const tagsRaw = document.getElementById('modalEditTags').value.trim();
+        const pustakaJudul = document.getElementById('modalEditJudulPustaka').value.trim();
+
+        const tagsArr = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const isReady = (pertanyaan !== '' && jawaban !== '' && tagsArr.length > 0);
+        const newStatus = isReady ? 'ready' : 'incomplete';
+
+        // Update atribut data pada baris DOM
+        row.setAttribute('data-pertanyaan', pertanyaan);
+        row.setAttribute('data-jawaban', jawaban);
+        row.setAttribute('data-tags', tagsArr.join(', '));
+        row.setAttribute('data-pustaka-judul', pustakaJudul);
+        row.setAttribute('data-status', newStatus);
+
+        row.querySelector('.faq-pertanyaan').textContent = pertanyaan;
+        row.querySelector('.faq-jawaban').textContent = jawaban;
+
+        const tagsContainer = row.querySelector('.faq-tags-container');
+        if (tagsArr.length > 0) {
+            tagsContainer.innerHTML = tagsArr.map(t => `<span class="keyword-pill-blue">${escHtml(t)}</span>`).join('');
+        } else {
+            tagsContainer.innerHTML = `<div class="fw-bold text-danger fs-12">Belum diisi</div>`;
+        }
+
+        const judulEl = row.querySelector('.faq-pustaka-judul');
+        if (judulEl) {
+            if (pustakaJudul) {
+                judulEl.textContent = pustakaJudul;
+                judulEl.classList.remove('text-danger', 'text-muted', 'fs-12');
+                judulEl.classList.add('fw-bold', 'text-dark', 'fs-13');
+            } else {
+                judulEl.textContent = 'Tidak ada (Opsional)';
+                judulEl.classList.remove('fw-bold', 'text-dark', 'text-danger', 'fs-13');
+                judulEl.classList.add('text-muted', 'fs-12');
+            }
+        }
+
+        const statusCell = row.querySelector('.faq-status-cell');
+        if (isReady) {
+            statusCell.innerHTML = `<span class="badge-ready">Siap diajukan</span>`;
+            const cb = row.querySelector('.row-checkbox');
+            if (cb) {
+                cb.checked = true;
+                row.classList.add('preview-row-selected');
+            }
+        } else {
+            statusCell.innerHTML = `<span class="badge-incomplete">Belum lengkap</span>`;
+        }
+
+        // Kirim juga ke session backend via AJAX
+        fetch(`{{ route('validator.pratinjau.updateItem') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                id: rowId,
+                pertanyaan: pertanyaan,
+                jawaban: jawaban,
+                tags: tagsArr.join(','),
+                pustaka_judul: pustakaJudul
+            })
+        }).catch(() => {});
+
+        bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();
+        filterFaqs();
+    }
+
+    function deleteRow(rowId) {
+        Swal.fire({
+            title: 'Hapus ' + rowId + ' dari Pratinjau?',
+            text: 'Baris ini akan dihapus dari daftar unggahan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#85172C',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((res) => {
+            if (res.isConfirmed) {
+                document.getElementById('row-' + rowId)?.remove();
+                fetch(`{{ route('validator.pratinjau.deleteItem') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ id: rowId })
+                }).catch(() => {});
+                updateCounters();
+            }
+        });
+    }
+
+    function collectCurrentItemsState() {
+        const items = [];
+        document.querySelectorAll('.faq-row').forEach(row => {
+            const tagsStr = row.getAttribute('data-tags') || '';
+            const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+            items.push({
+                row_key: row.getAttribute('data-row-key') || row.getAttribute('data-version-id') || row.getAttribute('data-id'),
+                id: row.getAttribute('data-id'),
+                version_id: row.getAttribute('data-version-id') || (row.getAttribute('data-id') + '-V1'),
+                version: row.getAttribute('data-version') || 'Versi 1',
+                pertanyaan: row.getAttribute('data-pertanyaan') || '',
+                jawaban: row.getAttribute('data-jawaban') || '',
+                tags: tags,
+                pustaka_judul: row.getAttribute('data-pustaka-judul') || '',
+                pustaka_bagian: row.getAttribute('data-pustaka-bagian') || '',
+                status: row.getAttribute('data-status') || 'incomplete'
+            });
+        });
+        return items;
+    }
+
+    function submitFormWithAction(actionType) {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Belum Ada FAQ Dipilih',
+                text: 'Centang minimal 1 baris FAQ pada tabel terlebih dahulu.',
+                confirmButtonColor: '#85172C'
+            });
+            return;
+        }
+
+        // Jika ingin mengajukan validasi, cek apakah ada yang belum memiliki Kata Kunci
+        if (actionType === 'submit') {
+            const incompleteIds = [];
+            checkedBoxes.forEach(cb => {
+                const r = cb.closest('.faq-row');
+                if (r) {
+                    const rowCode = r.getAttribute('data-id') || cb.value;
+                    const tStr = (r.getAttribute('data-tags') || '').trim();
+                    if (!tStr || r.getAttribute('data-status') !== 'ready') {
+                        incompleteIds.push(rowCode);
+                    }
+                }
+            });
+
+            if (incompleteIds.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Kata Kunci Belum Lengkap',
+                    html: `Peringatan: FAQ (<strong>${escHtml(incompleteIds.join(', '))}</strong>) belum memiliki <strong>Kata Kunci</strong>.<br><br>Klik tombol <strong>Ubah</strong> pada baris tersebut untuk melengkapi, atau klik <strong>Simpan Draf</strong> terlebih dahulu.`,
+                    confirmButtonColor: '#85172C'
+                });
+                return;
+            }
+        }
+
+        const container = document.getElementById('selectedIdsContainer');
+        container.innerHTML = '';
+        checkedBoxes.forEach(cb => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'selected_ids[]';
+            inp.value = cb.value;
+            container.appendChild(inp);
+        });
+
+        document.getElementById('submitActionInput').value = actionType;
+        document.getElementById('itemsJsonInput').value = JSON.stringify(collectCurrentItemsState());
+        document.getElementById('submitPratinjauForm').submit();
+    }
+
+    function saveAsDraft() {
+        submitFormWithAction('draft');
+    }
+
+    function submitSelectedForValidation() {
+        const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+        if (checkedCount === 0) {
+            submitFormWithAction('submit');
+            return;
+        }
+
+        Swal.fire({
+            title: `Simpan ${checkedCount} FAQ ke Antrean Siap Terbit?`,
+            text: 'FAQ yang dipilih akan langsung masuk ke halaman Validasi FAQ dengan status Diterima dan tinggal diterbitkan tanpa perlu disetujui lagi.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#85172C',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Simpan & Siap Terbit',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((res) => {
+            if (res.isConfirmed) submitFormWithAction('submit');
+        });
+    }
+
+    function handleNewExcelUpload(input) {
+        if (input.files && input.files[0]) {
+            Swal.fire({
+                title: 'Membaca & Mengonversi File...',
+                text: 'Sedang memproses ' + input.files[0].name,
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            document.getElementById('reuploadExcelForm').submit();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updateCounters();
+    });
+
+    @if(session('success'))
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: "{{ session('success') }}",
+            showConfirmButton: false,
+            timer: 3500
+        });
+    });
+    @endif
+
+    @if(session('error'))
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            icon: 'error',
+            title: 'Perhatian',
+            text: "{{ session('error') }}",
+            confirmButtonColor: '#85172C'
+        });
+    });
+    @endif
+</script>
+</body>
+</html>
