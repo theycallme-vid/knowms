@@ -87,6 +87,14 @@ class ValidatorFaqController extends Controller
             };
 
             $faqs = $query->paginate(6)->withQueryString();
+            $interactionSummary = \App\Models\LogMahasiswa::getFaqInteractionSummary($faqs->getCollection()->pluck('id')->all());
+            $faqs->getCollection()->transform(function ($f) use ($interactionSummary) {
+                $st = $interactionSummary[$f->id] ?? ['views' => 0, 'likes' => 0, 'dislikes' => 0];
+                $f->views_count    = $st['views'];
+                $f->likes_count    = $st['likes'];
+                $f->dislikes_count = $st['dislikes'];
+                return $f;
+            });
 
             $statBase = Faq::query()->whereHas('versions', fn ($q) => $q->where('status', '!=', 'Draf'));
             if ($selectedKataKunci !== 'Semua') {
@@ -424,6 +432,7 @@ class ValidatorFaqController extends Controller
 
         $terbitVer = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
         $displayLatest = $terbitVer ?? $faq->versions->first();
+        $st = \App\Models\LogMahasiswa::getFaqInteractionSummary([$faq->id])[$faq->id] ?? ['views' => 0, 'likes' => 0, 'dislikes' => 0];
 
         return response()->json([
             'status' => 'success',
@@ -433,6 +442,9 @@ class ValidatorFaqController extends Controller
                 'created_at'     => $faq->created_at ? $faq->created_at->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-',
                 'data_entry'     => $faq->dataEntry?->nama,
                 'tags'           => $faq->tags->pluck('nama'),
+                'views_count'    => $st['views'],
+                'likes_count'    => $st['likes'],
+                'dislikes_count' => $st['dislikes'],
                 'latest_version' => $displayLatest,
                 'versions'       => $faq->versions->map(function ($v) {
                     $ts = $v->updated_at ?? $v->created_at;

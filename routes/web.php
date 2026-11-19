@@ -17,8 +17,43 @@ Route::get('/simulator', function () {
     return response()->file(base_path('index.php'));
 })->name('simulator');
 
-// HALAMAN PUBLIK: FAQ Mahasiswa
+// HALAMAN / ENDPOINT: Eksekusi FaqSeederReady (Semua FAQ Langsung Terbit Tanpa Perlu ACC)
+Route::get('/faq-seeder-ready', function () {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', [
+        '--class' => 'Database\\Seeders\\FaqSeederReady',
+        '--force' => true,
+    ]);
+    $totalFaq  = \App\Models\Faq::count();
+    $activeFaq = \App\Models\Faq::whereHas('versions', fn ($q) => $q->whereIn('status', ['Terbit', 'terbit']))->count();
+
+    return response("
+        <div style='font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; padding: 40px; max-width: 620px; margin: 40px auto; border: 1px solid #E2E8F0; border-radius: 16px; background: #FFFFFF; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);'>
+            <div style='display:inline-block; padding: 6px 12px; background: #ECFDF5; color: #059669; font-size: 12px; font-weight: 700; border-radius: 9999px; margin-bottom: 12px;'>STATUS: BERHASIL DITERBITKAN</div>
+            <h2 style='color: #171A1F; margin: 0 0 12px 0; font-size: 22px;'>FaqSeederReady Selesai Dijalankan!</h2>
+            <p style='color: #64748B; font-size: 14px; line-height: 1.6; margin-bottom: 20px;'>Semua FAQ dari <strong>seluruh fakultas</strong> dan kategori umum telah dimasukkan ke database dengan status <strong>Active (Terbit Langsung)</strong> tanpa perlu menunggu approval validator.</p>
+            
+            <div style='background: #FAF9F5; border: 1px solid #EAEAE4; border-radius: 12px; padding: 16px; margin-bottom: 24px;'>
+                <div style='display:flex; justify-content:space-between; margin-bottom: 8px; font-size: 14px; color: #334155;'>
+                    <span>Total FAQ di Database:</span>
+                    <strong style='color:#171A1F;'>{$totalFaq} FAQ</strong>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size: 14px; color: #059669;'>
+                    <span>Total FAQ Terbit (Active):</span>
+                    <strong>{$activeFaq} FAQ</strong>
+                </div>
+            </div>
+
+            <div style='display: flex; gap: 10px;'>
+                <a href='" . route('mahasiswa.faq') . "' style='padding: 10px 18px; background: #85172C; color: #FFFFFF; text-decoration: none; border-radius: 9999px; font-size: 13px; font-weight: 600;'>Lihat di FAQ Mahasiswa &rarr;</a>
+                <a href='" . route('validator.daftarFAQ') . "' style='padding: 10px 18px; background: #FFFFFF; color: #171A1F; border: 1px solid #CBD5E1; text-decoration: none; border-radius: 9999px; font-size: 13px; font-weight: 600;'>Lihat di Daftar FAQ</a>
+            </div>
+        </div>
+    ");
+})->name('faq.seeder.ready');
+
+// HALAMAN PUBLIK: FAQ Mahasiswa & Pencatatan Log Akses Rekomendasi
 Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
+Route::post('/faq/log-access', [PortalController::class, 'logFaqAccess'])->name('faq.log-access');
 
 // HALAMAN GUEST: FAQ untuk Tamu / Pengunjung tanpa input NRP & tanpa Scan KTM
 Route::get('/guest', [GuestController::class, 'index'])->name('guest.faq');
@@ -56,6 +91,11 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     Route::get('/superadmin/pengaturan-akun', [SuperAdminPengaturanAkunController::class, 'index'])->name('superadmin.pengaturanAkun');
     Route::post('/superadmin/pengaturan-akun/profil', [SuperAdminPengaturanAkunController::class, 'updateProfile'])->name('superadmin.pengaturanAkun.profile');
     Route::post('/superadmin/pengaturan-akun/kata-sandi', [SuperAdminPengaturanAkunController::class, 'updatePassword'])->name('superadmin.pengaturanAkun.password');
+
+    // Pengaturan Sistem (Bobot Algoritma Rekomendasi & Idle Auto-Logout Mahasiswa)
+    Route::get('/superadmin/pengaturan-sistem', [PenggunaAksesController::class, 'pengaturanSistem'])->name('superadmin.pengaturanSistem');
+    Route::post('/superadmin/pengaturan-sistem/update', [PenggunaAksesController::class, 'updatePengaturanSistem'])->name('superadmin.pengaturanSistem.update');
+    Route::post('/superadmin/pengaturan-sistem/reset', [PenggunaAksesController::class, 'resetPengaturanSistem'])->name('superadmin.pengaturanSistem.reset');
 });
 
 // DAFTAR FAQ & AKSI VALIDATOR (Dapat diakses Validator & Super Admin)

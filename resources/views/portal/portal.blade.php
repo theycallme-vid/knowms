@@ -527,19 +527,26 @@
     }
 
     /**
-     * Memvalidasi ketentuan NRP:
+     * Memvalidasi ketentuan NRP format 1ABBCCDDD:
      * 1. Wajib tepat 9 digit karakter angka (0-9)
-     * 2. 2 karakter terdepan wajib terdaftar di PortalController::FAKULTAS_MAP
+     * 2. 1A (digit 1-2) wajib terdaftar di PortalController::FAKULTAS_MAP
+     * 3. BB (digit 3-4) adalah kode prodi
+     * 4. CC (digit 5-6) adalah kode angkatan (misal: 23 -> 2023)
      */
     function validateNrpValue(nrp) {
         if (!/^\d{9}$/.test(nrp)) {
             return {
                 valid: false,
-                message: 'NRP harus terdiri dari tepat 9 digit angka (contoh: 160423018).'
+                message: 'NRP harus terdiri dari tepat 9 digit angka dengan format 1ABBCCDDD (contoh: 160423018).'
             };
         }
 
         const kodeFakultas = nrp.substring(0, 2);
+        const kodeProdi    = nrp.substring(2, 4);
+        const kodeAngkatan = nrp.substring(4, 6);
+        const tahunAngkatan = 2000 + parseInt(kodeAngkatan, 10);
+        const maxYear = new Date().getFullYear() + 1;
+
         if (!Object.prototype.hasOwnProperty.call(fakultasMap, kodeFakultas)) {
             return {
                 valid: false,
@@ -547,16 +554,26 @@
             };
         }
 
+        if (isNaN(tahunAngkatan) || tahunAngkatan < 2010 || tahunAngkatan > maxYear) {
+            return {
+                valid: false,
+                message: `Kode angkatan '${kodeAngkatan}' (tahun ${tahunAngkatan}) pada NRP tidak valid.`
+            };
+        }
+
         return {
             valid: true,
             kodeFakultas: kodeFakultas,
-            namaFakultas: fakultasMap[kodeFakultas]
+            namaFakultas: fakultasMap[kodeFakultas],
+            kodeProdi: kodeProdi,
+            kodeAngkatan: kodeAngkatan,
+            tahunAngkatan: tahunAngkatan
         };
     }
 
     /**
      * Ketika QR Code berhasil terbaca:
-     * Mengambil string NRP, memvalidasi 9 digit & kode fakultas, lalu otomatis submit ke tsession & redirect ke FAQ
+     * Mengambil string NRP, memvalidasi 9 digit, kode fakultas, & angkatan, lalu otomatis submit ke tsession & redirect ke FAQ
      */
     function handleQrDetected(qrValue) {
         stopCamera();
@@ -578,7 +595,7 @@
 
         hideNrpError();
         showCameraAlert(
-            'QR berhasil terbaca! NRP: ' + extractedNrp + ' (' + validation.namaFakultas + '). Mengalihkan ke FAQ...',
+            'QR berhasil terbaca! NRP: ' + extractedNrp + ' (' + validation.namaFakultas + ' · Angkatan ' + validation.tahunAngkatan + '). Mengalihkan ke FAQ...',
             'success'
         );
 

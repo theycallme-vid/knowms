@@ -10,6 +10,7 @@ use Database\Seeders\UserSeeder;
 use Database\Seeders\KataKunciSeeder;
 use Database\Seeders\SumberPustakaSeeder;
 use Database\Seeders\FaqSeeder;
+use Database\Seeders\LogMahasiswaSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -26,7 +27,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             KataKunciSeeder::class,
             SumberPustakaSeeder::class,
-            // FaqSeeder::class,
+            FaqSeeder::class,
+            LogMahasiswaSeeder::class,
         ]);
     }
 }

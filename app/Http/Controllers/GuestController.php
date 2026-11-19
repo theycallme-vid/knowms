@@ -6,7 +6,9 @@ use App\Models\DaftarPustaka;
 use App\Models\Faq;
 use App\Models\FaqVersion;
 use App\Models\Session as TSession;
+use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class GuestController extends Controller
@@ -38,24 +40,50 @@ class GuestController extends Controller
         }
 
         $publishedFaqs = collect();
+        $settings = Setting::allIntValues();
+
         try {
             DaftarPustaka::ensurePublicPrivateEnum();
             FaqVersion::ensureIndonesianStatusEnum();
             FaqVersion::processDueScheduledPublications();
 
-            $publishedFaqs = Faq::with([
+            $faqs = Faq::with([
                 'tags',
                 'versions' => fn ($q) => $q->where('status', 'Terbit')->latest('updated_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
                 $q->where('status', 'Terbit');
             })->orderBy('created_at', 'desc')->get();
+
+            $logStats = DB::table('tlogmahasiswa')
+                ->leftJoin('tsession', 'tlogmahasiswa.tSession_id', '=', 'tsession.id')
+                ->whereNotNull('tlogmahasiswa.tFaqs_id')
+                ->select(
+                    'tlogmahasiswa.tFaqs_id as faq_id',
+                    'tsession.kode_fakultas as session_key',
+                    'tlogmahasiswa.jenis_interaksi',
+                    'tlogmahasiswa.keyword',
+                    'tlogmahasiswa.hasil',
+                    DB::raw('COUNT(*) as total_akses')
+                )
+                ->groupBy(
+                    'tlogmahasiswa.tFaqs_id',
+                    'tsession.kode_fakultas',
+                    'tlogmahasiswa.jenis_interaksi',
+                    'tlogmahasiswa.keyword',
+                    'tlogmahasiswa.hasil'
+                )
+                ->get();
+
+            $publishedFaqs = PortalController::rankFaqsForStudent($faqs, null, null, null, $logStats, $settings);
         } catch (Throwable $e) {
             $publishedFaqs = collect();
         }
 
         return view('guest.faq', [
-            'publishedFaqs' => $publishedFaqs,
+            'publishedFaqs'        => $publishedFaqs,
+            'idleTimeoutSeconds'   => $settings['idle_timeout_seconds'] ?? 30,
+            'idleCountdownSeconds' => $settings['idle_countdown_seconds'] ?? 10,
         ]);
     }
 
@@ -82,6 +110,10 @@ class GuestController extends Controller
             'tsession_id',
             'kode_fakultas',
             'nama_fakultas',
+            'kode_prodi',
+            'kode_angkatan',
+            'tahun_angkatan',
+            'semester',
             'is_guest',
         ]);
 
