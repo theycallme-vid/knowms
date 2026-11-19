@@ -345,8 +345,7 @@
                                 <div class="fs-13 text-secondary mb-3" style="line-height: 1.65;">
                                     {!! $f['a'] !!}
                                 </div>
-                                {{-- Hanya tampilkan Sumber Pustaka jika bertipe Public (Private disembunyikan dari Publik) --}}
-                                @if(($f['source_type'] ?? null) === 'public' && !empty($f['source_label']))
+                                @if(!empty($f['source_label']))
                                     <a href="{{ $f['source_url'] ?? '#' }}" target="{{ ($f['source_url'] ?? '#') !== '#' ? '_blank' : '_self' }}" rel="noopener noreferrer" class="source-box mb-3">
                                         <span class="d-flex align-items-center gap-2">
                                             <i class="bi bi-book fs-6 text-primary"></i>

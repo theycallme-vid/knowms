@@ -648,15 +648,11 @@
         const row = document.querySelector(`.faq-row[data-id="${faqId}"]`);
         if (row) {
             const hasTags = row.getAttribute('data-has-tags') === '1';
-            const hasSource = row.getAttribute('data-has-source') === '1';
-            if (!hasTags || !hasSource) {
-                const missing = [];
-                if (!hasTags) missing.push('Kata Kunci');
-                if (!hasSource) missing.push('Sumber Pustaka');
+            if (!hasTags) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Data Belum Lengkap',
-                    html: `Peringatan: FAQ <strong>${faqId}</strong> belum memiliki <strong>${missing.join(' dan ')}</strong>.<br><br>Silakan klik tombol <strong>Ubah</strong> untuk melengkapinya terlebih dahulu.`,
+                    html: `Peringatan: FAQ <strong>${faqId}</strong> belum memiliki <strong>Kata Kunci</strong>.<br><br>Silakan klik tombol <strong>Ubah</strong> untuk melengkapinya terlebih dahulu.`,
                     confirmButtonColor: '#85172C'
                 });
                 return;
@@ -711,8 +707,7 @@
             const row = cb.closest('.faq-row');
             if (row) {
                 const hasTags = row.getAttribute('data-has-tags') === '1';
-                const hasSource = row.getAttribute('data-has-source') === '1';
-                if (!hasTags || !hasSource) {
+                if (!hasTags) {
                     incompleteCodes.push(cb.value);
                 }
             }
@@ -721,8 +716,8 @@
         if (incompleteCodes.length > 0) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Kata Kunci / Sumber Pustaka Belum Lengkap',
-                html: `Peringatan: FAQ (<strong>${incompleteCodes.join(', ')}</strong>) belum memiliki <strong>Kata Kunci</strong> atau <strong>Sumber Pustaka</strong>.<br><br>Silakan lengkapi melalui tombol <strong>Ubah</strong> terlebih dahulu sebelum diajukan.`,
+                title: 'Kata Kunci Belum Lengkap',
+                html: `Peringatan: FAQ (<strong>${incompleteCodes.join(', ')}</strong>) belum memiliki <strong>Kata Kunci</strong>.<br><br>Silakan lengkapi melalui tombol <strong>Ubah</strong> terlebih dahulu sebelum diajukan.`,
                 confirmButtonColor: '#85172C'
             });
             return;
@@ -795,7 +790,7 @@
                             <div class="rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1; padding: 0.75rem 1rem;">
                                 <div>
                                     <div class="fw-semibold text-dark" style="font-size: 0.85rem;">${dp.judul || '-'}</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">${dp.is_file ? 'Berkas Dokumen' : 'Tautan Rujukan'} &middot; Tipe: ${dp.type || 'Publik'}</div>
+                                    <div class="text-muted" style="font-size: 0.74rem;">${dp.is_file ? 'Berkas Dokumen' : 'Tautan Rujukan'}</div>
                                 </div>
                                 ${actionLink}
                             </div>

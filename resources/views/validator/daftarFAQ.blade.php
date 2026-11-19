@@ -575,7 +575,7 @@
                             <div class="rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1; padding: 0.75rem 1rem;">
                                 <div>
                                     <div class="fw-semibold text-dark" style="font-size: 0.85rem;">${dp.judul || '-'}</div>
-                                    <div class="text-muted" style="font-size: 0.74rem;">${dp.is_file ? 'Berkas Dokumen' : 'Tautan Rujukan'} &middot; Tipe: ${dp.type || 'Publik'}</div>
+                                    <div class="text-muted" style="font-size: 0.74rem;">${dp.is_file ? 'Berkas Dokumen' : 'Tautan Rujukan'}</div>
                                 </div>
                                 ${actionLink}
                             </div>

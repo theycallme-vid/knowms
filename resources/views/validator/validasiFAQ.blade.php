@@ -964,11 +964,11 @@
         }
 
         // Tampilkan Sumber Pustaka + tombol lihat berkas jika ada file
-        document.getElementById('viewModalSource').textContent = source || '-';
+        document.getElementById('viewModalSource').textContent = source || 'Tidak ada (Opsional)';
         const metaEl = document.getElementById('viewModalSourceMeta');
         const btnEl  = document.getElementById('viewModalSourceBtn');
         if (metaEl) {
-            metaEl.textContent = `${sourceIsFile ? 'Berkas Dokumen' : 'Tautan Rujukan'} · Tipe: ${sourceType}`;
+            metaEl.textContent = source ? (sourceIsFile ? 'Berkas Dokumen' : 'Tautan Rujukan') : 'Sumber pustaka tidak disertakan';
         }
         if (btnEl) {
             if (sourceIsFile && sourceUrl) {

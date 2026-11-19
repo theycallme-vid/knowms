@@ -412,9 +412,9 @@
                         @endif
                     </div>
 
-                    <!-- Rujukan Sumber Pustaka * -->
+                    <!-- Rujukan Sumber Pustaka (Opsional) -->
                     <div>
-                        <label class="form-label-custom form-label-required">Rujukan Sumber Pustaka</label>
+                        <label class="form-label-custom">Rujukan Sumber Pustaka <span class="text-muted fw-normal fs-12">(Opsional)</span></label>
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                             <button type="button" class="btn-outline-maroon" data-bs-toggle="modal" data-bs-target="#sourceModal">
                                 <i class="bi bi-book"></i>
@@ -426,7 +426,6 @@
                             @if($isEditing && $latestVer && $latestVer->daftarPustaka)
                                 @php
                                     $dp = $latestVer->daftarPustaka;
-                                    $dpVis = strtolower((string) $dp->type) === 'private' ? 'Private' : 'Public';
                                     $dpJudul = $dp->judul_tampil;
                                 @endphp
                                 <div class="source-item" id="source-selected">
@@ -434,7 +433,7 @@
                                         <span class="source-item-number">1</span>
                                         <div>
                                             <div class="source-item-title">{{ $dpJudul }}</div>
-                                            <div class="source-item-meta">Tipe: {{ $dpVis }} &middot; {{ !empty($dp->upload) ? 'File Dokumen' : 'Tautan Resmi' }}</div>
+                                            <div class="source-item-meta">{{ !empty($dp->upload) ? 'Berkas Dokumen' : 'Tautan Resmi' }}</div>
                                         </div>
                                     </div>
                                     <button type="button" class="source-remove-btn" onclick="clearSelectedSource()">&times;</button>
@@ -478,23 +477,22 @@
                     @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
                         @foreach($daftarPustaka as $p)
                             @php
-                                $pVis = strtolower((string) $p->type) === 'private' ? 'Private' : 'Public';
                                 $pIsFile = !empty($p->upload);
                                 $pJudul = $p->judul_tampil;
                             @endphp
                             <div class="source-option p-3 border rounded-3 mb-2 d-flex align-items-center justify-content-between"
                                  style="cursor: pointer;"
-                                 onclick="selectSource('{{ $p->id }}', '{{ addslashes($pJudul) }}', 'Tipe: {{ $pVis }} · {{ $pIsFile ? 'Dokumen File' : 'Tautan' }}')">
+                                 onclick="selectSource('{{ $p->id }}', '{{ addslashes($pJudul) }}', '{{ $pIsFile ? 'Berkas Dokumen' : 'Tautan Rujukan' }}')">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: {{ $pIsFile ? '#EFF6FF' : '#F0FDF4' }}; color: {{ $pIsFile ? '#2563EB' : '#16A34A' }};">
                                         <i class="bi {{ $pIsFile ? 'bi-file-earmark-pdf' : 'bi-link-45deg' }}"></i>
                                     </div>
                                     <div>
                                         <div class="fw-bold fs-13 text-dark">{{ $pJudul }}</div>
-                                        <div class="fs-11 text-muted">ID: {{ $p->id }} &middot; Tipe: {{ $pVis }} ({{ $pVis === 'Public' ? 'Tampil di Mahasiswa' : 'Internal FAQ' }})</div>
+                                        <div class="fs-11 text-muted">ID: {{ $p->id }} &middot; {{ $pIsFile ? 'Berkas Dokumen' : 'Tautan Rujukan' }}</div>
                                     </div>
                                 </div>
-                                <span class="badge {{ $pVis === 'Private' ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' : 'bg-success-subtle text-success-emphasis border-success-subtle' }} border fs-11">{{ $pVis }}</span>
+                                <span class="badge bg-light text-secondary border fs-11">{{ $pIsFile ? 'Dokumen' : 'Tautan' }}</span>
                             </div>
                         @endforeach
                     @else
@@ -1075,16 +1073,12 @@
 
         syncTags();
         const tagsVal = (document.getElementById('hiddenTags')?.value || '').trim();
-        const pustakaVal = (document.getElementById('hiddenPustakaId')?.value || '').trim();
 
-        if (statusValue === 'submitted' && (!tagsVal || !pustakaVal)) {
-            const missing = [];
-            if (!tagsVal) missing.push('Kata Kunci');
-            if (!pustakaVal) missing.push('Sumber Pustaka');
+        if (statusValue === 'submitted' && !tagsVal) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Data Belum Lengkap',
-                text: `Peringatan: ${missing.join(' dan ')} wajib dilengkapi terlebih dahulu sebelum mengajukan FAQ ke Validator.`,
+                text: 'Peringatan: Kata Kunci wajib dilengkapi terlebih dahulu sebelum mengajukan FAQ ke Validator.',
                 confirmButtonColor: '#85172C'
             });
             return;
@@ -1136,16 +1130,12 @@
     function submitValidasi() {
         syncTags();
         const tagsVal = (document.getElementById('hiddenTags')?.value || '').trim();
-        const pustakaVal = (document.getElementById('hiddenPustakaId')?.value || '').trim();
 
-        if (!tagsVal || !pustakaVal) {
-            const missing = [];
-            if (!tagsVal) missing.push('Kata Kunci');
-            if (!pustakaVal) missing.push('Sumber Pustaka');
+        if (!tagsVal) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Belum Ada ' + missing.join(' & '),
-                text: `Peringatan: FAQ yang ingin diajukan wajib memiliki ${missing.join(' dan ')}. Silakan lengkapi terlebih dahulu.`,
+                title: 'Belum Ada Kata Kunci',
+                text: 'Peringatan: FAQ yang ingin diajukan wajib memiliki Kata Kunci. Silakan lengkapi terlebih dahulu.',
                 confirmButtonColor: '#85172C'
             });
             return;

@@ -344,7 +344,7 @@
                                         @if(!empty($item['pustaka_judul']))
                                             <div class="fw-bold text-dark fs-13 line-clamp-1 faq-pustaka-judul">{{ $item['pustaka_judul'] }}</div>
                                         @else
-                                            <div class="fw-bold text-danger fs-12 faq-pustaka-judul">Belum diisi</div>
+                                            <div class="text-muted fs-12 faq-pustaka-judul">Tidak ada (Opsional)</div>
                                         @endif
                                     </td>
                                     <td class="faq-status-cell">
@@ -823,7 +823,7 @@
         const pustakaJudul = document.getElementById('modalEditJudulPustaka').value.trim();
 
         const tagsArr = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-        const isReady = (pertanyaan !== '' && jawaban !== '' && tagsArr.length > 0 && pustakaJudul !== '');
+        const isReady = (pertanyaan !== '' && jawaban !== '' && tagsArr.length > 0);
         const newStatus = isReady ? 'ready' : 'incomplete';
 
         // Update atribut data pada baris DOM
@@ -847,12 +847,12 @@
         if (judulEl) {
             if (pustakaJudul) {
                 judulEl.textContent = pustakaJudul;
-                judulEl.classList.remove('text-danger', 'fs-12');
-                judulEl.classList.add('text-dark', 'fs-13');
+                judulEl.classList.remove('text-danger', 'text-muted', 'fs-12');
+                judulEl.classList.add('fw-bold', 'text-dark', 'fs-13');
             } else {
-                judulEl.textContent = 'Belum diisi';
-                judulEl.classList.remove('text-dark', 'fs-13');
-                judulEl.classList.add('text-danger', 'fs-12');
+                judulEl.textContent = 'Tidak ada (Opsional)';
+                judulEl.classList.remove('fw-bold', 'text-dark', 'text-danger', 'fs-13');
+                judulEl.classList.add('text-muted', 'fs-12');
             }
         }
 
@@ -950,7 +950,7 @@
             return;
         }
 
-        // Jika ingin mengajukan validasi, cek apakah ada yang belum memiliki Kata Kunci atau Sumber Pustaka
+        // Jika ingin mengajukan validasi, cek apakah ada yang belum memiliki Kata Kunci
         if (actionType === 'submit') {
             const incompleteIds = [];
             checkedBoxes.forEach(cb => {
@@ -958,8 +958,7 @@
                 if (r) {
                     const rowCode = r.getAttribute('data-id') || cb.value;
                     const tStr = (r.getAttribute('data-tags') || '').trim();
-                    const pStr = (r.getAttribute('data-pustaka-judul') || '').trim();
-                    if (!tStr || !pStr || pStr.toLowerCase() === 'belum diisi' || r.getAttribute('data-status') !== 'ready') {
+                    if (!tStr || r.getAttribute('data-status') !== 'ready') {
                         incompleteIds.push(rowCode);
                     }
                 }
@@ -968,8 +967,8 @@
             if (incompleteIds.length > 0) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Kata Kunci / Sumber Pustaka Belum Lengkap',
-                    html: `Peringatan: FAQ (<strong>${escHtml(incompleteIds.join(', '))}</strong>) belum memiliki <strong>Kata Kunci</strong> atau <strong>Sumber Pustaka</strong>.<br><br>Klik tombol <strong>Edit</strong> pada baris tersebut untuk melengkapi, atau klik <strong>Simpan Draft</strong> terlebih dahulu.`,
+                    title: 'Kata Kunci Belum Lengkap',
+                    html: `Peringatan: FAQ (<strong>${escHtml(incompleteIds.join(', '))}</strong>) belum memiliki <strong>Kata Kunci</strong>.<br><br>Klik tombol <strong>Ubah</strong> pada baris tersebut untuk melengkapi, atau klik <strong>Simpan Draf</strong> terlebih dahulu.`,
                     confirmButtonColor: '#85172C'
                 });
                 return;

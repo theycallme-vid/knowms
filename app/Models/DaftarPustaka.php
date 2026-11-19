@@ -10,7 +10,6 @@ class DaftarPustaka extends Model
 
     protected $fillable = [
         'judul',
-        'type',
         'link',
         'upload',
     ];
@@ -36,21 +35,21 @@ class DaftarPustaka extends Model
         return !empty($this->upload);
     }
 
-    /** Apakah pustaka ini bersifat Public (bisa dilihat mahasiswa) */
+    /** Seluruh sumber pustaka otomatis bersifat Publik (dapat dilihat mahasiswa) */
     public function isPublic(): bool
     {
-        return strtolower((string) $this->type) !== 'private';
+        return true;
     }
 
-    /** Label tipe standar (Public / Private) */
+    /** Label tipe standar (Publik) */
     public function getVisibilityLabelAttribute(): string
     {
-        return $this->isPublic() ? 'Public' : 'Private';
+        return 'Publik';
     }
 
     /**
-     * Pastikan tabel tdaftarpustaka memiliki kolom judul, link VARCHAR(60), dan enum type ('public', 'private')
-     * walaupun database lama belum di-migrate ulang.
+     * Pastikan tabel tdaftarpustaka memiliki kolom judul, link VARCHAR(60),
+     * dan menghapus kolom type (public/private) jika masih ada di database lama.
      */
     public static function ensurePublicPrivateEnum(): void
     {
@@ -73,11 +72,8 @@ class DaftarPustaka extends Model
             }
 
             $col = \Illuminate\Support\Facades\DB::selectOne("SHOW COLUMNS FROM tdaftarpustaka LIKE 'type'");
-            if ($col && isset($col->Type) && !str_contains(strtolower((string) $col->Type), 'public')) {
-                \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka MODIFY type VARCHAR(20) NOT NULL DEFAULT 'public'");
-                \Illuminate\Support\Facades\DB::statement("UPDATE tdaftarpustaka SET type = 'public' WHERE LOWER(type) NOT IN ('public', 'private')");
-                \Illuminate\Support\Facades\DB::statement("UPDATE tdaftarpustaka SET type = LOWER(type)");
-                \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka MODIFY type ENUM('public', 'private') NOT NULL DEFAULT 'public'");
+            if ($col) {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka DROP COLUMN type");
             }
         } catch (\Throwable $e) {
             // Abaikan jika tabel belum ada
