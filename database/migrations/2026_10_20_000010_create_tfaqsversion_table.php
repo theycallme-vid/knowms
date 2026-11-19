@@ -30,8 +30,8 @@ return new class extends Migration
                       ->on('tusers');
 
                 $table->text('jawaban');
-                $table->enum('status', ['Draft', 'Submitted', 'Approved', 'Rejected', 'Active', 'InActive'])
-                      ->default('Draft');
+                $table->enum('status', ['Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit'])
+                      ->default('Draf');
                 $table->text('catatan')->nullable();
                 $table->timestamps();
             });

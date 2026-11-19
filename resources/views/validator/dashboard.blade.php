@@ -209,7 +209,7 @@
                             <i class="bi bi-check2-circle"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 text-muted fw-medium mb-1">Disetujui</div>
+                            <div class="fs-12 text-muted fw-medium mb-1">Diterima</div>
                             <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $approvedOnlyCount ?? 0 }}</div>
                             <div class="fs-12" style="color: #6D28D9;">Siap dipublikasikan</div>
                         </div>
@@ -223,7 +223,7 @@
                             <i class="bi bi-globe2"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <div class="fs-12 fw-semibold mb-1" style="color: #065F46;">Terbit (Active)</div>
+                            <div class="fs-12 fw-semibold mb-1" style="color: #065F46;">Terbit</div>
                             <div class="fs-24 fw-bold text-dark lh-1 mb-1">{{ $publishedCount ?? 0 }}</div>
                             <div class="fs-12 fw-medium" style="color: #059669;">Tampil di FAQ Mahasiswa</div>
                         </div>
@@ -421,7 +421,7 @@
                                                 @csrf
                                                 <button type="submit" class="btn-maroon w-100 justify-content-center shadow-2xs">
                                                     <i class="bi bi-check2"></i>
-                                                    <span>Setujui FAQ (Disetujui)</span>
+                                                    <span>Terima FAQ (Diterima)</span>
                                                 </button>
                                             </form>
                                             <button type="submit" form="dashboardRejectForm" class="btn-pill-light w-100 justify-content-center shadow-2xs">
@@ -476,9 +476,10 @@
                                 @php
                                     $rSt = strtolower($rVer->status ?? '');
                                     $rBadge = match($rSt) {
-                                        'active'   => ['bg' => '#059669', 'color' => '#FFFFFF', 'label' => 'Terbit'],
-                                        'approved' => ['bg' => '#EDE9FE', 'color' => '#6D28D9', 'label' => 'Disetujui'],
-                                        'rejected' => ['bg' => '#FEF2F2', 'color' => '#DC2626', 'label' => 'Ditolak'],
+                                        'terbit', 'active'   => ['bg' => '#059669', 'color' => '#FFFFFF', 'label' => 'Terbit'],
+                                        'diterima', 'approved' => ['bg' => '#EDE9FE', 'color' => '#6D28D9', 'label' => 'Diterima'],
+                                        'ditolak', 'rejected'  => ['bg' => '#FEF2F2', 'color' => '#DC2626', 'label' => 'Ditolak'],
+                                        'menunggu validasi', 'submitted' => ['bg' => '#FFFBEB', 'color' => '#D97706', 'label' => 'Menunggu Validasi'],
                                         default    => ['bg' => '#EFF6FF', 'color' => '#2563EB', 'label' => $rVer->status],
                                     };
                                 @endphp

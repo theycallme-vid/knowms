@@ -50,11 +50,11 @@ class Faq extends Model
         return $this->versions()->latest('created_at')->first();
     }
 
-    /** Versi aktif/terbaru yang approved */
+    /** Versi terbaru yang diterima atau terbit */
     public function latestApprovedVersion()
     {
         return $this->hasOne(FaqVersion::class, 'tFaqs_id')
-                    ->whereIn('status', ['Approved', 'Active'])
+                    ->whereIn('status', ['Diterima', 'Terbit'])
                     ->latestOfMany('updated_at');
     }
 

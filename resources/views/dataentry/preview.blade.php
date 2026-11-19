@@ -238,7 +238,7 @@
                             <div class="fw-bold text-dark mb-0.5">Hasil Pengecekan Duplikat &amp; Kemiripan File Import</div>
                             <div class="text-secondary fs-12">
                                 @if($exactDuplicateCount > 0)
-                                    Terdapat <strong class="text-danger">{{ $exactDuplicateCount }} baris pertanyaan</strong> yang terdeteksi <strong>100% sama (duplikat)</strong> dengan FAQ yang sedang berstatus <strong>Active Publish</strong> atau <strong>Menunggu Validasi</strong> di database.
+                                    Terdapat <strong class="text-danger">{{ $exactDuplicateCount }} baris pertanyaan</strong> yang terdeteksi <strong>100% sama (duplikat)</strong> dengan FAQ yang sedang berstatus <strong>Terbit</strong> atau <strong>Menunggu Validasi</strong> di database.
                                 @endif
                                 @if($similarCount > 0)
                                     Ditemukan pula <strong>{{ $similarCount }} baris pertanyaan</strong> yang memiliki kemiripan makna dengan FAQ yang sudah ada.
@@ -263,7 +263,7 @@
                                 <th style="min-width: 190px;">KATA KUNCI</th>
                                 <th style="min-width: 190px;">SUMBER PUSTAKA</th>
                                 <th style="width: 130px;">STATUS</th>
-                                <th style="width: 145px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -304,7 +304,7 @@
                                             @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
                                                 @php
                                                     $em = $item['exact_match'];
-                                                    $stLabel = $em['status_label'] ?? 'Active Publish';
+                                                    $stLabel = $em['status_label'] ?? 'Terbit';
                                                 @endphp
                                                 <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">
                                                     <i class="bi bi-exclamation-octagon-fill"></i>
@@ -313,7 +313,7 @@
                                             @elseif(!empty($item['similar_candidates']))
                                                 @php
                                                     $topCand = $item['similar_candidates'][0];
-                                                    $candLabel = $topCand['status_label'] ?? 'Active Publish';
+                                                    $candLabel = $topCand['status_label'] ?? 'Terbit';
                                                 @endphp
                                                 <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-warning-subtle text-dark border border-warning-subtle fs-11">
                                                     <i class="bi bi-info-circle-fill text-warning"></i>
@@ -354,7 +354,7 @@
                                         @endphp
                                         @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
                                             <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-11 d-inline-block mb-1">
-                                                Duplikat 100% ({{ $exactStatusLabel ?: 'Active Publish' }})
+                                                Duplikat 100% ({{ $exactStatusLabel ?: 'Terbit' }})
                                             </span>
                                         @endif
                                         @if($isWaitingValPreview)
@@ -366,14 +366,14 @@
                                         @endif
                                     </td>
                                     <td style="text-align: right;" class="text-nowrap">
-                                        <div class="d-inline-flex align-items-center gap-1">
+                                        <div class="d-inline-flex align-items-center gap-2">
                                             @if($isWaitingValPreview)
-                                                <button type="button" class="btn-table-edit action-icon-disabled" style="opacity: 0.5; cursor: not-allowed;" title="InActive — Sedang Menunggu Validasi" disabled>
-                                                    <i class="bi bi-pencil"></i> Edit
+                                                <button type="button" class="btn-table-edit action-icon-disabled" style="opacity: 0.5; cursor: not-allowed;" title="Terkunci — Sedang Menunggu Validasi" disabled>
+                                                    <i class="bi bi-pencil"></i> Ubah
                                                 </button>
                                             @else
                                                 <button type="button" class="btn-table-edit" onclick="openEditModal('{{ $rowKey }}')">
-                                                    <i class="bi bi-pencil"></i> Edit
+                                                    <i class="bi bi-pencil"></i> Ubah
                                                 </button>
                                             @endif
                                             <button type="button" class="btn-table-delete" onclick="deleteRow('{{ $rowKey }}')">

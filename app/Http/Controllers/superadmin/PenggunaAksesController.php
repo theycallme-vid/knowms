@@ -23,6 +23,7 @@ class PenggunaAksesController extends Controller
      */
     public function dashboard()
     {
+        FaqVersion::ensureIndonesianStatusEnum();
         FaqVersion::processDueScheduledPublications();
 
         $nowJkt = Carbon::now('Asia/Jakarta');
@@ -43,21 +44,21 @@ class PenggunaAksesController extends Controller
             $overdueWaitingCount = 0;
 
             foreach ($allFaqs as $faq) {
-                $activeVer = $faq->versions->first(fn ($v) => strtolower($v->status) === 'active');
+                $terbitVer = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
                 $latestVer = $faq->versions->sortByDesc('id')->first();
 
-                if ($activeVer) {
+                if ($terbitVer) {
                     $terbitCount++;
                 } elseif ($latestVer) {
-                    $st = strtolower($latestVer->status);
-                    if ($st === 'approved') {
+                    $st = strtolower((string) $latestVer->status);
+                    if ($st === 'diterima') {
                         $disetujuiCount++;
-                    } elseif ($st === 'submitted') {
+                    } elseif ($st === 'menunggu validasi') {
                         $menungguCount++;
                         if ($latestVer->updated_at && $latestVer->updated_at->timezone('Asia/Jakarta')->diffInDays($nowJkt) >= 3) {
                             $overdueWaitingCount++;
                         }
-                    } elseif ($st === 'rejected') {
+                    } elseif ($st === 'ditolak') {
                         $ditolakCount++;
                     } else {
                         $draftCount++;
@@ -100,28 +101,28 @@ class PenggunaAksesController extends Controller
                 ->get();
 
             $activities = $recentVersions->map(function ($ver) {
-                $st = strtolower($ver->status ?? 'draft');
+                $st = strtolower($ver->status ?? 'draf');
                 $timeJkt = ($ver->updated_at ?? $ver->created_at ?? Carbon::now('Asia/Jakarta'))->timezone('Asia/Jakarta');
 
-                if ($st === 'active') {
+                if ($st === 'terbit') {
                     $actorName = $ver->validator?->nama ?? $ver->faq?->dataEntry?->nama ?? 'Validator';
                     $actorRole = $ver->validator?->getRoleName() ?: 'Validator';
                     $actionLabel = 'Menerbitkan FAQ';
                     $statusLabel = 'Terbit';
                     $badgeClass = 'badge-status-terbit';
-                } elseif ($st === 'approved') {
+                } elseif ($st === 'diterima') {
                     $actorName = $ver->validator?->nama ?? 'Validator';
                     $actorRole = $ver->validator?->getRoleName() ?: 'Validator';
-                    $actionLabel = 'Menyetujui FAQ';
-                    $statusLabel = 'Disetujui';
+                    $actionLabel = 'Menerima FAQ';
+                    $statusLabel = 'Diterima';
                     $badgeClass = 'badge-status-selesai';
-                } elseif ($st === 'submitted') {
+                } elseif ($st === 'menunggu validasi') {
                     $actorName = $ver->faq?->dataEntry?->nama ?? 'Data Entry';
                     $actorRole = $ver->faq?->dataEntry?->getRoleName() ?: 'Data Entry';
                     $actionLabel = 'Mengajukan FAQ';
                     $statusLabel = 'Menunggu Validasi';
                     $badgeClass = 'badge-status-validasi';
-                } elseif ($st === 'rejected') {
+                } elseif ($st === 'ditolak') {
                     $actorName = $ver->validator?->nama ?? 'Validator';
                     $actorRole = $ver->validator?->getRoleName() ?: 'Validator';
                     $actionLabel = 'Menolak / Minta Revisi';
@@ -130,8 +131,8 @@ class PenggunaAksesController extends Controller
                 } else {
                     $actorName = $ver->faq?->dataEntry?->nama ?? 'Data Entry';
                     $actorRole = $ver->faq?->dataEntry?->getRoleName() ?: 'Data Entry';
-                    $actionLabel = 'Menyimpan Draft FAQ';
-                    $statusLabel = 'Draft';
+                    $actionLabel = 'Menyimpan Draf FAQ';
+                    $statusLabel = 'Draf';
                     $badgeClass = 'badge-status-selesai';
                 }
 

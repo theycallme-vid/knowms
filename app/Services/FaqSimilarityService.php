@@ -163,25 +163,28 @@ class FaqSimilarityService
     public function formatStatusLabel(string $rawStatus): string
     {
         $st = strtolower(trim($rawStatus));
-        if (in_array($st, ['active', 'approved', 'accepted', 'terbit', 'publish'], true)) {
-            return 'Active Publish';
+        if (in_array($st, ['active', 'terbit', 'publish'], true)) {
+            return 'Terbit';
+        }
+        if (in_array($st, ['approved', 'accepted', 'disetujui', 'diterima'], true)) {
+            return 'Diterima';
         }
         if (in_array($st, ['submitted', 'pending', 'menunggu validasi'], true)) {
             return 'Menunggu Validasi';
         }
-        if ($st === 'rejected') {
-            return 'Perlu Revisi';
+        if (in_array($st, ['rejected', 'ditolak'], true)) {
+            return 'Ditolak';
         }
-        if ($st === 'draft') {
-            return 'Draft';
+        if (in_array($st, ['draft', 'draf'], true)) {
+            return 'Draf';
         }
 
-        return ucfirst($rawStatus ?: 'Draft');
+        return ucfirst($rawStatus ?: 'Draf');
     }
 
     /**
-     * Mengambil kandidat FAQ dari database (Termasuk Draft, Active, Approved, Submitted, Rejected)
-     * beserta jawaban dari setiap versinya untuk mendeteksi duplikat pertanyaan + jawaban Draft.
+     * Mengambil kandidat FAQ dari database (Termasuk Draf, Terbit, Diterima, Menunggu Validasi, Ditolak)
+     * beserta jawaban dari setiap versinya untuk mendeteksi duplikat pertanyaan + jawaban Draf.
      */
     public function getCandidateFaqs(?string $excludeFaqId = null): Collection
     {
@@ -194,12 +197,12 @@ class FaqSimilarityService
         }
 
         return $query->get()->map(function (Faq $faq) {
-            // Cari versi dengan status Active/Approved/Submitted, atau gunakan versi terbaru (termasuk Draft)
+            // Cari versi dengan status Terbit/Diterima/Menunggu Validasi, atau gunakan versi terbaru (termasuk Draf)
             $relevantVersion = $faq->versions->first(function ($v) {
-                return in_array(strtolower((string) $v->status), ['active', 'approved', 'accepted', 'submitted', 'pending'], true);
+                return in_array(strtolower((string) $v->status), ['terbit', 'diterima', 'menunggu validasi', 'active', 'approved', 'accepted', 'submitted', 'pending'], true);
             }) ?? $faq->versions->first();
 
-            $status = $relevantVersion ? (string) $relevantVersion->status : 'Draft';
+            $status = $relevantVersion ? (string) $relevantVersion->status : 'Draf';
 
             return [
                 'id'               => $faq->id,
@@ -208,7 +211,7 @@ class FaqSimilarityService
                 'status'           => $status,
                 'status_label'     => $this->formatStatusLabel($status),
                 'version_id'       => $relevantVersion?->id ?? ($faq->id . '-V1'),
-                'is_target_status' => in_array(strtolower($status), ['active', 'approved', 'accepted', 'submitted', 'pending', 'draft', 'rejected'], true),
+                'is_target_status' => in_array(strtolower($status), ['terbit', 'diterima', 'menunggu validasi', 'draf', 'ditolak', 'active', 'approved', 'accepted', 'submitted', 'pending', 'draft', 'rejected'], true),
                 'all_versions'     => $faq->versions->map(fn ($v) => [
                     'id'           => $v->id,
                     'status'       => (string) $v->status,
@@ -221,7 +224,7 @@ class FaqSimilarityService
     }
 
     /**
-     * Cek apakah ada FAQ dengan kondisi Draft yang memiliki Pertanyaan DAN Jawaban yang sama persis.
+     * Cek apakah ada FAQ dengan kondisi Draf yang memiliki Pertanyaan DAN Jawaban yang sama persis.
      */
     public function findExactDraftMatch(string $inputQuestion, string $inputAnswer, ?string $excludeFaqId = null): ?array
     {
@@ -239,14 +242,14 @@ class FaqSimilarityService
             }
 
             foreach ($cand['all_versions'] as $ver) {
-                if (strtolower($ver['status']) === 'draft' && $ver['norm_jawaban'] === $normA) {
+                if (in_array(strtolower($ver['status']), ['draf', 'draft'], true) && $ver['norm_jawaban'] === $normA) {
                     return [
                         'id'           => $cand['id'],
                         'version_id'   => $ver['id'],
                         'pertanyaan'   => $cand['pertanyaan'],
                         'jawaban'      => $ver['jawaban'],
-                        'status'       => 'Draft',
-                        'status_label' => 'Draft',
+                        'status'       => 'Draf',
+                        'status_label' => 'Draf',
                     ];
                 }
             }

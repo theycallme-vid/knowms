@@ -291,7 +291,7 @@
                                     <div class="d-flex align-items-center justify-content-between fs-12 py-1">
                                         <div class="d-flex align-items-center">
                                             <span class="legend-dot" style="background-color: #0284C7;"></span>
-                                            <span class="text-secondary">Disetujui</span>
+                                            <span class="text-secondary">Diterima</span>
                                         </div>
                                         <strong class="text-dark">{{ $disetujuiCount ?? 0 }}</strong>
                                     </div>
@@ -312,7 +312,7 @@
                                     <div class="d-flex align-items-center justify-content-between fs-12 py-1">
                                         <div class="d-flex align-items-center">
                                             <span class="legend-dot" style="background-color: #1E293B;"></span>
-                                            <span class="text-secondary">Draft</span>
+                                            <span class="text-secondary">Draf</span>
                                         </div>
                                         <strong class="text-dark">{{ $draftCount ?? 0 }}</strong>
                                     </div>
@@ -666,15 +666,15 @@
         new Chart(ctxDonut, {
             type: 'doughnut',
             data: {
-                labels: ['Terbit', 'Disetujui', 'Menunggu Validasi', 'Ditolak', 'Draft'],
+                labels: ['Terbit', 'Diterima', 'Menunggu Validasi', 'Ditolak', 'Draf'],
                 datasets: [{
                     data: hasHealthData ? healthData : [1, 0, 0, 0, 0],
                     backgroundColor: [
                         '#236B64', // Terbit
-                        '#0284C7', // Disetujui
+                        '#0284C7', // Diterima
                         '#2563EB', // Menunggu Validasi
                         '#DC2626', // Ditolak
-                        '#1E293B'  // Draft
+                        '#1E293B'  // Draf
                     ],
                     borderWidth: 2,
                     borderColor: '#FFFFFF',

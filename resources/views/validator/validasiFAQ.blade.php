@@ -182,7 +182,7 @@
                     <h1 class="page-title mb-0 me-1">Validasi FAQ</h1>
                 </div>
                 <p class="fs-13 text-muted mb-0">
-                    Tinjau pertanyaan, jawaban, dan rujukan sumber untuk menyetujui (Approved) dan mempublikasikan (Publish) FAQ.
+                    Tinjau pertanyaan, jawaban, kata kunci, dan rujukan sumber melalui tombol <strong>Lihat</strong> untuk menerima, menolak, atau menerbitkan FAQ.
                 </p>
             </div>
 
@@ -240,9 +240,9 @@
                                     </th>
                                     <th style="width: 130px;">Kode / Versi</th>
                                     <th>Pertanyaan</th>
-                                    <th style="width: 210px;">Data Entry</th>
+                                    <th style="width: 200px;">Data Entry</th>
                                     <th style="width: 165px;">Waktu Pengajuan</th>
-                                    <th style="width: 310px;">Aksi</th>
+                                    <th style="width: 115px;" class="text-end pe-4">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="faqTableBody">
@@ -254,17 +254,18 @@
                                         $createdAtObj = ($item->created_at instanceof \Carbon\Carbon
                                             ? $item->created_at
                                             : \Carbon\Carbon::parse($item->created_at))->timezone('Asia/Jakarta');
-                                        $itemStatus   = $item->status ?? 'Submitted';
-                                        $isApproved   = !empty($item->is_approved) || strtolower($itemStatus) === 'approved';
+                                        $itemStatus   = $item->status ?? 'Menunggu Validasi';
+                                        $isApproved   = !empty($item->is_approved) || strtolower($itemStatus) === 'diterima';
                                         $isScheduled  = !empty($item->is_scheduled);
-                                        $schedMode    = $item->schedule_mode ?? 'routine';
+                                        $schedMode    = $item->schedule_mode ?? 'now';
                                         $schedDate    = $item->schedule_date ?? '';
                                         $schedTime    = $item->schedule_time ?? '';
                                         $schedLabel   = $item->schedule_label ?? '';
+                                        $tagsJson     = json_encode($item->tags_list ?? []);
                                     @endphp
                                     <tr class="faq-row {{ $isChecked ? 'row-checked' : '' }}"
                                         data-id="{{ $item->id }}"
-                                        data-status="{{ $isApproved ? 'Approved' : 'Submitted' }}"
+                                        data-status="{{ $isApproved ? 'Diterima' : 'Menunggu Validasi' }}"
                                         data-is-approved="{{ $isApproved ? '1' : '0' }}"
                                         data-is-scheduled="{{ $isScheduled ? '1' : '0' }}"
                                         data-schedule-mode="{{ $schedMode }}"
@@ -279,8 +280,13 @@
                                         data-full-version="{{ $item->versi }}"
                                         data-full-question="{{ $item->pertanyaan }}"
                                         data-full-category="{{ $item->kategori }}"
+                                        data-full-tags="{{ $tagsJson }}"
                                         data-full-answer="{{ $item->jawaban }}"
                                         data-full-source="{{ $item->sumber }}"
+                                        data-full-source-type="{{ $item->sumber_type ?? 'Publik' }}"
+                                        data-full-source-link="{{ $item->sumber_link ?? '' }}"
+                                        data-full-source-is-file="{{ !empty($item->sumber_is_file) ? '1' : '0' }}"
+                                        data-full-source-view-url="{{ $item->sumber_view_url ?? '' }}"
                                         data-full-de="{{ $item->data_entry_nama }}"
                                         data-full-date="{{ $item->tanggal_indo ?? $createdAtObj->translatedFormat('d M Y') }}"
                                         data-full-time="{{ $createdAtObj->format('H.i') }} WIB">
@@ -290,7 +296,7 @@
                                             <input type="checkbox"
                                                    name="faq_ids[]"
                                                    value="{{ $item->id }}"
-                                                   data-status="{{ $isApproved ? 'Approved' : 'Submitted' }}"
+                                                   data-status="{{ $isApproved ? 'Diterima' : 'Menunggu Validasi' }}"
                                                    class="faq-checkbox row-checkbox"
                                                    {{ $isChecked ? 'checked' : '' }}>
                                         </td>
@@ -307,14 +313,14 @@
                                             @if($isApproved)
                                                 <div class="mt-1.5">
                                                     @if($isScheduled && $schedLabel)
-                                                        <span class="publish-wait-badge {{ $schedMode === 'routine' ? 'is-routine' : 'is-scheduled-date' }}">
-                                                            <i class="bi {{ $schedMode === 'routine' ? 'bi-clock-history' : 'bi-calendar-event' }}"></i>
+                                                        <span class="publish-wait-badge is-scheduled-date">
+                                                            <i class="bi bi-calendar-event"></i>
                                                             <span>{{ $schedLabel }}</span>
                                                         </span>
                                                     @else
                                                         <span class="publish-wait-badge">
                                                             <i class="bi bi-info-circle"></i>
-                                                            <span>Disetujui &middot; Belum Dipublish</span>
+                                                            <span>Diterima &middot; Belum Diterbitkan</span>
                                                         </span>
                                                     @endif
                                                 </div>
@@ -336,29 +342,12 @@
                                             </div>
                                         </td>
 
-                                        <!-- Aksi (View, Approved / Publish, Rejected) -->
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2 flex-nowrap">
+                                        <!-- Aksi (Hanya Tombol Lihat) -->
+                                        <td class="text-end pe-4">
+                                            <div class="d-inline-flex align-items-center justify-content-end flex-nowrap">
                                                 <button type="button" class="btn-action-pill btn-pill-view" onclick="openViewModal(this)">
                                                     <i class="bi bi-eye"></i>
-                                                    <span>View</span>
-                                                </button>
-                                                @if($isApproved)
-                                                    <button type="button"
-                                                            class="btn-action-pill btn-pill-publish {{ $isScheduled ? 'is-scheduled' : '' }}"
-                                                            onclick="openSinglePublishModal('{{ $item->id }}', '{{ $item->kode }}', '{{ addslashes($item->pertanyaan) }}', '{{ $schedMode }}', '{{ $schedDate }}', '{{ $schedTime }}')">
-                                                        <i class="bi {{ $isScheduled ? 'bi-calendar2-check' : 'bi-send-check' }}"></i>
-                                                        <span>Publish</span>
-                                                    </button>
-                                                @else
-                                                    <button type="button" class="btn-action-pill btn-pill-approved" onclick="openSingleApproveModal('{{ $item->id }}', '{{ $item->kode }}', '{{ addslashes($item->pertanyaan) }}')">
-                                                        <i class="bi bi-check2"></i>
-                                                        <span>Approved</span>
-                                                    </button>
-                                                @endif
-                                                <button type="button" class="btn-action-pill btn-pill-rejected" onclick="openSingleRejectModal('{{ $item->id }}', '{{ $item->kode }}', '{{ addslashes($item->pertanyaan) }}')">
-                                                    <i class="bi bi-x"></i>
-                                                    <span>Rejected</span>
+                                                    <span>Lihat</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -433,11 +422,11 @@
                 <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
                     <button type="button" id="btnBulkApprove" class="btn-bulk-approve" onclick="openBulkApproveModal()" disabled>
                         <i class="bi bi-check2-circle"></i>
-                        <span>Approved</span>
+                        <span>Diterima</span>
                     </button>
                     <button type="button" id="btnBulkPublish" class="btn-bulk-publish" onclick="openBulkPublishModal()" disabled>
                         <i class="bi bi-send-check"></i>
-                        <span>Publish</span>
+                        <span>Terbitkan</span>
                     </button>
                 </div>
             </div>
@@ -464,8 +453,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.75rem;"></button>
             </div>
             <div class="kms-modal-body" style="padding: 1.4rem;">
-                <span class="d-none" id="viewModalCategory"></span>
-
                 <!-- Pertanyaan -->
                 <div class="mb-3">
                     <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Pertanyaan</div>
@@ -478,25 +465,41 @@
                     <div class="p-3 rounded-3 bg-white border fs-14 text-dark lh-lg" style="border-color: #EDE7E1 !important;" id="viewModalAnswer"></div>
                 </div>
 
+                <!-- Kata Kunci -->
+                <div class="mb-3">
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Kata Kunci</div>
+                    <div class="d-flex flex-wrap gap-1.5" id="viewModalTagsContainer"></div>
+                </div>
+
                 <!-- Sumber Pustaka -->
                 <div>
                     <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Sumber Pustaka</div>
-                    <div class="rounded-3 px-3 py-2 d-flex align-items-center gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1;">
-                        <i class="bi bi-journal-bookmark-fill" style="color: #85172C; font-size: 1rem;"></i>
-                        <div class="fw-semibold fs-13 text-dark" id="viewModalSource"></div>
+                    <div class="rounded-3 px-3 py-2 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-journal-bookmark-fill" style="color: #85172C; font-size: 1rem;"></i>
+                            <div>
+                                <div class="fw-semibold fs-13 text-dark" id="viewModalSource"></div>
+                                <div class="fs-11 text-muted" id="viewModalSourceMeta"></div>
+                            </div>
+                        </div>
+                        <a href="#" target="_blank" id="viewModalSourceBtn" class="btn btn-sm btn-outline-secondary rounded-3 d-none fs-12 fw-semibold">
+                            <i class="bi bi-eye me-1"></i>Lihat Berkas
+                        </a>
                     </div>
                 </div>
             </div>
             <div class="kms-modal-footer justify-content-between" style="padding: 0.9rem 1.4rem;">
                 <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Tutup</button>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn-action-pill btn-pill-rejected" id="modalBtnReject">
-                        <i class="bi bi-x"></i>
-                        <span>Rejected</span>
-                    </button>
+                    <!-- Kiri (sebelah tombol Ditolak): Diterima (jika Menunggu Validasi) atau Terbit (jika Diterima) -->
                     <button type="button" class="btn-action-pill btn-pill-approved" id="modalBtnApprove">
                         <i class="bi bi-check2"></i>
-                        <span>Approved</span>
+                        <span>Diterima</span>
+                    </button>
+                    <!-- Kanan: Ditolak -->
+                    <button type="button" class="btn-action-pill btn-pill-rejected" id="modalBtnReject">
+                        <i class="bi bi-x"></i>
+                        <span>Ditolak</span>
                     </button>
                 </div>
             </div>
@@ -504,43 +507,10 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════
-     MODAL 2: KONFIRMASI PERSETUJUAN SATU FAQ (SINGLE APPROVE)
-══════════════════════════════════════════════════════════════════ -->
-<div class="modal fade" id="modalSingleApprove" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
-        <div class="modal-content kms-modal-content">
-            <div class="kms-modal-header">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="kms-modal-badge-icon" style="background-color: #ECFDF5; color: #059669;">
-                        <i class="bi bi-check2-circle"></i>
-                    </span>
-                    <h5 class="kms-modal-title" id="singleApproveTitle">Setujui Pengajuan FAQ</h5>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.75rem;"></button>
-            </div>
-            <form id="formSingleApprove" method="POST">
-                @csrf
-                <div class="kms-modal-body">
-                    <p class="mb-2 text-secondary fs-13">
-                        Anda akan menyetujui pengajuan FAQ berikut agar siap diterbitkan ke portal mahasiswa:
-                    </p>
-                    <div class="p-2.5 rounded-3 border bg-light" style="padding: 0.65rem 0.85rem;">
-                        <div class="fw-bold fs-12 text-dark" id="singleApproveCode">FAQ-0248</div>
-                        <div class="fs-12 text-muted mt-0.5" id="singleApproveQuestion"></div>
-                    </div>
-                </div>
-                <div class="kms-modal-footer">
-                    <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn-kms-success">
-                        <i class="bi bi-check2"></i>
-                        <span>Setujui FAQ</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Form Tersembunyi untuk Langsung Menerima Satu FAQ Tanpa Modal Konfirmasi -->
+<form id="formSingleApprove" method="POST" class="d-none">
+    @csrf
+</form>
 
 <!-- ══════════════════════════════════════════════════════════════════
      MODAL 3: KONFIRMASI PENOLAKAN FAQ (SINGLE REJECT + CATATAN REVISI)
@@ -600,18 +570,18 @@
             </div>
             <div class="kms-modal-body">
                 <p class="mb-2 text-secondary fs-13">
-                    Anda akan menyetujui (Approved) pengajuan FAQ berikut:
+                    Anda akan menerima pengajuan FAQ berikut agar siap diterbitkan:
                 </p>
                 <div class="p-2.5 rounded-3 border bg-light fs-12 fw-semibold text-dark" id="bulkApproveCodesList" style="padding: 0.65rem 0.85rem;"></div>
                 <div class="fs-11 text-muted mt-2">
-                    Setelah berstatus Approved, Anda dapat menekan tombol <strong>Publish</strong> untuk memilih metode publikasi.
+                    Setelah berstatus Diterima, Anda dapat menekan tombol <strong>Terbitkan</strong> atau membuka menu <strong>Lihat</strong> untuk menentukan waktu terbit.
                 </div>
             </div>
             <div class="kms-modal-footer">
                 <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
                 <button type="button" class="btn-kms-primary" id="btnConfirmBulkSubmit">
                     <i class="bi bi-check2-all"></i>
-                    <span id="btnConfirmBulkText">Approved</span>
+                    <span id="btnConfirmBulkText">Terima FAQ</span>
                 </button>
             </div>
         </div>
@@ -619,7 +589,7 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     MODAL 5: PUBLIKASIKAN FAQ (PILIHAN METODE & JADWAL PUBLIKASI)
+     MODAL 5: TERBITKAN FAQ (PUBLIKASIKAN SEKARANG [BAWAAN] & JADWAL PUBLIKASI)
 ══════════════════════════════════════════════════════════════════ -->
 <div class="modal fade" id="modalPublishFaq" tabindex="-1" aria-labelledby="modalPublishFaqLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 580px;">
@@ -627,40 +597,40 @@
             <form id="formPublishFaq" action="{{ route('validator.validasiFAQ.publish') }}" method="POST" onsubmit="return validatePublishForm()">
                 @csrf
                 <div id="publishFaqIdsContainer"></div>
-                <input type="hidden" name="publish_mode" id="publishModeInput" value="routine">
+                <input type="hidden" name="publish_mode" id="publishModeInput" value="now">
 
                 <div class="publish-modal-box" style="max-height: 72vh; overflow-y: auto;">
                     <div class="d-flex align-items-start justify-content-between mb-1">
                         <div>
-                            <h5 class="fw-bold text-dark mb-1" id="modalPublishFaqLabel" style="font-size: 1.05rem;">Publikasikan FAQ</h5>
-                            <p class="text-muted fs-13 mb-2">Pilih metode dan waktu publikasi FAQ yang telah disetujui.</p>
+                            <h5 class="fw-bold text-dark mb-1" id="modalPublishFaqLabel" style="font-size: 1.05rem;">Terbitkan FAQ</h5>
+                            <p class="text-muted fs-13 mb-2">Pilih metode dan waktu penerbitan FAQ yang telah diterima.</p>
                         </div>
                         <button type="button" class="btn-close mt-1" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
                     </div>
 
-                    <!-- Info FAQ yang akan dipublish -->
+                    <!-- Info FAQ yang akan diterbitkan -->
                     <div class="mb-3 px-3 py-2 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">
-                        <span class="fs-12 text-muted">FAQ yang akan dipublikasikan:</span>
+                        <span class="fs-12 text-muted">FAQ yang akan diterbitkan:</span>
                         <span class="fs-12 fw-bold text-dark" id="publishSelectedCodesText">-</span>
                     </div>
 
-                    <!-- Pilihan 1: Publikasi Rutin -->
-                    <div class="publish-option-card active" data-mode="routine" onclick="selectPublishMode('routine')">
+                    <!-- Pilihan 1 (Bawaan): Publikasikan Sekarang -->
+                    <div class="publish-option-card active" data-mode="now" onclick="selectPublishMode('now')">
                         <div class="publish-option-header">
                             <div class="publish-option-title">
-                                <i class="bi bi-calendar2-check" style="color: #16A34A; font-size: 1.1rem;"></i>
-                                <span>Publikasi Rutin</span>
+                                <i class="bi bi-lightning-charge" style="color: #059669; font-size: 1.1rem;"></i>
+                                <span>Publikasikan Sekarang</span>
                             </div>
-                            <span class="publish-default-badge">Default</span>
+                            <span class="publish-default-badge">Bawaan</span>
                         </div>
                         <div class="publish-option-desc">
-                            FAQ akan dipublikasikan secara otomatis pada jadwal rutin sistem, yaitu pukul <strong>00.00–01.00 WIB (atau Jam 23.00 WIB).</strong>
+                            FAQ langsung diterbitkan sekarang agar segera tersedia di halaman FAQ mahasiswa dan tamu.
                         </div>
-                        <p class="publish-option-sub">Cocok untuk publikasi FAQ secara berkala dalam jumlah banyak.</p>
+                        <p class="publish-option-sub">Cocok untuk informasi yang harus langsung tayang saat ini juga.</p>
                     </div>
 
                     <!-- Pilihan 2: Jadwal Publikasi (Satu kesatuan kotak dengan input tanggal & jam) -->
-                    <div class="publish-option-card" data-mode="scheduled" onclick="selectPublishMode('scheduled')">
+                    <div class="publish-option-card mb-0" data-mode="scheduled" onclick="selectPublishMode('scheduled')">
                         <div class="publish-option-header">
                             <div class="publish-option-title">
                                 <i class="bi bi-calendar-event" style="color: #2563EB; font-size: 1.1rem;"></i>
@@ -702,27 +672,13 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Pilihan 3: Publikasikan Sekarang -->
-                    <div class="publish-option-card mb-0" data-mode="now" onclick="selectPublishMode('now')">
-                        <div class="publish-option-header">
-                            <div class="publish-option-title">
-                                <i class="bi bi-lightning-charge" style="color: #EA580C; font-size: 1.1rem;"></i>
-                                <span>Publikasikan Sekarang</span>
-                            </div>
-                        </div>
-                        <div class="publish-option-desc">
-                            FAQ langsung dipublikasikan tanpa menunggu jadwal rutin.
-                        </div>
-                        <p class="publish-option-sub">Cocok untuk informasi yang harus segera diketahui mahasiswa.</p>
-                    </div>
                 </div>
 
                 <div class="kms-modal-footer">
                     <button type="button" class="btn-kms-cancel" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn-kms-primary" id="btnConfirmPublishSubmit">
                         <i class="bi bi-send-check"></i>
-                        <span id="btnConfirmPublishText">Konfirmasi Publish</span>
+                        <span id="btnConfirmPublishText">Publikasikan Sekarang</span>
                     </button>
                 </div>
             </form>
@@ -846,29 +802,29 @@
             }
         });
 
-        // Hitung berapa yang Submitted vs Approved di antara yang dicentang
-        const checkedSubmitted = checkedBoxes.filter(cb => (cb.getAttribute('data-status') || 'Submitted') === 'Submitted');
-        const checkedApproved  = checkedBoxes.filter(cb => cb.getAttribute('data-status') === 'Approved');
+        // Hitung berapa yang Menunggu Validasi vs Diterima di antara yang dicentang
+        const checkedSubmitted = checkedBoxes.filter(cb => (cb.getAttribute('data-status') || 'Menunggu Validasi') === 'Menunggu Validasi');
+        const checkedApproved  = checkedBoxes.filter(cb => cb.getAttribute('data-status') === 'Diterima');
 
         // Update badge jumlah FAQ dipilih
         const count = checkedBoxes.length;
         selectedCountBadge.textContent = `${count} FAQ dipilih`;
 
-        // Syarat tombol Approved nyala: ada minimal 1 FAQ berstatus Submitted yang dicentang
+        // Syarat tombol Diterima nyala: ada minimal 1 FAQ berstatus Menunggu Validasi yang dicentang
         if (btnBulkApprove) {
             btnBulkApprove.disabled = (checkedSubmitted.length === 0);
         }
 
-        // Syarat tombol Publish nyala: ada minimal 1 FAQ yang sudah berstatus Approved yang dicentang
+        // Syarat tombol Terbitkan nyala: ada minimal 1 FAQ yang sudah berstatus Diterima yang dicentang
         if (btnBulkPublish) {
             btnBulkPublish.disabled = (checkedApproved.length === 0);
         }
 
         if (selectedHelperText) {
             if (count === 0) {
-                selectedHelperText.textContent = 'Centang FAQ Submitted untuk Approved, atau centang FAQ Approved untuk menyalakan tombol Publish.';
+                selectedHelperText.textContent = 'Centang FAQ Menunggu Validasi untuk Diterima, atau centang FAQ Diterima untuk menyalakan tombol Terbitkan.';
             } else {
-                selectedHelperText.textContent = `${checkedSubmitted.length} menunggu Approved · ${checkedApproved.length} siap di-Publish.`;
+                selectedHelperText.textContent = `${checkedSubmitted.length} menunggu validasi · ${checkedApproved.length} siap diterbitkan.`;
             }
         }
 
@@ -949,72 +905,123 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // MODAL VIEW, APPROVE, REJECT, BULK APPROVE & PUBLISH
+    // MODAL LIHAT DETAIL, TERIMA, TOLAK, TERIMA MASSAL & TERBITKAN
     // ═══════════════════════════════════════════════════════════════
+    function escapeHtmlSimple(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function openViewModal(button) {
         const row = button.closest('.faq-row');
         if (!row) return;
 
-        const id          = row.getAttribute('data-id');
-        const code        = row.getAttribute('data-full-code');
-        const version     = row.getAttribute('data-full-version');
-        const question    = row.getAttribute('data-full-question');
-        const category    = row.getAttribute('data-full-category');
-        const answer      = row.getAttribute('data-full-answer');
-        const source      = row.getAttribute('data-full-source');
-        const de          = row.getAttribute('data-full-de');
-        const date        = row.getAttribute('data-full-date');
-        const time        = row.getAttribute('data-full-time');
-        const isApproved  = row.getAttribute('data-is-approved') === '1';
-        const schedMode   = row.getAttribute('data-schedule-mode') || 'routine';
-        const schedDate   = row.getAttribute('data-schedule-date') || '';
-        const schedTime   = row.getAttribute('data-schedule-time') || '';
+        const id           = row.getAttribute('data-id');
+        const code         = row.getAttribute('data-full-code');
+        const version      = row.getAttribute('data-full-version');
+        const question     = row.getAttribute('data-full-question');
+        const answer       = row.getAttribute('data-full-answer');
+        const source       = row.getAttribute('data-full-source');
+        const sourceType   = row.getAttribute('data-full-source-type') || 'Publik';
+        const sourceLink   = row.getAttribute('data-full-source-link') || '';
+        const sourceIsFile = row.getAttribute('data-full-source-is-file') === '1';
+        const sourceUrl    = row.getAttribute('data-full-source-view-url') || '';
+        const de           = row.getAttribute('data-full-de');
+        const date         = row.getAttribute('data-full-date');
+        const time         = row.getAttribute('data-full-time');
+        const isApproved   = row.getAttribute('data-is-approved') === '1';
+        const schedMode    = row.getAttribute('data-schedule-mode') || 'now';
+        const schedDate    = row.getAttribute('data-schedule-date') || '';
+        const schedTime    = row.getAttribute('data-schedule-time') || '';
+
+        let tagsList = [];
+        try {
+            tagsList = JSON.parse(row.getAttribute('data-full-tags') || '[]');
+        } catch (e) {
+            tagsList = [];
+        }
 
         document.getElementById('viewModalCode').textContent     = code;
         document.getElementById('viewModalVersion').textContent  = version;
-        document.getElementById('viewModalCategory').textContent = category;
         document.getElementById('viewModalQuestion').textContent = question;
         document.getElementById('viewModalDe').textContent       = de;
         document.getElementById('viewModalTime').textContent     = `${date}, ${time}`;
         document.getElementById('viewModalAnswer').innerHTML     = answer;
-        document.getElementById('viewModalSource').textContent   = source;
 
+        // Tampilkan Kata Kunci
+        const tagsContainer = document.getElementById('viewModalTagsContainer');
+        if (tagsContainer) {
+            if (Array.isArray(tagsList) && tagsList.length > 0) {
+                tagsContainer.innerHTML = tagsList.map(t =>
+                    `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${escapeHtmlSimple(t)}</span>`
+                ).join('');
+            } else {
+                tagsContainer.innerHTML = '<span class="fs-12 text-muted">Belum ada kata kunci</span>';
+            }
+        }
+
+        // Tampilkan Sumber Pustaka + tombol lihat berkas jika ada file
+        document.getElementById('viewModalSource').textContent = source || '-';
+        const metaEl = document.getElementById('viewModalSourceMeta');
+        const btnEl  = document.getElementById('viewModalSourceBtn');
+        if (metaEl) {
+            metaEl.textContent = `${sourceIsFile ? 'Berkas Dokumen' : 'Tautan Rujukan'} · Tipe: ${sourceType}`;
+        }
+        if (btnEl) {
+            if (sourceIsFile && sourceUrl) {
+                btnEl.href = sourceUrl;
+                btnEl.innerHTML = '<i class="bi bi-eye me-1"></i>Lihat Berkas';
+                btnEl.classList.remove('d-none');
+            } else if (!sourceIsFile && /^https?:\/\//i.test(sourceLink)) {
+                btnEl.href = sourceLink;
+                btnEl.innerHTML = '<i class="bi bi-box-arrow-up-right me-1"></i>Buka Tautan';
+                btnEl.classList.remove('d-none');
+            } else {
+                btnEl.classList.add('d-none');
+            }
+        }
+
+        // Bagian Kiri (sebelah tombol Ditolak): Diterima (langsung terima tanpa pop-up konfirmasi) atau Terbit
         const approveBtn = document.getElementById('modalBtnApprove');
         if (approveBtn) {
             if (isApproved) {
                 approveBtn.className = 'btn-action-pill btn-pill-publish';
-                approveBtn.innerHTML = '<i class="bi bi-send-check"></i><span>Publish</span>';
+                approveBtn.innerHTML = '<i class="bi bi-send-check"></i><span>Terbit</span>';
                 approveBtn.onclick = function () {
                     bootstrap.Modal.getInstance(document.getElementById('modalViewFaq'))?.hide();
-                    openSinglePublishModal(id, code, question, schedMode, schedDate, schedTime);
+                    openSinglePublishModal(id, code, question, schedMode === 'scheduled' ? 'scheduled' : 'now', schedDate, schedTime);
                 };
             } else {
                 approveBtn.className = 'btn-action-pill btn-pill-approved';
-                approveBtn.innerHTML = '<i class="bi bi-check2"></i><span>Approved</span>';
+                approveBtn.innerHTML = '<i class="bi bi-check2"></i><span>Diterima</span>';
                 approveBtn.onclick = function () {
-                    bootstrap.Modal.getInstance(document.getElementById('modalViewFaq'))?.hide();
-                    openSingleApproveModal(id, code, question);
+                    submitSingleApprove(id);
                 };
             }
         }
 
-        document.getElementById('modalBtnReject').onclick = function () {
-            bootstrap.Modal.getInstance(document.getElementById('modalViewFaq'))?.hide();
-            openSingleRejectModal(id, code, question);
-        };
+        // Bagian Kanan: Ditolak
+        const rejectBtn = document.getElementById('modalBtnReject');
+        if (rejectBtn) {
+            rejectBtn.innerHTML = '<i class="bi bi-x"></i><span>Ditolak</span>';
+            rejectBtn.onclick = function () {
+                bootstrap.Modal.getInstance(document.getElementById('modalViewFaq'))?.hide();
+                openSingleRejectModal(id, code, question);
+            };
+        }
 
         const modal = new bootstrap.Modal(document.getElementById('modalViewFaq'));
         modal.show();
     }
 
-    function openSingleApproveModal(id, code, question) {
-        document.getElementById('singleApproveTitle').textContent    = `Setujui ${code}`;
-        document.getElementById('singleApproveCode').textContent     = code;
-        document.getElementById('singleApproveQuestion').textContent = question;
-        document.getElementById('formSingleApprove').action          = `/validator/validasi-faq/${encodeURIComponent(id)}/approve`;
-
-        const modal = new bootstrap.Modal(document.getElementById('modalSingleApprove'));
-        modal.show();
+    function submitSingleApprove(id) {
+        const form = document.getElementById('formSingleApprove');
+        if (!form) return;
+        form.action = `/validator/validasi-faq/${encodeURIComponent(id)}/approve`;
+        form.submit();
     }
 
     function openSingleRejectModal(id, code, question) {
@@ -1030,48 +1037,38 @@
 
     function openBulkApproveModal() {
         const checkedSubmitted = Array.from(document.querySelectorAll('.row-checkbox:checked'))
-            .filter(cb => (cb.getAttribute('data-status') || 'Submitted') === 'Submitted');
+            .filter(cb => (cb.getAttribute('data-status') || 'Menunggu Validasi') === 'Menunggu Validasi');
         if (checkedSubmitted.length === 0) return;
 
-        // Pastikan hanya baris Submitted yang ikut disubmit saat klik Approved massal
+        // Pastikan hanya baris Menunggu Validasi yang ikut disubmit saat klik Diterima massal
         Array.from(document.querySelectorAll('.row-checkbox')).forEach(cb => {
-            if (cb.checked && cb.getAttribute('data-status') !== 'Submitted') {
+            if (cb.checked && cb.getAttribute('data-status') !== 'Menunggu Validasi') {
                 cb.checked = false;
             }
         });
         updateChecklistState();
 
-        const codes = checkedSubmitted.map(cb => cb.closest('.faq-row')?.getAttribute('data-full-code')).filter(Boolean);
-
-        document.getElementById('bulkApproveModalTitle').textContent = `Approved ${checkedSubmitted.length} FAQ Terpilih`;
-        document.getElementById('bulkApproveCodesList').textContent  = codes.join(', ');
-        document.getElementById('btnConfirmBulkText').textContent    = `Approved ${checkedSubmitted.length} FAQ`;
-
-        document.getElementById('btnConfirmBulkSubmit').onclick = function () {
-            document.getElementById('bulkApproveForm').submit();
-        };
-
-        const modal = new bootstrap.Modal(document.getElementById('modalBulkApprove'));
-        modal.show();
+        document.getElementById('bulkApproveForm')?.submit();
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // LOGIKA MODAL PUBLIKASIKAN FAQ (SINGLE & BULK PUBLISH)
+    // LOGIKA MODAL TERBITKAN FAQ (PUBLIKASIKAN SEKARANG & JADWAL PUBLIKASI)
     // ═══════════════════════════════════════════════════════════════
     function selectPublishMode(mode) {
+        const targetMode  = (mode === 'scheduled') ? 'scheduled' : 'now';
         const modeInput   = document.getElementById('publishModeInput');
         const scheduleBox = document.getElementById('publishScheduleDetailBox');
         const dateInput   = document.getElementById('publishDateInput');
         const timeInput   = document.getElementById('publishTimeInput');
         const btnText     = document.getElementById('btnConfirmPublishText');
 
-        if (modeInput) modeInput.value = mode;
+        if (modeInput) modeInput.value = targetMode;
 
         document.querySelectorAll('.publish-option-card').forEach(card => {
-            card.classList.toggle('active', card.getAttribute('data-mode') === mode);
+            card.classList.toggle('active', card.getAttribute('data-mode') === targetMode);
         });
 
-        if (mode === 'scheduled') {
+        if (targetMode === 'scheduled') {
             scheduleBox?.classList.remove('d-none');
             if (dateInput) dateInput.required = true;
             if (timeInput) timeInput.required = true;
@@ -1080,9 +1077,7 @@
             scheduleBox?.classList.add('d-none');
             if (dateInput) dateInput.required = false;
             if (timeInput) timeInput.required = false;
-            if (btnText) {
-                btnText.textContent = mode === 'now' ? 'Publikasikan Sekarang' : 'Simpan Publikasi Rutin';
-            }
+            if (btnText) btnText.textContent = 'Publikasikan Sekarang';
         }
     }
 
@@ -1102,10 +1097,10 @@
             dateInput.value = defaultDate || '{{ date("Y-m-d") }}';
         }
         if (timeInput) {
-            timeInput.value = defaultTime || '23:00';
+            timeInput.value = defaultTime || '08:00';
         }
 
-        selectPublishMode(defaultMode || 'routine');
+        selectPublishMode(defaultMode === 'scheduled' ? 'scheduled' : 'now');
 
         const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalPublishFaq'));
         modal.show();
@@ -1115,7 +1110,7 @@
         populatePublishModalIds(
             [id],
             `${code} — ${question.length > 48 ? question.substring(0, 48) + '...' : question}`,
-            currentMode || 'routine',
+            currentMode === 'scheduled' ? 'scheduled' : 'now',
             currentDate || '',
             currentTime || ''
         );
@@ -1123,7 +1118,7 @@
 
     function openBulkPublishModal() {
         const checkedApproved = Array.from(document.querySelectorAll('.row-checkbox:checked'))
-            .filter(cb => cb.getAttribute('data-status') === 'Approved');
+            .filter(cb => cb.getAttribute('data-status') === 'Diterima');
 
         if (checkedApproved.length === 0) return;
 
@@ -1133,7 +1128,7 @@
         populatePublishModalIds(
             ids,
             `${checkedApproved.length} FAQ (${codes.join(', ')})`,
-            'routine',
+            'now',
             '',
             ''
         );

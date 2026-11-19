@@ -168,12 +168,12 @@
             @php
                 $isEditing = isset($isEdit) && $isEdit;
                 $latestVer = $isEditing ? $faq->latest_version : null;
-                $faqStatus = $latestVer ? strtolower($latestVer->status) : 'draft';
+                $faqStatus = $latestVer ? strtolower($latestVer->status) : 'draf';
                 $formAction = $isEditing ? route('dataentry.faq.update', $faq->id) : route('dataentry.buatfaq.store');
                 $defaultMode = (!$isEditing && isset($selectedExistingFaq) && $selectedExistingFaq) ? 'existing' : 'new';
 
                 if ($isEditing) {
-                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['rejected', 'approved', 'active']);
+                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active']);
                     $displayFaqId = $faq->id;
                     $displayVersionId = $shouldCreateNewVerByDefault
                         ? ($nextVersionId ?? $faq->generateNextVersionId())
@@ -200,7 +200,7 @@
                 </div>
             @endif
 
-            @if($isEditing && $faqStatus === 'rejected' && $latestVer && $latestVer->catatan)
+            @if($isEditing && in_array($faqStatus, ['ditolak', 'rejected'], true) && $latestVer && $latestVer->catatan)
                 <div class="alert alert-danger rounded-4 border-danger-subtle d-flex align-items-start gap-3 mb-4">
                     <i class="bi bi-exclamation-octagon-fill fs-5 text-danger mt-1"></i>
                     <div>
@@ -236,8 +236,8 @@
                                 @endif
                             </div>
                         </div>
-                        <span class="badge-status {{ $isEditing && $faqStatus === 'rejected' ? 'badge-status-revisi' : 'badge-status-draft' }}">
-                            {{ $isEditing && $faqStatus === 'rejected' ? 'Perlu Revisi' : 'Draft' }}
+                        <span class="badge-status {{ in_array($faqStatus, ['ditolak', 'rejected'], true) ? 'badge-status-revisi' : 'badge-status-draft' }}">
+                            {{ in_array($faqStatus, ['ditolak', 'rejected'], true) ? 'Perlu Revisi' : 'Draf' }}
                         </span>
                     </div>
 
@@ -275,8 +275,8 @@
                                                 $nextVId = $fItem->generateNextVersionId();
                                                 $nextVNum = (int) preg_replace('/.*-V/i', '', $nextVId) ?: 2;
                                                 $fTags = $fItem->tags->pluck('nama')->implode(',');
-                                                $fLatestSt = strtolower((string) ($fItem->latest_version?->status ?? 'draft'));
-                                                $isWaitingVal = ($fLatestSt === 'submitted');
+                                                $fLatestSt = strtolower((string) ($fItem->latest_version?->status ?? 'draf'));
+                                                $isWaitingVal = in_array($fLatestSt, ['menunggu validasi', 'submitted'], true);
                                             @endphp
                                             <option value="{{ $fItem->id }}"
                                                     data-pertanyaan="{{ e($fItem->pertanyaan) }}"
@@ -285,45 +285,11 @@
                                                     data-tags="{{ e($fTags) }}"
                                                     {{ $isWaitingVal ? 'disabled' : '' }}
                                                     {{ (isset($selectedExistingFaq) && $selectedExistingFaq && $selectedExistingFaq->id === $fItem->id && !$isWaitingVal) ? 'selected' : '' }}>
-                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} {{ $isWaitingVal ? '(Menunggu Validasi - InActive)' : '(Versi baru: ' . $nextVId . ')' }}
+                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} {{ $isWaitingVal ? '(Sedang Menunggu Validasi)' : '(Versi ' . $nextVNum . ')' }}
                                             </option>
                                         @endforeach
                                     @endif
                                 </select>
-                            </div>
-                        </div>
-                    @else
-                        <!-- Pilihan Cara Simpan Perubahan saat Edit -->
-                        <div class="mb-4">
-                            <label class="form-label-custom mb-1">Cara Menyimpan Perubahan</label>
-                            <div class="fs-12 text-muted mb-2">Pilih untuk menyimpan sebagai versi jawaban baru atau memperbarui draft yang ada.</div>
-                            <div class="faq-mode-grid">
-                                <label class="faq-mode-card {{ ($shouldCreateNewVerByDefault ?? true) ? 'is-selected' : '' }}" id="editCardNewVer" for="editModeNewVer">
-                                    <input class="form-check-input" type="radio" name="edit_version_radio" id="editModeNewVer" value="new_version"
-                                           {{ ($shouldCreateNewVerByDefault ?? true) ? 'checked' : '' }}
-                                           onchange="switchEditVersionMode('new_version', '{{ $faq->id }}', '{{ $nextVersionId ?? $faq->generateNextVersionId() }}')">
-                                    <div>
-                                        <div class="fw-bold fs-13 text-dark">
-                                            Buat Versi Jawaban Baru
-                                            <span class="badge bg-dark-subtle text-dark ms-1">{{ $nextVersionId ?? $faq->generateNextVersionId() }}</span>
-                                        </div>
-                                        <div class="fs-12 text-muted mt-0.5">Riwayat jawaban lama tetap tersimpan aman.</div>
-                                    </div>
-                                </label>
-                                @if($faqStatus === 'draft' && $latestVer)
-                                    <label class="faq-mode-card {{ !($shouldCreateNewVerByDefault ?? true) ? 'is-selected' : '' }}" id="editCardUpdateDraft" for="editModeUpdateDraft">
-                                        <input class="form-check-input" type="radio" name="edit_version_radio" id="editModeUpdateDraft" value="update_draft"
-                                               {{ !($shouldCreateNewVerByDefault ?? true) ? 'checked' : '' }}
-                                               onchange="switchEditVersionMode('update_draft', '{{ $faq->id }}', '{{ $latestVer->id }}')">
-                                        <div>
-                                            <div class="fw-bold fs-13 text-dark">
-                                                Perbarui Draft Saat Ini
-                                                <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">{{ $latestVer->id }}</span>
-                                            </div>
-                                            <div class="fs-12 text-muted mt-0.5">Langsung ubah isi draft tanpa menambah nomor versi.</div>
-                                        </div>
-                                    </label>
-                                @endif
                             </div>
                         </div>
                     @endif
@@ -361,12 +327,12 @@
                             </div>
                         </div>
 
-                        <!-- Informasi Kemiripan Pertanyaan / Makna Serupa (Normalisasi + Similarity Score) -->
+                        <!-- Informasi Kemiripan Pertanyaan / Makna Serupa (Normalisasi + Skor Kemiripan) -->
                         <div id="duplicateWarning" class="alert alert-warning rounded-3 p-3 mt-2 fs-13 d-none">
                             <div class="d-flex align-items-start gap-2.5">
                                 <div class="flex-grow-1">
-                                    <div class="fw-bold text-dark mb-1">Analisis Kemiripan Pertanyaan (Similarity Check)</div>
-                                    <div class="fs-12 text-muted mb-2">Ditemukan kandidat FAQ di database yang memiliki kemiripan makna dengan pertanyaan yang Anda inputkan:</div>
+                                    <div class="fw-bold text-dark mb-1">Analisis Kemiripan Pertanyaan</div>
+                                    <div class="fs-12 text-muted mb-2">Ditemukan kandidat FAQ di database yang memiliki kemiripan makna dengan pertanyaan yang Anda masukkan:</div>
                                     <div id="duplicateList" class="d-flex flex-column gap-1.5"></div>
                                 </div>
                             </div>
@@ -391,12 +357,12 @@
                         <input type="hidden" name="jawaban" id="hiddenJawaban">
                     </div>
 
-                    <!-- Kata Kunci (Desain Baru Ramah Pengguna Awam) -->
+                    <!-- Kata Kunci (Satu Kolom Pencarian + Tambah Kata Kunci & Daftar Scrollable) -->
                     <div class="mb-4">
                         <label class="form-label-custom mb-1">Kata Kunci</label>
-                        <div class="fs-12 text-muted mb-2">Pilih dari daftar kata kunci di bawah, atau ketik kata kunci baru lalu klik <strong>Tambah</strong>.</div>
+                        <div class="fs-12 text-muted mb-2">Cari kata kunci yang tersedia pada daftar di bawah, atau ketik kata kunci baru lalu klik <strong>Tambah</strong>.</div>
 
-                        <!-- Kotak Kata Kunci Terpilih -->
+                        <!-- Kotak Kata Kunci Terpilih + Kolom Pencarian -->
                         <div class="tag-input-box-wrap">
                             <div id="tagContainer" class="tag-container-clean" onclick="document.getElementById('tagInput').focus()">
                                 @if($isEditing && $faq->tags)
@@ -410,7 +376,8 @@
                                 <input type="text"
                                        id="tagInput"
                                        class="tag-add-placeholder"
-                                       placeholder="Ketik kata kunci baru di sini..."
+                                       placeholder="Cari atau ketik kata kunci baru..."
+                                       oninput="filterTagSuggestions(this.value)"
                                        onkeydown="handleTagInput(event)"
                                        autocomplete="off">
                             </div>
@@ -419,17 +386,13 @@
                             </button>
                         </div>
 
-                        <!-- Daftar Pilihan Kata Kunci yang Bisa Dicari & Diklik -->
+                        <!-- Daftar Pilihan Kata Kunci yang Tersaring Otomatis & Dapat Di-scroll -->
                         @if(isset($tags) && $tags->isNotEmpty())
                             <div class="tag-library-box">
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                     <span class="fs-12 fw-semibold text-dark">
-                                        <i class="bi bi-tags me-1" style="color: var(--brand-maroon);"></i>Pilih cepat dari daftar kata kunci:
+                                        <i class="bi bi-tags me-1" style="color: var(--brand-maroon);"></i>Daftar kata kunci tersedia (klik untuk memilih):
                                     </span>
-                                    <div class="tag-library-search">
-                                        <i class="bi bi-search"></i>
-                                        <input type="text" id="tagSuggestionSearch" placeholder="Cari kata kunci..." oninput="filterTagSuggestions(this.value)">
-                                    </div>
                                 </div>
                                 <div class="tag-suggestions-scroll" id="tagSuggestionsGrid">
                                     @foreach($tags as $existingTag)
@@ -443,7 +406,7 @@
                                     @endforeach
                                 </div>
                                 <div id="tagSuggestionEmpty" class="fs-12 text-muted text-center py-2 d-none">
-                                    Tidak ada kata kunci yang cocok. Anda bisa langsung mengetikkannya di kotak di atas lalu klik Tambah.
+                                    Kata kunci belum terdaftar. Tekan <strong>Enter</strong> atau klik <strong>Tambah</strong> untuk menambahkan kata kunci baru.
                                 </div>
                             </div>
                         @endif
@@ -489,7 +452,7 @@
                 <div class="sticky-bottom-bar d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <a href="{{ route('dataentry.daftarFAQ') }}" class="btn-cancel">Batal</a>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" onclick="saveDraft()" class="btn-draft">Simpan Draft</button>
+                        <button type="button" onclick="saveDraft()" class="btn-draft">Simpan Draf</button>
                         <button type="button" onclick="submitValidasi()" class="btn-submit-validasi">
                             <i class="bi bi-send-check"></i>
                             <span>Ajukan Validasi</span>
@@ -726,6 +689,7 @@
         if (val) {
             addTag(val);
             input.value = '';
+            filterTagSuggestions('');
         }
         input.focus();
     }
@@ -763,6 +727,11 @@
             syncTagUiState();
         } else {
             addTag(tagName);
+            const input = document.getElementById('tagInput');
+            if (input && input.value.trim() !== '') {
+                input.value = '';
+                filterTagSuggestions('');
+            }
         }
     }
 
@@ -912,7 +881,7 @@
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    // 1. Jika Pertanyaan DAN Jawaban sama persis dengan FAQ berstatus Draft -> Tampilkan peringatan & blokir penambahan
+                    // 1. Jika Pertanyaan DAN Jawaban sama persis dengan FAQ berstatus Draf -> Tampilkan peringatan & blokir penambahan
                     if (data.has_exact_draft_match && data.exact_draft_match) {
                         const dm = data.exact_draft_match;
                         window._hasExactDraftMatch = true;
@@ -920,7 +889,7 @@
                         if (exactDraftBody) {
                             exactDraftBody.innerHTML = `
                                 <div class="mb-1">
-                                    Pertanyaan dan Jawaban yang Anda masukkan <strong>sama persis (100%)</strong> dengan FAQ <strong>${escHtml(dm.id)} (${escHtml(dm.version_id)})</strong> yang saat ini masih berstatus <span class="badge bg-secondary text-white">Draft</span>. Data ini tidak dapat dilanjutkan / ditambahkan.
+                                    Pertanyaan dan Jawaban yang Anda masukkan <strong>sama persis (100%)</strong> dengan FAQ <strong>${escHtml(dm.id)} (Versi ${escHtml(String(dm.version_id || '').replace(/^.*-V/i, '') || '1')})</strong> yang saat ini masih berstatus <span class="badge bg-secondary text-white">Draf</span>. Data ini tidak dapat dilanjutkan / ditambahkan.
                                 </div>
                                 <div class="p-2 bg-white rounded-2 border fs-12 text-secondary mt-1.5">
                                     <div><strong>Pertanyaan:</strong> "${escHtml(dm.pertanyaan)}"</div>
@@ -935,7 +904,7 @@
                         exactDraftBox?.classList.add('d-none');
                     }
 
-                    // Pada mode Tambah Versi Jawaban Baru, jangan tampilkan duplicate/similarity check pertanyaan
+                    // Pada mode Tambah Versi Jawaban Baru, jangan tampilkan pemeriksaan kemiripan pertanyaan
                     if (modeFaq === 'existing') {
                         exactBox?.classList.add('d-none');
                         warnBox?.classList.add('d-none');
@@ -946,7 +915,7 @@
                     if (data.has_exact_match && data.exact_match && !data.has_exact_draft_match) {
                         const em = data.exact_match;
                         let badgeClass = 'bg-secondary text-white';
-                        if (em.status_label === 'Active Publish' || em.status_label === 'Disetujui') {
+                        if (em.status_label === 'Terbit' || em.status_label === 'Diterima' || em.status_label === 'Active Publish' || em.status_label === 'Disetujui') {
                             badgeClass = 'bg-success text-white';
                         } else if (em.status_label === 'Menunggu Validasi') {
                             badgeClass = 'bg-primary text-white';
@@ -958,7 +927,7 @@
                                 <span class="badge ${badgeClass} ms-1 px-2 py-1">${escHtml(em.status_label)}</span>
                             </div>
                             <div class="p-2 bg-white rounded-2 border fs-12 text-secondary mt-1.5">
-                                <strong>${escHtml(em.id)} (${escHtml(em.version_id || em.id + '-V1')}):</strong> "${escHtml(em.pertanyaan)}"
+                                <strong>${escHtml(em.id)} (Versi ${escHtml(String(em.version_id || '').replace(/^.*-V/i, '') || '1')}):</strong> "${escHtml(em.pertanyaan)}"
                             </div>
                         `;
                         exactBox?.classList.remove('d-none');
@@ -966,12 +935,12 @@
                         exactBox?.classList.add('d-none');
                     }
 
-                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa (Similarity Check)
+                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa
                     const candidates = (data.candidates || []);
                     if (candidates.length > 0) {
                         listBox.innerHTML = candidates.map(d => {
-                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(d.status_label || 'Draft') + '</span>';
-                            if (d.status_label === 'Active Publish' || d.status_label === 'Disetujui') {
+                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(d.status_label || 'Draf') + '</span>';
+                            if (d.status_label === 'Terbit' || d.status_label === 'Diterima' || d.status_label === 'Active Publish' || d.status_label === 'Disetujui') {
                                 stBadge = '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">' + escHtml(d.status_label) + '</span>';
                             } else if (d.status_label === 'Menunggu Validasi') {
                                 stBadge = '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Menunggu Validasi</span>';
@@ -1132,8 +1101,8 @@
                     const dm = data.exact_draft_match;
                     Swal.fire({
                         icon: 'error',
-                        title: 'Duplikat Draft Terdeteksi',
-                        html: `Pertanyaan dan Jawaban sama persis dengan FAQ berstatus <strong>Draft</strong> yang sudah ada (<strong>${escHtml(dm.id)} / ${escHtml(dm.version_id)}</strong>).<br><br>Data tidak dapat dilanjutkan atau ditambahkan.`,
+                        title: 'Duplikat Draf Terdeteksi',
+                        html: `Pertanyaan dan Jawaban sama persis dengan FAQ berstatus <strong>Draf</strong> yang sudah ada (<strong>${escHtml(dm.id)}</strong>).<br><br>Data tidak dapat dilanjutkan atau ditambahkan.`,
                         confirmButtonColor: '#85172C'
                     });
                     return;
@@ -1148,8 +1117,8 @@
                     const dm = window._exactDraftMatchInfo;
                     Swal.fire({
                         icon: 'error',
-                        title: 'Duplikat Draft Terdeteksi',
-                        html: `Pertanyaan dan Jawaban sama persis dengan FAQ berstatus <strong>Draft</strong> yang sudah ada (<strong>${escHtml(dm.id)} / ${escHtml(dm.version_id)}</strong>).<br><br>Data tidak dapat dilanjutkan atau ditambahkan.`,
+                        title: 'Duplikat Draf Terdeteksi',
+                        html: `Pertanyaan dan Jawaban sama persis dengan FAQ berstatus <strong>Draf</strong> yang sudah ada (<strong>${escHtml(dm.id)}</strong>).<br><br>Data tidak dapat dilanjutkan atau ditambahkan.`,
                         confirmButtonColor: '#85172C'
                     });
                     return;

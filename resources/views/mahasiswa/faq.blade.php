@@ -39,7 +39,7 @@
     );
 
     $categories = [
-        ['key' => 'top',       'label' => 'Top FAQ',              'icon' => 'bi-stars'],
+        ['key' => 'top',       'label' => 'FAQ Populer',          'icon' => 'bi-stars'],
         ['key' => 'umum',      'label' => 'Kategori umum',        'icon' => 'bi-grid'],
         ['key' => 'fakultas',  'label' => $activeNamaFakultas,    'icon' => 'bi-building'],
         ['key' => 'akademik',  'label' => 'Akademik',             'icon' => 'bi-book'],
@@ -201,7 +201,7 @@
             </div>
             <span class="tag-soft shadow-sm">
                 <i class="bi bi-stars"></i>
-                <span id="faqCount">Top FAQ &middot; 5 pertanyaan</span>
+                <span id="faqCount">FAQ Populer &middot; 5 pertanyaan</span>
             </span>
         </div>
 
@@ -519,7 +519,7 @@
 
         const countEl = document.getElementById('faqCount');
         if (countEl) {
-            countEl.innerText = (activeCat === 'top' ? 'Top FAQ' : 'Hasil kategori') + ' · ' + visible + ' pertanyaan';
+            countEl.innerText = (activeCat === 'top' ? 'FAQ Populer' : 'Hasil kategori') + ' · ' + visible + ' pertanyaan';
         }
     }
 

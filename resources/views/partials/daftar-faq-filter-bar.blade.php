@@ -83,13 +83,14 @@
                 </div>
             </div>
 
-            <!-- Filter Status (Urutan: Semua Status, Menunggu Validasi, Disetujui, Ditolak, Terbit) -->
+            <!-- Filter Status (Urutan: Semua Status, Menunggu Validasi, Diterima, Ditolak, Terbit) -->
             <select name="status" class="filter-select" onchange="submitFaqFilterForm()">
-                <option value="Semua"     {{ request('status', 'Semua') === 'Semua'     ? 'selected' : '' }}>Semua Status</option>
-                <option value="Submitted" {{ request('status') === 'Submitted'          ? 'selected' : '' }}>Menunggu Validasi</option>
-                <option value="Approved"  {{ request('status') === 'Approved'           ? 'selected' : '' }}>Disetujui</option>
-                <option value="Rejected"  {{ request('status') === 'Rejected'           ? 'selected' : '' }}>Ditolak</option>
-                <option value="Active"    {{ request('status') === 'Active'             ? 'selected' : '' }}>Terbit</option>
+                @php $stReq = request('status', 'Semua'); @endphp
+                <option value="Semua"             {{ $stReq === 'Semua' ? 'selected' : '' }}>Semua Status</option>
+                <option value="Menunggu Validasi" {{ in_array($stReq, ['Menunggu Validasi', 'Submitted'], true) ? 'selected' : '' }}>Menunggu Validasi</option>
+                <option value="Diterima"          {{ in_array($stReq, ['Diterima', 'Approved'], true)           ? 'selected' : '' }}>Diterima</option>
+                <option value="Ditolak"           {{ in_array($stReq, ['Ditolak', 'Rejected'], true)            ? 'selected' : '' }}>Ditolak</option>
+                <option value="Terbit"            {{ in_array($stReq, ['Terbit', 'Active'], true)               ? 'selected' : '' }}>Terbit</option>
             </select>
 
             <!-- Sort -->

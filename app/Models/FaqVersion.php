@@ -3,6 +3,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class FaqVersion extends Model
@@ -44,47 +45,75 @@ class FaqVersion extends Model
         return $this->belongsTo(DaftarPustaka::class, 'tDaftarPustakas_id');
     }
 
-    // Scope helpers (sesuai ENUM: Draft, Submitted, Approved, Rejected, Active, InActive)
-    public function scopeDraft($q)      { return $q->where('status', 'Draft'); }
-    public function scopeSubmitted($q)  { return $q->where('status', 'Submitted'); }
-    public function scopeApproved($q)   { return $q->where('status', 'Approved'); }
-    public function scopeRejected($q)   { return $q->where('status', 'Rejected'); }
-    public function scopeActive($q)     { return $q->where('status', 'Active'); }
-    public function scopeInActive($q)   { return $q->where('status', 'InActive'); }
+    // Scope helpers (sesuai ENUM: Draf, Menunggu Validasi, Diterima, Ditolak, Terbit)
+    public function scopeDraf($q)             { return $q->where('status', 'Draf'); }
+    public function scopeMenungguValidasi($q) { return $q->where('status', 'Menunggu Validasi'); }
+    public function scopeDiterima($q)         { return $q->where('status', 'Diterima'); }
+    public function scopeDitolak($q)          { return $q->where('status', 'Ditolak'); }
+    public function scopeTerbit($q)           { return $q->where('status', 'Terbit'); }
 
     /**
-     * Konfigurasi Default Jam Publikasi Rutin (Format 24 Jam: 23 = Jam 11 Malam)
+     * Format kode versi (contoh: FAQ-0001-V1 -> Versi 1).
      */
-    public const DEFAULT_ROUTINE_HOUR   = 23;
-    public const DEFAULT_ROUTINE_MINUTE = 0;
-
-    /**
-     * Membuat string penanda jadwal publikasi yang disimpan di kolom catatan saat status masih Approved.
-     */
-    public static function encodePublishSchedule(string $mode, ?string $date = null, ?string $time = null): string
+    public static function formatVersiLabel(?string $versionId): string
     {
-        if ($mode === 'scheduled' && $date && $time) {
-            $dt = Carbon::parse($date . ' ' . $time);
-            $scheduledAt = $dt->format('Y-m-d H:i:s');
-            $label = 'Sudah Dipublish · Menunggu ' . $dt->translatedFormat('d M Y') . ' Pukul ' . $dt->format('H.i') . ' WIB';
-            return "[PUBLISH_SCHEDULE|scheduled|{$scheduledAt}|{$label}]";
+        $id = (string) $versionId;
+        if (preg_match('/-V(\d+)$/i', $id, $m)) {
+            return 'Versi ' . (int) $m[1];
         }
+        return 'Versi 1';
+    }
 
-        // Default: Publikasi Rutin (menunggu jam 11 malam / 23.00 WIB atau jadwal rutin sistem)
-        $now = now();
-        $targetRoutine = $now->copy()->setTime(self::DEFAULT_ROUTINE_HOUR, self::DEFAULT_ROUTINE_MINUTE, 0);
-        if ($now->gte($targetRoutine)) {
-            $targetRoutine->addDay()->setTime(self::DEFAULT_ROUTINE_HOUR, self::DEFAULT_ROUTINE_MINUTE, 0);
-        }
-        $scheduledAt = $targetRoutine->format('Y-m-d H:i:s');
-        $hourStr = sprintf('%02d.%02d', self::DEFAULT_ROUTINE_HOUR, self::DEFAULT_ROUTINE_MINUTE);
-        $label = "Sudah Dipublish · Menunggu Jadwal Rutin ({$hourStr} WIB)";
-
-        return "[PUBLISH_SCHEDULE|routine|{$scheduledAt}|{$label}]";
+    public function getVersiLabelAttribute(): string
+    {
+        return self::formatVersiLabel($this->id);
     }
 
     /**
-     * Membaca informasi jadwal publikasi dari kolom catatan (jika FAQ sudah di-publish terjadwal/rutin).
+     * Memastikan kolom enum status pada tfaqsversion sudah memakai 5 status Bahasa Indonesia
+     * ('Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit') dan mengonversi data lama jika ada.
+     */
+    public static function ensureIndonesianStatusEnum(): void
+    {
+        static $checked = false;
+        if ($checked) {
+            return;
+        }
+        $checked = true;
+
+        try {
+            $col = DB::selectOne("SHOW COLUMNS FROM tfaqsversion LIKE 'status'");
+            $typeStr = strtolower((string) ($col->Type ?? ''));
+
+            if (!str_contains($typeStr, 'menunggu validasi') || str_contains($typeStr, 'inactive') || str_contains($typeStr, "'active'")) {
+                DB::statement("ALTER TABLE tfaqsversion MODIFY status VARCHAR(40) NOT NULL DEFAULT 'Draf'");
+                DB::statement("UPDATE tfaqsversion SET status = 'Draf' WHERE LOWER(status) IN ('draft', 'draf')");
+                DB::statement("UPDATE tfaqsversion SET status = 'Menunggu Validasi' WHERE LOWER(status) IN ('submitted', 'pending', 'menunggu validasi')");
+                DB::statement("UPDATE tfaqsversion SET status = 'Diterima' WHERE LOWER(status) IN ('approved', 'accepted', 'disetujui', 'diterima')");
+                DB::statement("UPDATE tfaqsversion SET status = 'Ditolak' WHERE LOWER(status) IN ('rejected', 'ditolak')");
+                DB::statement("UPDATE tfaqsversion SET status = 'Terbit' WHERE LOWER(status) IN ('active', 'inactive', 'terbit', 'publish')");
+                DB::statement("UPDATE tfaqsversion SET status = 'Draf' WHERE status NOT IN ('Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit')");
+                DB::statement("ALTER TABLE tfaqsversion MODIFY status ENUM('Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit') NOT NULL DEFAULT 'Draf'");
+            }
+        } catch (Throwable $e) {
+            // Abaikan jika tabel belum siap
+        }
+    }
+
+    /**
+     * Membuat string penanda jadwal publikasi yang disimpan di kolom catatan saat status masih Diterima.
+     */
+    public static function encodePublishSchedule(string $date, string $time): string
+    {
+        $dt = Carbon::parse($date . ' ' . $time);
+        $scheduledAt = $dt->format('Y-m-d H:i:s');
+        $label = 'Terjadwal Terbit · ' . $dt->translatedFormat('d M Y') . ' Pukul ' . $dt->format('H.i') . ' WIB';
+
+        return "[PUBLISH_SCHEDULE|scheduled|{$scheduledAt}|{$label}]";
+    }
+
+    /**
+     * Membaca informasi jadwal publikasi dari kolom catatan (jika FAQ dijadwalkan terbit).
      */
     public function getPublishScheduleInfo(): ?array
     {
@@ -100,6 +129,10 @@ class FaqVersion extends Model
         }
 
         $mode = $parts[1];
+        if ($mode === 'routine') {
+            return null;
+        }
+
         $scheduledAt = $parts[2];
         $label = $parts[3];
 
@@ -115,7 +148,7 @@ class FaqVersion extends Model
 
         return [
             'is_scheduled' => true,
-            'mode'         => $mode,
+            'mode'         => 'scheduled',
             'scheduled_at' => $scheduledAt,
             'date'         => $datePart,
             'time'         => $timePart,
@@ -124,14 +157,16 @@ class FaqVersion extends Model
     }
 
     /**
-     * Mengaktifkan otomatis FAQ berstatus Approved yang jadwal publikasinya sudah tiba.
+     * Menerbitkan otomatis FAQ berstatus Diterima yang jadwal publikasinya sudah tiba.
      */
     public static function processDueScheduledPublications(): int
     {
         $activatedCount = 0;
 
         try {
-            $scheduledVersions = self::whereIn('status', ['Approved', 'approved'])
+            self::ensureIndonesianStatusEnum();
+
+            $scheduledVersions = self::where('status', 'Diterima')
                 ->where('catatan', 'like', '[PUBLISH_SCHEDULE|%')
                 ->get();
 
@@ -143,16 +178,8 @@ class FaqVersion extends Model
 
                 $targetTime = Carbon::parse($info['scheduled_at']);
                 if (now()->gte($targetTime)) {
-                    // Jika sudah terdapat versi Active sebelumnya pada FAQ yang sama,
-                    // pertahankan versi lama tetap Active dan set versi baru sebagai InActive
-                    // hingga diubah secara manual lewat tombol Active.
-                    $hasExistingActive = self::where('tFaqs_id', $ver->tFaqs_id)
-                        ->where('id', '!=', $ver->id)
-                        ->whereIn('status', ['Active', 'active'])
-                        ->exists();
-
                     $ver->update([
-                        'status'     => $hasExistingActive ? 'InActive' : 'Active',
+                        'status'     => 'Terbit',
                         'catatan'    => null,
                         'updated_at' => now(),
                     ]);

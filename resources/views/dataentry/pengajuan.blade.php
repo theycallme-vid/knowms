@@ -183,7 +183,7 @@
                         <h1 class="page-title mb-0 me-1">Pengajuan FAQ</h1>
                     </div>
                     <p class="fs-13 text-muted mb-0">
-                        Centang FAQ berstatus Draft atau Ditolak untuk diajukan ke Validator secara satuan maupun sekaligus.
+                        Centang FAQ berstatus Draf atau Ditolak untuk diajukan ke Validator secara satuan maupun sekaligus.
                     </p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -215,10 +215,11 @@
 
                             <!-- Filter Status -->
                             <select name="status" class="filter-select" onchange="document.getElementById('pengajuanFilterForm').submit()">
-                                <option value="all" {{ request('status', 'all') === 'all' ? 'selected' : '' }}>Semua Status</option>
-                                <option value="Draft" {{ request('status') === 'Draft' ? 'selected' : '' }}>Draft</option>
-                                <option value="Rejected" {{ request('status') === 'Rejected' ? 'selected' : '' }}>Ditolak</option>
-                                <option value="Submitted" {{ request('status') === 'Submitted' ? 'selected' : '' }}>Menunggu Validasi</option>
+                                @php $stPengReq = request('status', 'all'); @endphp
+                                <option value="all"              {{ $stPengReq === 'all' ? 'selected' : '' }}>Semua Status</option>
+                                <option value="Draf"             {{ in_array($stPengReq, ['Draf', 'Draft'], true) ? 'selected' : '' }}>Draf</option>
+                                <option value="Ditolak"          {{ in_array($stPengReq, ['Ditolak', 'Rejected'], true) ? 'selected' : '' }}>Ditolak</option>
+                                <option value="Menunggu Validasi" {{ in_array($stPengReq, ['Menunggu Validasi', 'Submitted'], true) ? 'selected' : '' }}>Menunggu Validasi</option>
                             </select>
 
                             <!-- Sort -->
@@ -252,37 +253,37 @@
                                     <th style="width: 170px;">Data Entry</th>
                                     <th style="width: 155px;">Waktu Pengajuan</th>
                                     <th style="width: 145px;">Status</th>
-                                    <th style="width: 340px;">Aksi</th>
+                                    <th style="width: 195px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="faqTableBody">
                                 @forelse($faqs as $faq)
                                     @php
                                         $latestVersion = $faq->versions->first();
-                                        $status        = $latestVersion?->status ?? 'Draft';
+                                        $status        = $latestVersion?->status ?? 'Draf';
                                         $stLower       = strtolower($status);
                                         $versionCount  = max(1, $faq->versions->count());
                                         $deName        = $faq->dataEntry?->nama ?? 'Data Entry';
                                         $nextVerId     = $faq->generateNextVersionId();
-                                        $canSubmit     = in_array($stLower, ['draft', 'rejected'], true);
+                                        $canSubmit     = in_array($stLower, ['draf', 'draft', 'ditolak', 'rejected'], true);
                                         $hasTags       = $faq->tags && $faq->tags->isNotEmpty();
                                         $hasSource     = $latestVersion && !empty($latestVersion->tDaftarPustakas_id);
                                         $createdAtJkt  = ($latestVersion?->updated_at ?? $faq->created_at)?->timezone('Asia/Jakarta');
 
                                         $statusClass = match($status) {
-                                            'Submitted' => 'badge-submitted',
-                                            'Rejected'  => 'badge-rejected',
-                                            default     => 'badge-draft',
+                                            'Menunggu Validasi', 'Submitted' => 'badge-submitted',
+                                            'Ditolak', 'Rejected'            => 'badge-rejected',
+                                            default                          => 'badge-draft',
                                         };
                                         $statusLabel = match($status) {
-                                            'Submitted' => 'Menunggu Validasi',
-                                            'Rejected'  => 'Ditolak',
-                                            default     => 'Draft',
+                                            'Menunggu Validasi', 'Submitted' => 'Menunggu Validasi',
+                                            'Ditolak', 'Rejected'            => 'Ditolak',
+                                            default                          => 'Draf',
                                         };
                                         $statusIcon = match($status) {
-                                            'Submitted' => 'bi-hourglass-split',
-                                            'Rejected'  => 'bi-x-circle-fill',
-                                            default     => 'bi-pencil',
+                                            'Menunggu Validasi', 'Submitted' => 'bi-hourglass-split',
+                                            'Ditolak', 'Rejected'            => 'bi-x-circle-fill',
+                                            default                          => 'bi-pencil',
                                         };
                                     @endphp
                                     <tr class="faq-row"
@@ -347,49 +348,28 @@
                                             </span>
                                         </td>
 
-                                        <!-- Aksi (View, Edit, Ajukan, Hapus) -->
+                                        <!-- Aksi (Lihat & Ubah) -->
                                         <td>
-                                            <div class="d-flex align-items-center gap-1.5 flex-nowrap">
-                                                <button type="button" class="btn-action-pill btn-pill-view" onclick="viewFaqDetail('{{ $faq->id }}')">
+                                            <div class="d-flex align-items-center gap-2 flex-nowrap">
+                                                <button type="button" class="btn-action btn-action-view" onclick="viewFaqDetail('{{ $faq->id }}')">
                                                     <i class="bi bi-eye"></i>
-                                                    <span>View</span>
+                                                    <span>Lihat</span>
                                                 </button>
 
-                                                @if($stLower === 'submitted')
+                                                @if(in_array($stLower, ['menunggu validasi', 'submitted'], true))
                                                     <button type="button"
-                                                            class="btn-action-pill"
-                                                            style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border: 1px solid #CBD5E1;"
-                                                            title="InActive — Sedang Menunggu Validasi"
+                                                            class="btn-action btn-action-edit action-icon-disabled"
+                                                            style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
+                                                            title="Terkunci — Sedang Menunggu Validasi"
                                                             disabled>
                                                         <i class="bi bi-pencil"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button type="button"
-                                                            class="btn-action-pill"
-                                                            style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border: 1px solid #CBD5E1;"
-                                                            title="Tidak dapat dihapus — Sedang Menunggu Validasi"
-                                                            disabled>
-                                                        <i class="bi bi-trash3"></i>
-                                                        <span>Hapus</span>
+                                                        <span>Ubah</span>
                                                     </button>
                                                 @else
-                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action-pill btn-pill-view text-decoration-none">
+                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none">
                                                         <i class="bi bi-pencil"></i>
-                                                        <span>Edit</span>
+                                                        <span>Ubah</span>
                                                     </a>
-                                                    <button type="button"
-                                                            class="btn-action-pill btn-pill-approved"
-                                                            onclick="confirmSingleSubmit({{ \Illuminate\Support\Js::from($faq->id) }}, {{ \Illuminate\Support\Js::from($faq->pertanyaan) }})">
-                                                        <i class="bi bi-send-check"></i>
-                                                        <span>Ajukan</span>
-                                                    </button>
-                                                    <button type="button"
-                                                            class="btn-action-pill btn-pill-rejected"
-                                                            title="Hapus FAQ"
-                                                            onclick="confirmDeleteFaq({{ \Illuminate\Support\Js::from($faq->id) }}, {{ \Illuminate\Support\Js::from($faq->pertanyaan) }})">
-                                                        <i class="bi bi-trash3"></i>
-                                                        <span>Hapus</span>
-                                                    </button>
                                                 @endif
                                             </div>
                                         </td>
@@ -676,7 +656,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Data Belum Lengkap',
-                    html: `Peringatan: FAQ <strong>${faqId}</strong> belum memiliki <strong>${missing.join(' dan ')}</strong>.<br><br>Silakan klik tombol <strong>Edit</strong> untuk melengkapinya terlebih dahulu.`,
+                    html: `Peringatan: FAQ <strong>${faqId}</strong> belum memiliki <strong>${missing.join(' dan ')}</strong>.<br><br>Silakan klik tombol <strong>Ubah</strong> untuk melengkapinya terlebih dahulu.`,
                     confirmButtonColor: '#85172C'
                 });
                 return;
@@ -742,7 +722,7 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'Kata Kunci / Sumber Pustaka Belum Lengkap',
-                html: `Peringatan: FAQ (<strong>${incompleteCodes.join(', ')}</strong>) belum memiliki <strong>Kata Kunci</strong> atau <strong>Sumber Pustaka</strong>.<br><br>Silakan lengkapi melalui tombol <strong>Edit</strong> terlebih dahulu sebelum diajukan.`,
+                html: `Peringatan: FAQ (<strong>${incompleteCodes.join(', ')}</strong>) belum memiliki <strong>Kata Kunci</strong> atau <strong>Sumber Pustaka</strong>.<br><br>Silakan lengkapi melalui tombol <strong>Ubah</strong> terlebih dahulu sebelum diajukan.`,
                 confirmButtonColor: '#85172C'
             });
             return;
@@ -766,7 +746,12 @@
         });
     }
 
-    // View Detail FAQ (View-Only Status Active/InActive)
+    function formatVersiCode(verId) {
+        const m = String(verId || '').match(/-V(\d+)$/i);
+        return m ? ('Versi ' + parseInt(m[1], 10)) : 'Versi 1';
+    }
+
+    // Lihat Detail FAQ
     function viewFaqDetail(faqId) {
         fetch(`{{ url('/data-entry/faq') }}/${faqId}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -777,7 +762,7 @@
                 const d = res.data;
                 const latest = d.latest_version || {};
                 const tagsHtml = (d.tags && d.tags.length > 0)
-                    ? `<div class="d-flex flex-wrap gap-2" style="margin-bottom: 1.15rem;">${d.tags.map(t => `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${t}</span>`).join('')}</div>`
+                    ? `<div style="margin-bottom: 1.1rem;"><div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Kata Kunci</div><div class="d-flex flex-wrap gap-2">${d.tags.map(t => `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${t}</span>`).join('')}</div></div>`
                     : '';
 
                 let catatanHtml = '';
@@ -790,13 +775,33 @@
                     `;
                 }
 
-                const rawSt = (latest.status || 'Draft').toLowerCase();
-                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draft</span>`;
-                if (rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
-                else if (rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Disetujui</span>';
-                else if (rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
-                else if (rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
-                else if (rawSt === 'inactive') statusBadge = '<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;border:1px solid #CBD5E1;font-size:0.75rem;padding:0.4rem 0.85rem;">InActive</span>';
+                const rawSt = (latest.status || 'Draf').toLowerCase();
+                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draf</span>`;
+                if (rawSt === 'terbit' || rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
+                else if (rawSt === 'diterima' || rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Diterima</span>';
+                else if (rawSt === 'menunggu validasi' || rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
+                else if (rawSt === 'ditolak' || rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
+
+                const latestVerObj = (d.versions || []).find(v => v.id === latest.id) || (d.versions || [])[0] || {};
+                const dp = latestVerObj.daftar_pustaka || null;
+                let sourceHtml = '';
+                if (dp) {
+                    const actionLink = dp.is_file && dp.view_url
+                        ? `<a href="${dp.view_url}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-3 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-eye me-1"></i>Lihat Berkas</a>`
+                        : (dp.link && /^https?:\/\//i.test(dp.link) ? `<a href="${dp.link}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-3 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-eye me-1"></i>Lihat Tautan</a>` : '');
+                    sourceHtml = `
+                        <div style="margin-bottom: 1.1rem;">
+                            <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Sumber Pustaka</div>
+                            <div class="rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1; padding: 0.75rem 1rem;">
+                                <div>
+                                    <div class="fw-semibold text-dark" style="font-size: 0.85rem;">${dp.judul || '-'}</div>
+                                    <div class="text-muted" style="font-size: 0.74rem;">${dp.is_file ? 'Berkas Dokumen' : 'Tautan Rujukan'} &middot; Tipe: ${dp.type || 'Publik'}</div>
+                                </div>
+                                ${actionLink}
+                            </div>
+                        </div>
+                    `;
+                }
 
                 let versionsHistoryHtml = '';
                 if (d.versions && d.versions.length > 0) {
@@ -807,23 +812,18 @@
                                 <table class="table table-sm mb-0 align-middle" style="font-size: 0.83rem;">
                                     <thead style="background-color: #FBF9F7; border-bottom: 1px solid #EDE7E1; position: sticky; top: 0; z-index: 1;">
                                         <tr>
-                                            <th class="text-secondary fw-semibold" style="width: 125px; font-size: 0.74rem; padding: 0.7rem 1rem;">ID Versi</th>
+                                            <th class="text-secondary fw-semibold" style="width: 115px; font-size: 0.74rem; padding: 0.7rem 1rem;">Versi</th>
                                             <th class="text-secondary fw-semibold" style="font-size: 0.74rem; padding: 0.7rem 1rem;">Jawaban Versi Tersebut</th>
-                                            <th class="text-secondary fw-semibold text-center" style="width: 120px; font-size: 0.74rem; padding: 0.7rem 1rem;">Status</th>
                                             <th class="text-secondary fw-semibold" style="width: 155px; font-size: 0.74rem; padding: 0.7rem 1rem;">Diperbarui</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         ${d.versions.map(v => {
-                                            const isVerActive = (v.status || '').toLowerCase() === 'active';
-                                            const verStatusBadge = isVerActive
-                                                ? '<span class="badge rounded-pill" style="background-color:#ECFDF5;color:#16A34A;border:1px solid #BBF7D0;font-size:0.72rem;padding:0.35rem 0.75rem;">Active</span>'
-                                                : '<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;border:1px solid #CBD5E1;font-size:0.72rem;padding:0.35rem 0.75rem;">InActive</span>';
+                                            const versiLabel = v.versi_label || formatVersiCode(v.id);
                                             return `
                                                 <tr style="border-bottom: 1px solid #F3EFEA;">
-                                                    <td class="fw-bold text-nowrap" style="color: #85172C; padding: 0.8rem 1rem;">${v.id}</td>
+                                                    <td class="fw-bold text-nowrap" style="color: #85172C; padding: 0.8rem 1rem;">${versiLabel}</td>
                                                     <td class="text-dark" style="line-height: 1.55; word-break: break-word; padding: 0.8rem 1rem;">${v.jawaban || '-'}</td>
-                                                    <td class="text-center" style="padding: 0.8rem 1rem;">${verStatusBadge}</td>
                                                     <td class="text-secondary text-nowrap" style="font-size: 0.77rem; padding: 0.8rem 1rem;">${v.updated_at || '-'}</td>
                                                 </tr>
                                             `;
@@ -834,6 +834,38 @@
                         </div>
                     `;
                 }
+
+                window._pengajuanModalFaq = {
+                    id: d.id,
+                    pertanyaan: d.pertanyaan || ''
+                };
+
+                const canModalAction = ['draf', 'draft', 'ditolak', 'rejected'].includes(rawSt);
+                const modalFooterActionsHtml = canModalAction
+                    ? `
+                        <div class="d-flex justify-content-end align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid #EDE7E1;">
+                            <button type="button" class="btn-action-pill btn-pill-approved" onclick="handleModalAjukanFaq()">
+                                <i class="bi bi-send-check"></i>
+                                <span>Ajukan</span>
+                            </button>
+                            <button type="button" class="btn-action-pill btn-pill-rejected" onclick="handleModalHapusFaq()">
+                                <i class="bi bi-trash3"></i>
+                                <span>Hapus</span>
+                            </button>
+                        </div>
+                    `
+                    : `
+                        <div class="d-flex justify-content-end align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid #EDE7E1;">
+                            <button type="button" class="btn-action-pill" style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border: 1px solid #CBD5E1;" title="Terkunci — Sedang Menunggu Validasi" disabled>
+                                <i class="bi bi-send-check"></i>
+                                <span>Ajukan</span>
+                            </button>
+                            <button type="button" class="btn-action-pill" style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border: 1px solid #CBD5E1;" title="Tidak dapat dihapus — Sedang Menunggu Validasi" disabled>
+                                <i class="bi bi-trash3"></i>
+                                <span>Hapus</span>
+                            </button>
+                        </div>
+                    `;
 
                 Swal.fire({
                     title: '',
@@ -861,7 +893,7 @@
                             </div>
 
                             <div style="margin-bottom: 1.1rem;">
-                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Jawaban (${latest.id || (d.id + '-V1')})</div>
+                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Jawaban (${formatVersiCode(latest.id || (d.id + '-V1'))})</div>
                                 <div class="rounded-3 bg-white text-dark" style="border: 1px solid #EDE7E1; font-size: 0.89rem; max-height: 165px; overflow-y: auto; line-height: 1.65; padding: 0.9rem 1.05rem;">
                                     ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
                                 </div>
@@ -869,13 +901,16 @@
 
                             ${tagsHtml}
 
+                            ${sourceHtml}
+
                             ${versionsHistoryHtml}
+
+                            ${modalFooterActionsHtml}
                         </div>
                     `,
                     width: '820px',
                     showCloseButton: true,
-                    confirmButtonColor: '#85172C',
-                    confirmButtonText: 'Tutup',
+                    showConfirmButton: false,
                     customClass: {
                         popup: 'rounded-4 shadow-lg border-0 kms-view-modal'
                     }
@@ -883,6 +918,20 @@
             }
         })
         .catch(err => console.error(err));
+    }
+
+    function handleModalAjukanFaq() {
+        const info = window._pengajuanModalFaq;
+        if (!info) return;
+        Swal.close();
+        confirmSingleSubmit(info.id, info.pertanyaan);
+    }
+
+    function handleModalHapusFaq() {
+        const info = window._pengajuanModalFaq;
+        if (!info) return;
+        Swal.close();
+        confirmDeleteFaq(info.id, info.pertanyaan);
     }
 </script>
 </body>

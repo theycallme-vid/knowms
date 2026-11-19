@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAQ Guest - KMS (Knowledge Management System)</title>
+    <title>FAQ Tamu - KMS (Knowledge Management System)</title>
     <meta name="description" content="Pusat pengetahuan KMS untuk Pengunjung / Guest: temukan informasi akademik, pendaftaran, beasiswa, dan panduan umum kampus tanpa perlu scan KTM atau NRP.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
@@ -30,7 +30,7 @@
     | karena guest tidak terikat pada satu fakultas spesifik.
     */
     $categories = [
-        ['key' => 'top',       'label' => 'Top FAQ',              'icon' => 'bi-stars'],
+        ['key' => 'top',       'label' => 'FAQ Populer',          'icon' => 'bi-stars'],
         ['key' => 'umum',      'label' => 'Kategori umum',        'icon' => 'bi-grid'],
         ['key' => 'akademik',  'label' => 'Akademik',             'icon' => 'bi-book'],
         ['key' => 'biaya',     'label' => 'Biaya & beasiswa',     'icon' => 'bi-wallet2'],
@@ -52,7 +52,7 @@
             $activeVer = $dbFaq->versions->first();
             $pustaka = $activeVer?->daftarPustaka;
             $sourceType = $pustaka ? strtolower((string) $pustaka->type) : null;
-            $sourceLabel = $pustaka ? $pustaka->link : null;
+            $sourceLabel = $pustaka ? ($pustaka->judul_tampil ?: $pustaka->link) : null;
             $sourceUrl = ($pustaka && filter_var($pustaka->link, FILTER_VALIDATE_URL)) ? $pustaka->link : '#';
             $tagNames = $dbFaq->tags->pluck('nama')->implode(' · ');
             $mappedDbFaqs[] = [
@@ -198,7 +198,7 @@
             </div>
             <span class="tag-soft shadow-sm">
                 <i class="bi bi-stars"></i>
-                <span id="faqCount">Top FAQ &middot; 5 pertanyaan</span>
+                <span id="faqCount">FAQ Populer &middot; 5 pertanyaan</span>
             </span>
         </div>
 

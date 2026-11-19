@@ -40,14 +40,15 @@ class GuestController extends Controller
         $publishedFaqs = collect();
         try {
             DaftarPustaka::ensurePublicPrivateEnum();
+            FaqVersion::ensureIndonesianStatusEnum();
             FaqVersion::processDueScheduledPublications();
 
             $publishedFaqs = Faq::with([
                 'tags',
-                'versions' => fn ($q) => $q->whereIn('status', ['Active', 'active'])->latest('updated_at'),
+                'versions' => fn ($q) => $q->where('status', 'Terbit')->latest('updated_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
-                $q->whereIn('status', ['Active', 'active']);
+                $q->where('status', 'Terbit');
             })->orderBy('created_at', 'desc')->get();
         } catch (Throwable $e) {
             $publishedFaqs = collect();

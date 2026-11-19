@@ -270,7 +270,7 @@
                                 <th style="width: 145px;">JENIS</th>
                                 <th style="width: 150px;">TIPE</th>
                                 <th style="width: 165px;">DIGUNAKAN PADA</th>
-                                <th style="width: 240px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 300px; text-align: right;">TINDAKAN</th>
                             </tr>
                         </thead>
                         <tbody id="pustakaTableBody">
@@ -306,11 +306,11 @@
                                         <td>
                                             @if($visType === 'Private')
                                                 <span class="badge-status badge-status-revisi">
-                                                    <i class="bi bi-lock-fill me-1"></i>Private
+                                                    <i class="bi bi-lock-fill me-1"></i>Privat
                                                 </span>
                                             @else
                                                 <span class="badge-status badge-status-terbit">
-                                                    <i class="bi bi-globe2 me-1"></i>Public
+                                                    <i class="bi bi-globe2 me-1"></i>Publik
                                                 </span>
                                             @endif
                                         </td>
@@ -320,17 +320,26 @@
                                             </span>
                                         </td>
                                         <td style="text-align: right;">
-                                            <div class="d-inline-flex align-items-center gap-1.5">
+                                            <div class="d-inline-flex align-items-center gap-2">
                                                 @if($isFile)
+                                                    <button type="button"
+                                                            class="btn-table-edit"
+                                                            onclick="openViewPustakaModal('{{ route('dataentry.pustaka.view', $p->id) }}', '{{ route('dataentry.pustaka.download', $p->id) }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}')">
+                                                        <i class="bi bi-eye"></i> Lihat
+                                                    </button>
                                                     <a href="{{ route('dataentry.pustaka.download', $p->id) }}" class="btn-table-edit text-decoration-none">
                                                         <i class="bi bi-download"></i> Unduh
+                                                    </a>
+                                                @elseif(str_starts_with((string) $p->link, 'http://') || str_starts_with((string) $p->link, 'https://'))
+                                                    <a href="{{ $p->link }}" target="_blank" class="btn-table-edit text-decoration-none">
+                                                        <i class="bi bi-eye"></i> Lihat
                                                     </a>
                                                 @endif
 
                                                 <button type="button"
                                                         class="btn-table-edit"
                                                         onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}', '{{ strtolower($visType) }}', {{ $isFile ? 'true' : 'false' }})">
-                                                    <i class="bi bi-pencil"></i> Edit
+                                                    <i class="bi bi-pencil"></i> Ubah
                                                 </button>
 
                                                 <form action="{{ route('dataentry.sumberpustaka.destroy', $p->id) }}" method="POST" id="del-pustaka-{{ $p->id }}" class="d-inline">
@@ -388,17 +397,17 @@
 
                     <!-- 3. Unggah File Dokumen (Jika Jenis Input = Dokumen) -->
                     <div class="mb-3 d-none" id="fileUploadContainer">
-                        <label class="form-label-custom form-label-required">3. Unggah File Dokumen</label>
-                        <input type="file" name="file_upload" id="addPustakaFileInput" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
-                        <div class="fs-11 text-muted mt-1">Untuk jenis input Dokumen, wajib mengunggah file dokumen rujukan.</div>
+                        <label class="form-label-custom form-label-required">3. Unggah Berkas Dokumen</label>
+                        <input type="file" name="file_upload" id="addPustakaFileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-control fs-13 rounded-3">
+                        <div class="fs-11 text-muted mt-1">Untuk jenis input Dokumen, wajib mengunggah berkas rujukan (PDF, DOC/DOCX, atau gambar; tersimpan aman di database).</div>
                     </div>
 
-                    <!-- 4. Tipe (Public/Private) -->
+                    <!-- 4. Tipe (Publik / Privat) -->
                     <div class="mb-2">
-                        <label class="form-label-custom form-label-required">4. Tipe (Public/Private)</label>
+                        <label class="form-label-custom form-label-required">4. Tipe Akses</label>
                         <select name="type" class="form-select fs-13 rounded-3" required>
-                            <option value="public">Public — Dapat dilihat oleh Mahasiswa pada FAQ</option>
-                            <option value="private">Private — Tidak dimunculkan di Mahasiswa (Tercatat di FAQ)</option>
+                            <option value="public">Publik — Dapat dilihat oleh Mahasiswa pada FAQ</option>
+                            <option value="private">Privat — Tidak dimunculkan di Mahasiswa (Tercatat internal FAQ)</option>
                         </select>
                     </div>
                 </div>
@@ -418,7 +427,7 @@
             <form id="editPustakaForm" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold fs-16" id="editPustakaModalTitle">Edit Sumber Pustaka</h5>
+                    <h5 class="modal-title fw-bold fs-16" id="editPustakaModalTitle">Ubah Sumber Pustaka</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -430,26 +439,26 @@
 
                     <!-- Muncul jika Sumber Pustaka berupa Link -->
                     <div class="mb-3" id="editLinkBox">
-                        <label class="form-label-custom form-label-required" id="editLinkLabel">Link / Tautan Sumber Pustaka (Maks. 60 Karakter)</label>
-                        <input type="text" name="link" id="editPustakaLink" maxlength="60" class="form-control fs-13 rounded-3" placeholder="Masukkan link sumber pustaka baru (maks. 60 karakter)...">
+                        <label class="form-label-custom form-label-required" id="editLinkLabel">Tautan Sumber Pustaka (Maks. 60 Karakter)</label>
+                        <input type="text" name="link" id="editPustakaLink" maxlength="60" class="form-control fs-13 rounded-3" placeholder="Masukkan tautan sumber pustaka baru (maks. 60 karakter)...">
                     </div>
 
-                    <!-- Muncul jika Sumber Pustaka berupa File Dokumen -->
+                    <!-- Muncul jika Sumber Pustaka berupa Berkas Dokumen -->
                     <div class="mb-3 d-none" id="editFileBox">
                         <div class="p-2.5 bg-light border rounded-3 mb-3 fs-12">
-                            <span class="text-muted">File saat ini:</span>
+                            <span class="text-muted">Berkas saat ini:</span>
                             <strong class="text-dark ms-1" id="currentFileNameText">-</strong>
                         </div>
-                        <label class="form-label-custom">Unggah File Dokumen Baru (PDF / DOCX)</label>
-                        <input type="file" name="file_upload" id="editPustakaFile" accept=".pdf,.doc,.docx" class="form-control fs-13 rounded-3">
-                        <div class="fs-11 text-muted mt-1">Pilih file dokumen baru untuk menggantikan file sebelumnya (kosongkan jika hanya mengubah judul atau tipe).</div>
+                        <label class="form-label-custom">Unggah Berkas Dokumen Baru (PDF / DOCX / Gambar)</label>
+                        <input type="file" name="file_upload" id="editPustakaFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-control fs-13 rounded-3">
+                        <div class="fs-11 text-muted mt-1">Pilih berkas baru untuk menggantikan berkas sebelumnya (kosongkan jika hanya mengubah judul atau tipe).</div>
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka (Public / Private)</label>
+                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka</label>
                         <select name="type" id="editPustakaType" class="form-select fs-13 rounded-3" required>
-                            <option value="public">Public — Dapat dilihat oleh Mahasiswa pada FAQ</option>
-                            <option value="private">Private — Tidak dimunculkan di Mahasiswa (Tercatat di FAQ)</option>
+                            <option value="public">Publik — Dapat dilihat oleh Mahasiswa pada FAQ</option>
+                            <option value="private">Privat — Tidak dimunculkan di Mahasiswa (Tercatat internal FAQ)</option>
                         </select>
                     </div>
                 </div>
@@ -503,6 +512,35 @@
                     <button type="submit" class="btn btn-sm btn-maroon px-3">Unggah & Tinjau</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Pratinjau Berkas Sumber Pustaka -->
+<div class="modal fade" id="viewPustakaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold fs-16" id="viewPustakaModalTitle">Pratinjau Dokumen</h5>
+                    <div class="fs-12 text-muted" id="viewPustakaFileName">-</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="background-color: #F8FAFC;">
+                <iframe id="viewPustakaFrame" src="about:blank" style="width: 100%; height: 70vh; border: none; display: block;"></iframe>
+            </div>
+            <div class="modal-footer border-top justify-content-between">
+                <span class="fs-12 text-muted">Jika dokumen berupa format Word (.doc/.docx), silakan klik <strong>Unduh Berkas</strong> untuk membukanya.</span>
+                <div class="d-flex gap-2">
+                    <a href="#" target="_blank" id="viewPustakaOpenTabBtn" class="btn btn-sm btn-outline-secondary rounded-3 px-3">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Buka di Tab Baru
+                    </a>
+                    <a href="#" id="viewPustakaDownloadBtn" class="btn btn-sm btn-maroon rounded-3 px-3">
+                        <i class="bi bi-download me-1"></i>Unduh Berkas
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -611,6 +649,26 @@
             linkContainer?.classList.remove('d-none');
             if (linkInput) linkInput.required = true;
         }
+    }
+
+    function openViewPustakaModal(viewUrl, downloadUrl, judul, fileName) {
+        const titleEl = document.getElementById('viewPustakaModalTitle');
+        const nameEl = document.getElementById('viewPustakaFileName');
+        const frameEl = document.getElementById('viewPustakaFrame');
+        const openTabEl = document.getElementById('viewPustakaOpenTabBtn');
+        const dlEl = document.getElementById('viewPustakaDownloadBtn');
+
+        if (titleEl) titleEl.textContent = judul || 'Pratinjau Dokumen Sumber Pustaka';
+        if (nameEl) nameEl.textContent = fileName || 'Dokumen';
+        if (frameEl) frameEl.src = viewUrl;
+        if (openTabEl) openTabEl.href = viewUrl;
+        if (dlEl) dlEl.href = downloadUrl;
+
+        const modalEl = document.getElementById('viewPustakaModal');
+        modalEl?.addEventListener('hidden.bs.modal', function () {
+            if (frameEl) frameEl.src = 'about:blank';
+        }, { once: true });
+        new bootstrap.Modal(modalEl).show();
     }
 
     function openEditPustakaModal(id, currentJudul, currentLink, currentType, isFile) {

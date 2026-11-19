@@ -39,8 +39,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 });
 
-// LOGOUT (Hanya untuk yang sudah login)
-Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
+// LOGOUT & AKSES LIHAT FILE PUSTAKA INTERNAL
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/sumber-pustaka/{id}/lihat', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.lihat');
+});
 
 // SUPER ADMIN ROUTES
 Route::middleware(['auth', 'role:Super Admin'])->group(function () {
@@ -60,7 +63,6 @@ Route::middleware(['auth', 'role:Super Admin,Validator'])->prefix('validator')->
     Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
     Route::get('/faq/{id}/detail', [ValidatorFaqController::class, 'show'])->name('faq.show');
     Route::post('/faq/{id}/status', [ValidatorFaqController::class, 'updateStatus'])->name('faq.updateStatus');
-    Route::post('/faq-version/{versionId}/status', [ValidatorFaqController::class, 'updateVersionStatus'])->name('faqVersion.updateStatus');
     Route::delete('/faq/{id}', [ValidatorFaqController::class, 'destroy'])->name('faq.destroy');
     Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
     Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
@@ -145,6 +147,7 @@ Route::middleware(['auth', 'role:Data Entry'])->group(function () {
         Route::post('/sumber-pustaka/save-import', [DataEntryFaqController::class, 'sumberPustakaSaveImport'])->name('sumberpustaka.saveImport');
         Route::post('/sumber-pustaka/cancel-import', [DataEntryFaqController::class, 'sumberPustakaCancelImport'])->name('sumberpustaka.cancelImport');
         Route::get('/template/sumber-pustaka', [DataEntryFaqController::class, 'downloadTemplatePustaka'])->name('template.pustaka');
+        Route::get('/pustaka/{id}/view', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.view');
         Route::get('/pustaka/{id}/download', [DataEntryFaqController::class, 'downloadPustaka'])->name('pustaka.download');
 
         // 5. Pengaturan Akun Data Entry

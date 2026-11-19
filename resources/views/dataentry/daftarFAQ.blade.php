@@ -201,13 +201,13 @@
                     </div>
                 </div>
 
-                {{-- Disetujui --}}
+                {{-- Diterima --}}
                 <div class="stat-card-compact">
                     <div class="stat-icon" style="background-color:#EDE9FE; color:#7C3AED;">
                         <i class="bi bi-check2-circle"></i>
                     </div>
                     <div>
-                        <div class="stat-label">Disetujui</div>
+                        <div class="stat-label">Diterima</div>
                         <div class="stat-value">{{ $totalApproved ?? $approvedCount ?? 0 }}</div>
                     </div>
                 </div>
@@ -261,45 +261,40 @@
                                 <th style="width:155px;">Data Entry</th>
                                 <th style="width:135px;">Waktu Pengajuan</th>
                                 <th style="width:215px;">Status</th>
-                                <th style="width:185px;" class="text-end pe-4">Aksi</th>
+                                <th style="width:195px;" class="text-end pe-4">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($faqs as $faq)
                                 @php
                                     $rawLatestVersion = $faq->versions->first();
-                                    $activeFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'active');
-                                    $latestVersion = ($rawLatestVersion && strtolower((string) $rawLatestVersion->status) === 'inactive' && $activeFaqVersion)
-                                        ? $activeFaqVersion
-                                        : $rawLatestVersion;
-                                    $status        = $latestVersion?->status ?? 'Draft';
+                                    $terbitFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
+                                    $latestVersion = $terbitFaqVersion ?? $rawLatestVersion;
+                                    $status        = $latestVersion?->status ?? 'Draf';
                                     $stLower       = strtolower($status);
                                     $versionCount  = max(1, $faq->versions->count());
                                     $de            = $faq->dataEntry;
                                     $nextVerId     = $faq->generateNextVersionId();
                                     $statusClass   = match($status) {
-                                        'Approved'  => 'badge-approved',
-                                        'Active'    => 'badge-active',
-                                        'Submitted' => 'badge-submitted',
-                                        'Rejected'  => 'badge-rejected',
-                                        'InActive'  => 'badge-inactive',
-                                        default     => 'badge-draft',
+                                        'Diterima'          => 'badge-approved',
+                                        'Terbit'            => 'badge-active',
+                                        'Menunggu Validasi' => 'badge-submitted',
+                                        'Ditolak'           => 'badge-rejected',
+                                        default             => 'badge-draft',
                                     };
                                     $statusLabel   = match($status) {
-                                        'Active'    => 'Terbit',
-                                        'Approved'  => 'Disetujui',
-                                        'Submitted' => 'Menunggu Validasi',
-                                        'Rejected'  => 'Ditolak',
-                                        'InActive'  => 'InActive',
-                                        default     => $status,
+                                        'Terbit'            => 'Terbit',
+                                        'Diterima'          => 'Diterima',
+                                        'Menunggu Validasi' => 'Menunggu Validasi',
+                                        'Ditolak'           => 'Ditolak',
+                                        default             => $status,
                                     };
                                     $statusIcon    = match($status) {
-                                        'Approved'  => 'bi-check-circle-fill',
-                                        'Active'    => 'bi-lightning-fill',
-                                        'Submitted' => 'bi-hourglass-split',
-                                        'Rejected'  => 'bi-x-circle-fill',
-                                        'InActive'  => 'bi-dash-circle',
-                                        default     => 'bi-pencil',
+                                        'Diterima'          => 'bi-check-circle-fill',
+                                        'Terbit'            => 'bi-lightning-fill',
+                                        'Menunggu Validasi' => 'bi-hourglass-split',
+                                        'Ditolak'           => 'bi-x-circle-fill',
+                                        default             => 'bi-pencil',
                                     };
                                     $createdAtJkt  = $faq->created_at ? $faq->created_at->timezone('Asia/Jakarta') : null;
                                 @endphp
@@ -354,15 +349,9 @@
                                     <!-- Status Badge -->
                                     <td>
                                         @php
-                                            $schedInfoDaftar = ($status === 'Approved' && $latestVersion) ? $latestVersion->getPublishScheduleInfo() : null;
-                                            $schedModeDaftar = $schedInfoDaftar['mode'] ?? null;
+                                            $schedInfoDaftar = ($status === 'Diterima' && $latestVersion) ? $latestVersion->getPublishScheduleInfo() : null;
                                         @endphp
-                                        @if($status === 'Approved' && $schedModeDaftar === 'routine')
-                                            <span class="badge-status badge-routine-wait">
-                                                <i class="bi bi-clock"></i>
-                                                Menunggu Publikasi Rutin
-                                            </span>
-                                        @elseif($status === 'Approved' && $schedModeDaftar === 'scheduled')
+                                        @if($status === 'Diterima' && !empty($schedInfoDaftar['is_scheduled']))
                                             <div class="status-cell-stack">
                                                 <span class="badge-status badge-scheduled-wait">
                                                     <i class="bi bi-calendar-event"></i>
@@ -382,24 +371,24 @@
                                         @endif
                                     </td>
 
-                                    <!-- Aksi (View & Edit) -->
+                                    <!-- Aksi (Lihat & Ubah) -->
                                     <td class="text-end pe-4">
-                                        <div class="d-inline-flex gap-1.5 align-items-center justify-content-end">
+                                        <div class="d-inline-flex gap-2 align-items-center justify-content-end">
                                             <button type="button" class="btn-action btn-action-view" onclick="viewFaqDetail('{{ $faq->id }}')">
-                                                <i class="bi bi-eye"></i> View
+                                                <i class="bi bi-eye"></i> Lihat
                                             </button>
 
-                                            @if(in_array($stLower, ['submitted', 'approved'], true))
+                                            @if(in_array($stLower, ['menunggu validasi', 'diterima', 'submitted', 'approved'], true))
                                                 <button type="button"
                                                         class="btn-action btn-action-edit action-icon-disabled"
                                                         style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
-                                                        title="{{ $stLower === 'approved' ? 'Non-Aktif — Tidak dapat diedit saat status Disetujui sebelum Terbit' : 'Non-Aktif — Tidak dapat diedit saat status Menunggu Validasi' }}"
+                                                        title="{{ in_array($stLower, ['diterima', 'approved'], true) ? 'Terkunci — Tidak dapat diubah saat status Diterima sebelum Terbit' : 'Terkunci — Tidak dapat diubah saat status Menunggu Validasi' }}"
                                                         disabled>
-                                                    <i class="bi bi-pencil"></i> Edit
+                                                    <i class="bi bi-pencil"></i> Ubah
                                                 </button>
                                             @else
-                                                <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Edit / Buat Versi Baru ({{ $nextVerId }})">
-                                                    <i class="bi bi-pencil"></i> Edit
+                                                <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Ubah / Buat Versi Baru ({{ $nextVerId }})">
+                                                    <i class="bi bi-pencil"></i> Ubah
                                                 </a>
                                             @endif
                                         </div>
@@ -618,7 +607,12 @@
         });
     });
 
-    // Helper: Lihat Detail FAQ (View Only untuk Status Active / InActive)
+    function formatVersiCode(verId) {
+        const m = String(verId || '').match(/-V(\d+)$/i);
+        return m ? ('Versi ' + parseInt(m[1], 10)) : 'Versi 1';
+    }
+
+    // Helper: Lihat Detail FAQ
     function viewFaqDetail(faqId) {
         fetch(`{{ url('/data-entry/faq') }}/${faqId}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -629,7 +623,7 @@
                 const d = res.data;
                 const latest = d.latest_version || {};
                 const tagsHtml = (d.tags && d.tags.length > 0)
-                    ? `<div class="d-flex flex-wrap gap-2" style="margin-bottom: 1.15rem;">${d.tags.map(t => `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${t}</span>`).join('')}</div>`
+                    ? `<div style="margin-bottom: 1.1rem;"><div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Kata Kunci</div><div class="d-flex flex-wrap gap-2">${d.tags.map(t => `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${t}</span>`).join('')}</div></div>`
                     : '';
 
                 let catatanHtml = '';
@@ -642,13 +636,33 @@
                     `;
                 }
 
-                const rawSt = (latest.status || 'Draft').toLowerCase();
-                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draft</span>`;
-                if (rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
-                else if (rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Disetujui</span>';
-                else if (rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
-                else if (rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
-                else if (rawSt === 'inactive') statusBadge = '<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;border:1px solid #CBD5E1;font-size:0.75rem;padding:0.4rem 0.85rem;">InActive</span>';
+                const rawSt = (latest.status || 'Draf').toLowerCase();
+                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draf</span>`;
+                if (rawSt === 'terbit' || rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
+                else if (rawSt === 'diterima' || rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Diterima</span>';
+                else if (rawSt === 'menunggu validasi' || rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
+                else if (rawSt === 'ditolak' || rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
+
+                const latestVerObj = (d.versions || []).find(v => v.id === latest.id) || (d.versions || [])[0] || {};
+                const dp = latestVerObj.daftar_pustaka || null;
+                let sourceHtml = '';
+                if (dp) {
+                    const actionLink = dp.is_file && dp.view_url
+                        ? `<a href="${dp.view_url}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-3 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-eye me-1"></i>Lihat Berkas</a>`
+                        : (dp.link && /^https?:\/\//i.test(dp.link) ? `<a href="${dp.link}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-3 fw-semibold" style="font-size:0.75rem;"><i class="bi bi-eye me-1"></i>Lihat Tautan</a>` : '');
+                    sourceHtml = `
+                        <div style="margin-bottom: 1.1rem;">
+                            <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Sumber Pustaka</div>
+                            <div class="rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: #FBF9F7; border: 1px solid #EDE7E1; padding: 0.75rem 1rem;">
+                                <div>
+                                    <div class="fw-semibold text-dark" style="font-size: 0.85rem;">${dp.judul || '-'}</div>
+                                    <div class="text-muted" style="font-size: 0.74rem;">${dp.is_file ? 'Berkas Dokumen' : 'Tautan Rujukan'} &middot; Tipe: ${dp.type || 'Publik'}</div>
+                                </div>
+                                ${actionLink}
+                            </div>
+                        </div>
+                    `;
+                }
 
                 let versionsHistoryHtml = '';
                 if (d.versions && d.versions.length > 0) {
@@ -659,23 +673,18 @@
                                 <table class="table table-sm mb-0 align-middle" style="font-size: 0.83rem;">
                                     <thead style="background-color: #FBF9F7; border-bottom: 1px solid #EDE7E1; position: sticky; top: 0; z-index: 1;">
                                         <tr>
-                                            <th class="text-secondary fw-semibold" style="width: 125px; font-size: 0.74rem; padding: 0.7rem 1rem;">ID Versi</th>
+                                            <th class="text-secondary fw-semibold" style="width: 115px; font-size: 0.74rem; padding: 0.7rem 1rem;">Versi</th>
                                             <th class="text-secondary fw-semibold" style="font-size: 0.74rem; padding: 0.7rem 1rem;">Jawaban Versi Tersebut</th>
-                                            <th class="text-secondary fw-semibold text-center" style="width: 120px; font-size: 0.74rem; padding: 0.7rem 1rem;">Status</th>
                                             <th class="text-secondary fw-semibold" style="width: 155px; font-size: 0.74rem; padding: 0.7rem 1rem;">Diperbarui</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         ${d.versions.map(v => {
-                                            const isVerActive = (v.status || '').toLowerCase() === 'active';
-                                            const verStatusBadge = isVerActive
-                                                ? '<span class="badge rounded-pill" style="background-color:#ECFDF5;color:#16A34A;border:1px solid #BBF7D0;font-size:0.72rem;padding:0.35rem 0.75rem;">Active</span>'
-                                                : '<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;border:1px solid #CBD5E1;font-size:0.72rem;padding:0.35rem 0.75rem;">InActive</span>';
+                                            const versiLabel = v.versi_label || formatVersiCode(v.id);
                                             return `
                                                 <tr style="border-bottom: 1px solid #F3EFEA;">
-                                                    <td class="fw-bold text-nowrap" style="color: #85172C; padding: 0.8rem 1rem;">${v.id}</td>
+                                                    <td class="fw-bold text-nowrap" style="color: #85172C; padding: 0.8rem 1rem;">${versiLabel}</td>
                                                     <td class="text-dark" style="line-height: 1.55; word-break: break-word; padding: 0.8rem 1rem;">${v.jawaban || '-'}</td>
-                                                    <td class="text-center" style="padding: 0.8rem 1rem;">${verStatusBadge}</td>
                                                     <td class="text-secondary text-nowrap" style="font-size: 0.77rem; padding: 0.8rem 1rem;">${v.updated_at || '-'}</td>
                                                 </tr>
                                             `;
@@ -716,13 +725,15 @@
 
                             <!-- Jawaban -->
                             <div style="margin-bottom: 1.1rem;">
-                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Jawaban (${latest.id || (d.id + '-V1')})</div>
+                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Jawaban (${formatVersiCode(latest.id || (d.id + '-V1'))})</div>
                                 <div class="rounded-3 bg-white text-dark" style="border: 1px solid #EDE7E1; font-size: 0.89rem; max-height: 165px; overflow-y: auto; line-height: 1.65; padding: 0.9rem 1.05rem;">
                                     ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
                                 </div>
                             </div>
 
                             ${tagsHtml}
+
+                            ${sourceHtml}
 
                             ${versionsHistoryHtml}
                         </div>

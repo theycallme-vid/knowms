@@ -225,7 +225,7 @@
                                 <th>NAMA KATA KUNCI</th>
                                 <th style="width: 200px;">DIGUNAKAN PADA FAQ</th>
                                 <th style="width: 180px;">DIBUAT PADA</th>
-                                <th style="width: 150px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
                             </tr>
                         </thead>
                         <tbody id="tagTableBody">
@@ -251,9 +251,9 @@
                                             {{ $tag->created_at ? $tag->created_at->timezone('Asia/Jakarta')->translatedFormat('d M Y') : '-' }}
                                         </td>
                                         <td style="text-align: right;">
-                                            <div class="d-inline-flex align-items-center gap-1">
+                                            <div class="d-inline-flex align-items-center gap-2">
                                                 <button type="button" class="btn-table-edit" onclick="openEditTagModal('{{ $tag->id }}', '{{ addslashes($tag->nama) }}')">
-                                                    <i class="bi bi-pencil"></i> Edit
+                                                    <i class="bi bi-pencil"></i> Ubah
                                                 </button>
                                                 <form action="{{ route('dataentry.katakunci.destroy', $tag->id) }}" method="POST" id="del-tag-{{ $tag->id }}" class="d-inline">
                                                     @csrf
@@ -308,7 +308,7 @@
             <form id="editKeywordForm" method="POST">
                 @csrf
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold fs-16">Edit Kata Kunci</h5>
+                    <h5 class="modal-title fw-bold fs-16">Ubah Kata Kunci</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

@@ -10,15 +10,15 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /**
- * Command untuk memproses publikasi FAQ yang sudah tiba jadwalnya
+ * Perintah untuk memproses jadwal publikasi FAQ yang sudah tiba waktunya
  */
 Artisan::command('faq:publish-scheduled', function () {
     $count = FaqVersion::processDueScheduledPublications();
-    $this->info("Berhasil mengaktifkan {$count} FAQ yang telah tiba waktu publikasinya.");
-})->purpose('Mengaktifkan FAQ yang telah tiba jadwal publikasinya');
+    $this->info("Berhasil menerbitkan {$count} FAQ yang telah tiba jadwal publikasinya.");
+})->purpose('Menerbitkan FAQ yang telah tiba jadwal publikasinya');
 
 /**
- * Jadwal otomatis Laravel Scheduler (dijalankan setiap menit)
+ * Penjadwal otomatis Laravel (dijalankan setiap menit)
  */
 Schedule::call(function () {
     FaqVersion::processDueScheduledPublications();
