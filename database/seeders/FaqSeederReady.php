@@ -607,10 +607,20 @@ class FaqSeederReady extends Seeder
             ],
         ];
 
-        // 5. Eksekusi Penyimpanan: SEMUA FAQ LANGSUNG DISIMPAN DENGAN STATUS 'Active' & VALIDATOR TERISI
-        $now = Carbon::now();
+        // 5. Eksekusi Penyimpanan: SEMUA FAQ LANGSUNG TERBIT (3 FAQ = 1 versi, sisanya 4–5 versi)
+        DaftarPustaka::ensurePublicPrivateEnum();
+        FaqVersion::ensureIndonesianStatusEnum();
 
-        foreach ($faqs as $item) {
+        $now = Carbon::now();
+        $singleVersionIndexes = [2, 6, 9];
+        $revisionNotes = [
+            1 => ' (Edisi awal panduan akademik sebelum penyesuaian alur daring).',
+            2 => ' (Pembaruan prosedur pengajuan melalui portal layanan mahasiswa).',
+            3 => ' (Penyesuaian syarat administrasi dan jadwal verifikasi fakultas).',
+            4 => ' (Penyempurnaan rincian dokumen pendukung dan ketentuan terbaru).',
+        ];
+
+        foreach (array_values($faqs) as $idx => $item) {
             $faq = Faq::updateOrCreate(
                 ['id' => $item['id']],
                 [
@@ -621,21 +631,44 @@ class FaqSeederReady extends Seeder
                 ]
             );
 
-            // Buat versi 1 yang LANGSUNG 'Active' (Sudah Terbit / Tidak perlu ACC lagi)
-            $versionId = $item['id'] . '-V1';
-            FaqVersion::updateOrCreate(
-                ['id' => $versionId],
-                [
-                    'tDaftarPustakas_id' => $item['pustaka_id'],
-                    'tFaqs_id'           => $faq->id,
-                    'id_validator'       => $validatorId, // Langsung tervalidasi oleh validator
-                    'jawaban'            => $item['jawaban'],
-                    'status'             => 'Terbit',     // LANGSUNG TERBIT
-                    'catatan'            => 'Terbit otomatis (Siap Pakai / Seeder Ready).',
-                    'created_at'         => $now,
-                    'updated_at'         => $now,
-                ]
-            );
+            $versiTotal = in_array($idx, $singleVersionIndexes, true)
+                ? 1
+                : (($idx % 2 === 0) ? 5 : 4);
+
+            $createdVersionIds = [];
+            for ($v = 1; $v <= $versiTotal; $v++) {
+                $versionId = $item['id'] . '-V' . $v;
+                $createdVersionIds[] = $versionId;
+                $isLatest = ($v === $versiTotal);
+
+                $versionJawaban = $isLatest
+                    ? $item['jawaban']
+                    : rtrim((string) $item['jawaban'], '.') . '.' . ($revisionNotes[$v] ?? " (Revisi versi {$v}).");
+
+                $versionPustakaId = (!$isLatest && $v === 1 && ($idx % 3 === 0))
+                    ? null
+                    : $item['pustaka_id'];
+
+                $versionTime = $now->copy()->subDays(($versiTotal - $v) * 14);
+
+                FaqVersion::updateOrCreate(
+                    ['id' => $versionId],
+                    [
+                        'tDaftarPustakas_id' => $versionPustakaId,
+                        'tFaqs_id'           => $faq->id,
+                        'id_validator'       => $validatorId,
+                        'jawaban'            => $versionJawaban,
+                        'status'             => 'Terbit',
+                        'catatan'            => $isLatest ? 'Terbit otomatis (Siap Pakai / Seeder Ready).' : null,
+                        'created_at'         => $versionTime,
+                        'updated_at'         => $versionTime,
+                    ]
+                );
+            }
+
+            FaqVersion::where('tFaqs_id', $faq->id)
+                ->whereNotIn('id', $createdVersionIds)
+                ->delete();
 
             // Sinkronkan tags
             $tagIdsToSync = [];

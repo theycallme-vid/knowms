@@ -35,6 +35,10 @@ class FaqSeeder extends Seeder
         $adityaId = $deAditya?->id ?? $deMain->id;
         $dewiId   = $deDewi?->id   ?? $deMain->id;
 
+        // Pastikan skema tabel tfaqsversion & tdaftarpustaka terbaru
+        DaftarPustaka::ensurePublicPrivateEnum();
+        FaqVersion::ensureIndonesianStatusEnum();
+
         // 1. Jalankan Seeder Sumber Pustaka (Link) & Kata Kunci terlebih dahulu
         $this->call([
             SumberPustakaSeeder::class,
@@ -781,7 +785,16 @@ class FaqSeeder extends Seeder
             ],
         ];
 
-        foreach ($faqs as $item) {
+        // 3 FAQ tertentu cukup 1 versi saja; seluruh FAQ sisanya memiliki 4–5 versi
+        $singleVersionIndexes = [2, 6, 9];
+        $revisionNotes = [
+            1 => ' (Edisi awal panduan akademik sebelum penyesuaian alur daring).',
+            2 => ' (Pembaruan prosedur pengajuan melalui portal layanan mahasiswa).',
+            3 => ' (Penyesuaian syarat administrasi dan jadwal verifikasi fakultas).',
+            4 => ' (Penyempurnaan rincian dokumen pendukung dan ketentuan terbaru).',
+        ];
+
+        foreach (array_values($faqs) as $idx => $item) {
             $faq = Faq::updateOrCreate(
                 ['id' => $item['id']],
                 [
@@ -792,26 +805,46 @@ class FaqSeeder extends Seeder
                 ]
             );
 
-            // Jika versi_count == 2, buat versi V1 terlebih dahulu lalu V2 sebagai versi terbaru
-            $versiTotal = $item['versi_count'] ?? 1;
+            $versiTotal = in_array($idx, $singleVersionIndexes, true)
+                ? 1
+                : (($idx % 2 === 0) ? 5 : 4);
+
+            $createdVersionIds = [];
             for ($v = 1; $v <= $versiTotal; $v++) {
                 $versionId = $item['id'] . '-V' . $v;
+                $createdVersionIds[] = $versionId;
                 $isLatest  = ($v === $versiTotal);
+
+                $versionJawaban = $isLatest
+                    ? $item['jawaban']
+                    : rtrim((string) $item['jawaban'], '.') . '.' . ($revisionNotes[$v] ?? " (Revisi versi {$v}).");
+
+                // Pada V1 untuk sebagian FAQ multi-versi, biarkan sumber pustaka kosong (opsional) sebagai variasi uji coba
+                $versionPustakaId = (!$isLatest && $v === 1 && ($idx % 3 === 0))
+                    ? null
+                    : $item['pustaka_id'];
+
+                $versionTime = $item['created_at']->copy()->subDays(($versiTotal - $v) * 14);
 
                 FaqVersion::updateOrCreate(
                     ['id' => $versionId],
                     [
-                        'tDaftarPustakas_id' => $item['pustaka_id'],
+                        'tDaftarPustakas_id' => $versionPustakaId,
                         'tFaqs_id'           => $faq->id,
-                        'id_validator'       => ($isLatest && in_array($item['status'], ['Diterima', 'Terbit', 'Ditolak'])) ? $validatorId : null,
-                        'jawaban'            => $item['jawaban'],
-                        'status'             => $isLatest ? $item['status'] : 'Draf',
-                        'catatan'            => $item['catatan'],
-                        'created_at'         => $item['created_at']->copy()->subHours($versiTotal - $v),
-                        'updated_at'         => $item['created_at']->copy()->subHours($versiTotal - $v),
+                        'id_validator'       => ($isLatest && in_array($item['status'], ['Diterima', 'Terbit', 'Ditolak'])) ? $validatorId : ($item['status'] === 'Terbit' ? $validatorId : null),
+                        'jawaban'            => $versionJawaban,
+                        'status'             => $isLatest ? $item['status'] : ($item['status'] === 'Terbit' ? 'Terbit' : 'Draf'),
+                        'catatan'            => $isLatest ? $item['catatan'] : null,
+                        'created_at'         => $versionTime,
+                        'updated_at'         => $versionTime,
                     ]
                 );
             }
+
+            // Hapus versi berlebih jika sebelumnya pernah ada lebih banyak versi untuk FAQ ini
+            FaqVersion::where('tFaqs_id', $faq->id)
+                ->whereNotIn('id', $createdVersionIds)
+                ->delete();
 
             // Hubungkan Tag ke FAQ via tabel tdetail_faqs
             $tagIdsToSync = [];
