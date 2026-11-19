@@ -12,7 +12,6 @@ return new class extends Migration
             Schema::create('tdaftarpustaka', function (Blueprint $table) {
                 $table->integer('id')->autoIncrement();
                 $table->string('judul', 100)->nullable();
-                $table->enum('type', ['public', 'private'])->default('public');
                 $table->string('link', 60)->nullable();
                 $table->binary('upload')->nullable();
                 $table->timestamps();
@@ -26,10 +25,9 @@ return new class extends Migration
                 DB::statement("UPDATE tdaftarpustaka SET judul = link WHERE judul IS NULL OR judul = ''");
             }
             DB::statement('ALTER TABLE tdaftarpustaka MODIFY link VARCHAR(60) NULL');
-            DB::statement("ALTER TABLE tdaftarpustaka MODIFY type VARCHAR(20) NOT NULL DEFAULT 'public'");
-            DB::statement("UPDATE tdaftarpustaka SET type = 'public' WHERE LOWER(type) NOT IN ('public', 'private')");
-            DB::statement("UPDATE tdaftarpustaka SET type = LOWER(type)");
-            DB::statement("ALTER TABLE tdaftarpustaka MODIFY type ENUM('public', 'private') NOT NULL DEFAULT 'public'");
+            if (Schema::hasColumn('tdaftarpustaka', 'type')) {
+                DB::statement('ALTER TABLE tdaftarpustaka DROP COLUMN type');
+            }
         }
     }
 

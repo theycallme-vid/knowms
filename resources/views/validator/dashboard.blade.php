@@ -374,7 +374,7 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <div class="fw-bold fs-13 text-dark">{{ $selectedVer?->daftarPustaka?->judul_tampil ?? $selectedVer?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus' }}</div>
-                                            <div class="fs-11 text-muted">Tipe: {{ strtoupper($selectedVer?->daftarPustaka?->type ?? 'PUBLIC') }} &middot; Rujukan Resmi</div>
+                                            <div class="fs-11 text-muted">Rujukan Resmi</div>
                                         </div>
                                     </div>
                                 </div>

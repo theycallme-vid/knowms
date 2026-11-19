@@ -51,9 +51,11 @@ Route::get('/faq-seeder-ready', function () {
     ");
 })->name('faq.seeder.ready');
 
-// HALAMAN PUBLIK: FAQ Mahasiswa & Pencatatan Log Akses Rekomendasi
+// HALAMAN PUBLIK: FAQ Mahasiswa, Riwayat Versi Jawaban, Sumber Pustaka & Pencatatan Log Akses Rekomendasi
 Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
+Route::get('/faq/{id}/riwayat', [PortalController::class, 'faqHistory'])->name('mahasiswa.faq.riwayat');
 Route::post('/faq/log-access', [PortalController::class, 'logFaqAccess'])->name('faq.log-access');
+Route::get('/sumber-pustaka/{id}/lihat', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.lihat');
 
 // HALAMAN GUEST: FAQ untuk Tamu / Pengunjung tanpa input NRP & tanpa Scan KTM
 Route::get('/guest', [GuestController::class, 'index'])->name('guest.faq');
@@ -74,10 +76,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 });
 
-// LOGOUT & AKSES LIHAT FILE PUSTAKA INTERNAL
+// LOGOUT
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('/sumber-pustaka/{id}/lihat', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.lihat');
 });
 
 // SUPER ADMIN ROUTES

@@ -182,7 +182,7 @@
                                 @endif
                             </div>
                             <div class="fs-12 text-muted mt-1">
-                                Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Membaca 3 kolom wajib: <strong>1. Judul Link</strong>, <strong>2. Link-nya</strong>, dan <strong>3. Tipe (Private/Public)</strong>.
+                                Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Membaca 2 kolom: <strong>1. Judul Tautan</strong> dan <strong>2. Tautan / Link</strong>.
                             </div>
                         </div>
                         <form action="{{ route('dataentry.sumberpustaka.cancelImport') }}" method="POST">
@@ -198,9 +198,8 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 50px;" class="text-center">PILIH</th>
-                                        <th>1. JUDUL LINK</th>
+                                        <th>1. JUDUL TAUTAN</th>
                                         <th>2. LINK / TAUTAN</th>
-                                        <th style="width: 160px;">3. TIPE (PRIVATE/PUBLIC)</th>
                                         <th style="width: 260px;">STATUS KESESUAIAN</th>
                                     </tr>
                                 </thead>
@@ -208,7 +207,6 @@
                                     @foreach($previewSources as $idx => $src)
                                         @php
                                             $isRowValid = $src['is_valid'] ?? true;
-                                            $rowType = ucfirst(strtolower($src['type'] ?? 'Public'));
                                         @endphp
                                         <tr class="{{ !$isRowValid ? 'table-warning' : '' }}">
                                             <td class="text-center">
@@ -219,11 +217,6 @@
                                             </td>
                                             <td class="text-secondary fs-13">
                                                 {{ $src['link'] ?: '(Kosong)' }}
-                                            </td>
-                                            <td>
-                                                <span class="badge {{ strtolower($rowType) === 'private' ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' : 'bg-success-subtle text-success-emphasis border-success-subtle' }} border fs-12 px-2.5 py-1">
-                                                    {{ $rowType }}
-                                                </span>
                                             </td>
                                             <td>
                                                 @if($isRowValid)
@@ -268,7 +261,6 @@
                                 <th style="width: 80px;">ID</th>
                                 <th>Dokumen/Tautan Sumber Pustaka</th>
                                 <th style="width: 145px;">JENIS</th>
-                                <th style="width: 150px;">TIPE</th>
                                 <th style="width: 165px;">DIGUNAKAN PADA</th>
                                 <th style="width: 300px; text-align: right;">TINDAKAN</th>
                             </tr>
@@ -276,7 +268,7 @@
                         <tbody id="pustakaTableBody">
                             @if($pustakas->isEmpty())
                                 <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted fs-13">
+                                    <td colspan="5" class="text-center py-5 text-muted fs-13">
                                         Belum ada sumber pustaka di database. Klik <strong>Tambah Sumber Pustaka</strong>.
                                     </td>
                                 </tr>
@@ -284,7 +276,6 @@
                                 @foreach($pustakas as $p)
                                     @php
                                         $isFile = !empty($p->upload);
-                                        $visType = strtolower((string) $p->type) === 'private' ? 'Private' : 'Public';
                                         $judulDisplay = $p->judul_tampil;
                                     @endphp
                                     <tr class="pustaka-row">
@@ -300,17 +291,6 @@
                                             @else
                                                 <span class="badge-status" style="background-color: #F0FDF4; color: #15803D; border: 1px solid #DCFCE7;">
                                                     <i class="bi bi-link-45deg me-1"></i>Tautan
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($visType === 'Private')
-                                                <span class="badge-status badge-status-revisi">
-                                                    <i class="bi bi-lock-fill me-1"></i>Privat
-                                                </span>
-                                            @else
-                                                <span class="badge-status badge-status-terbit">
-                                                    <i class="bi bi-globe2 me-1"></i>Publik
                                                 </span>
                                             @endif
                                         </td>
@@ -338,7 +318,7 @@
 
                                                 <button type="button"
                                                         class="btn-table-edit"
-                                                        onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}', '{{ strtolower($visType) }}', {{ $isFile ? 'true' : 'false' }})">
+                                                        onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}', {{ $isFile ? 'true' : 'false' }})">
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
 
@@ -396,19 +376,10 @@
                     </div>
 
                     <!-- 3. Unggah File Dokumen (Jika Jenis Input = Dokumen) -->
-                    <div class="mb-3 d-none" id="fileUploadContainer">
+                    <div class="mb-2 d-none" id="fileUploadContainer">
                         <label class="form-label-custom form-label-required">3. Unggah Berkas Dokumen</label>
                         <input type="file" name="file_upload" id="addPustakaFileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-control fs-13 rounded-3">
                         <div class="fs-11 text-muted mt-1">Untuk jenis input Dokumen, wajib mengunggah berkas rujukan (PDF, DOC/DOCX, atau gambar; tersimpan aman di database).</div>
-                    </div>
-
-                    <!-- 4. Tipe (Publik / Privat) -->
-                    <div class="mb-2">
-                        <label class="form-label-custom form-label-required">4. Tipe Akses</label>
-                        <select name="type" class="form-select fs-13 rounded-3" required>
-                            <option value="public">Publik — Dapat dilihat oleh Mahasiswa pada FAQ</option>
-                            <option value="private">Privat — Tidak dimunculkan di Mahasiswa (Tercatat internal FAQ)</option>
-                        </select>
                     </div>
                 </div>
                 <div class="modal-footer border-top">
@@ -444,22 +415,14 @@
                     </div>
 
                     <!-- Muncul jika Sumber Pustaka berupa Berkas Dokumen -->
-                    <div class="mb-3 d-none" id="editFileBox">
+                    <div class="mb-2 d-none" id="editFileBox">
                         <div class="p-2.5 bg-light border rounded-3 mb-3 fs-12">
                             <span class="text-muted">Berkas saat ini:</span>
                             <strong class="text-dark ms-1" id="currentFileNameText">-</strong>
                         </div>
                         <label class="form-label-custom">Unggah Berkas Dokumen Baru (PDF / DOCX / Gambar)</label>
                         <input type="file" name="file_upload" id="editPustakaFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-control fs-13 rounded-3">
-                        <div class="fs-11 text-muted mt-1">Pilih berkas baru untuk menggantikan berkas sebelumnya (kosongkan jika hanya mengubah judul atau tipe).</div>
-                    </div>
-
-                    <div class="mb-2">
-                        <label class="form-label-custom form-label-required">Tipe Sumber Pustaka</label>
-                        <select name="type" id="editPustakaType" class="form-select fs-13 rounded-3" required>
-                            <option value="public">Publik — Dapat dilihat oleh Mahasiswa pada FAQ</option>
-                            <option value="private">Privat — Tidak dimunculkan di Mahasiswa (Tercatat internal FAQ)</option>
-                        </select>
+                        <div class="fs-11 text-muted mt-1">Pilih berkas baru untuk menggantikan berkas sebelumnya (kosongkan jika hanya mengubah judul).</div>
                     </div>
                 </div>
                 <div class="modal-footer border-top">
@@ -499,12 +462,12 @@
 
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold text-dark"><i class="bi bi-table me-1"></i>Format 3 Kolom Wajib (Excel / CSV / PDF):</span>
+                            <span class="fw-bold text-dark"><i class="bi bi-table me-1"></i>Format 2 Kolom (Excel / CSV / PDF):</span>
                             <a href="{{ route('dataentry.template.pustaka') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>1. <strong>Judul Link</strong> &middot; 2. <strong>Link-nya</strong> (maks. 60 karakter) &middot; 3. <strong>Tipe (Private/Public)</strong></div>
+                        <div>1. <strong>Judul Tautan</strong> &middot; 2. <strong>Tautan/Link</strong> (maks. 60 karakter)</div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -671,14 +634,9 @@
         new bootstrap.Modal(modalEl).show();
     }
 
-    function openEditPustakaModal(id, currentJudul, currentLink, currentType, isFile) {
+    function openEditPustakaModal(id, currentJudul, currentLink, isFile) {
         const form = document.getElementById('editPustakaForm');
         form.action = `{{ url('/data-entry/sumber-pustaka') }}/${id}/update`;
-
-        const typeSelect = document.getElementById('editPustakaType');
-        if (typeSelect) {
-            typeSelect.value = (currentType === 'private') ? 'private' : 'public';
-        }
 
         const titleEl = document.getElementById('editPustakaModalTitle');
         const editJudulLabel = document.getElementById('editJudulLabel');

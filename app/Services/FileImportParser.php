@@ -485,8 +485,8 @@ class FileImportParser
                 $seenNormalizedInFile[$normQ] = $faqId;
             }
 
-            // Status 'ready' (Siap diajukan) jika Pertanyaan, Jawaban, Kata Kunci, dan Sumber Pustaka semuanya terisi
-            $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && $pustakaJudul !== '');
+            // Status 'ready' (Siap diajukan) jika Pertanyaan, Jawaban, dan Kata Kunci terisi (Sumber Pustaka bersifat opsional)
+            $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags));
             $hasExactMatch = (bool) ($analysis['has_exact_match'] ?? false);
             $hasExactDraftMatch = (bool) ($analysis['has_exact_draft_match'] ?? false);
 
@@ -500,7 +500,7 @@ class FileImportParser
                 'jawaban'               => $jawaban,
                 'tags'                  => $tags,
                 'pustaka_judul'         => $pustakaJudul,
-                'pustaka_bagian'        => $pustakaBagian !== '' ? $pustakaBagian : ($pustakaJudul !== '' ? 'Dokumen Rujukan Resmi' : 'Belum diisi'),
+                'pustaka_bagian'        => $pustakaBagian !== '' ? $pustakaBagian : ($pustakaJudul !== '' ? 'Dokumen Rujukan Resmi' : 'Opsional'),
                 'status'                => ($isReady && !$hasExactDraftMatch) ? 'ready' : 'incomplete',
                 'checked'               => $isReady && !$hasExactMatch && !$hasExactDraftMatch,
                 'has_exact_match'       => $hasExactMatch,
@@ -627,38 +627,27 @@ class FileImportParser
 
             $issues = [];
             if ($rawJudul === '') {
-                $issues[] = 'Judul Link kosong';
+                $issues[] = 'Judul Tautan kosong';
             }
 
             if ($rawLink === '') {
-                $issues[] = 'Link Sumber Pustaka kosong';
+                $issues[] = 'Tautan Sumber Pustaka kosong';
             } elseif (mb_strlen($rawLink) > 60) {
-                $issues[] = 'Link melebihi 60 karakter (dipotong otomatis)';
+                $issues[] = 'Tautan melebihi 60 karakter (dipotong otomatis)';
             }
 
-            $typeLower = strtolower($rawType);
-            $isValidType = in_array($typeLower, ['public', 'private'], true);
-            if (!$isValidType) {
-                $issues[] = $rawType === ''
-                    ? 'Kolom Tipe kosong (wajib Public atau Private)'
-                    : "Tipe '{$rawType}' tidak sesuai (wajib Public atau Private)";
-            }
-
-            $normalizedType = $typeLower === 'private' ? 'Private' : 'Public';
             $cleanJudul = mb_substr($rawJudul, 0, 100);
             $cleanLink  = mb_substr($rawLink, 0, 60);
-            $isValid    = ($cleanJudul !== '' && $cleanLink !== '' && $isValidType);
+            $isValid    = ($cleanJudul !== '' && $cleanLink !== '');
 
             $sources[] = [
                 'judul'        => $cleanJudul,
                 'raw_judul'    => $rawJudul,
                 'link'         => $cleanLink,
                 'raw_link'     => $rawLink,
-                'type'         => $normalizedType,
-                'raw_type'     => $rawType !== '' ? $rawType : '-',
                 'is_valid'     => $isValid,
                 'status_label' => $isValid ? 'Sesuai' : 'Belum Sesuai',
-                'notes'        => empty($issues) ? 'Ketiga kolom (Judul Link, Link, & Tipe) sudah sesuai' : implode('; ', $issues),
+                'notes'        => empty($issues) ? 'Judul dan Tautan sudah sesuai' : implode('; ', $issues),
             ];
         }
 

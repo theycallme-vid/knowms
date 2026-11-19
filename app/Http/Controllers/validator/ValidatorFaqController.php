@@ -460,7 +460,6 @@ class ValidatorFaqController extends Controller
                         'daftar_pustaka' => $dp ? [
                             'id'       => $dp->id,
                             'judul'    => $dp->judul_tampil,
-                            'type'     => strtolower((string) $dp->type) === 'private' ? 'Privat' : 'Publik',
                             'link'     => $dp->link,
                             'is_file'  => $isFile,
                             'view_url' => $isFile ? route('pustaka.lihat', $dp->id) : null,

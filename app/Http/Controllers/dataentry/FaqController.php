@@ -240,18 +240,10 @@ class FaqController extends Controller
             $latest = $faq->latest_version;
 
             $hasTags = $faq->tags && $faq->tags->isNotEmpty();
-            $hasSource = $latest && !empty($latest->tDaftarPustakas_id);
 
-            if (!$hasTags || !$hasSource) {
+            if (!$hasTags) {
                 DB::rollBack();
-                $missing = [];
-                if (!$hasTags) {
-                    $missing[] = 'Kata Kunci';
-                }
-                if (!$hasSource) {
-                    $missing[] = 'Sumber Pustaka';
-                }
-                $msg = "Peringatan: FAQ {$id} belum memiliki " . implode(' dan ', $missing) . ". Silakan lengkapi terlebih dahulu melalui tombol Edit.";
+                $msg = "Peringatan: FAQ {$id} belum memiliki Kata Kunci. Silakan lengkapi terlebih dahulu melalui tombol Ubah.";
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -310,11 +302,9 @@ class FaqController extends Controller
             $incompleteIds = [];
 
             foreach ($faqs as $faq) {
-                $latest = $faq->latest_version;
                 $hasTags = $faq->tags && $faq->tags->isNotEmpty();
-                $hasSource = $latest && !empty($latest->tDaftarPustakas_id);
 
-                if (!$hasTags || !$hasSource) {
+                if (!$hasTags) {
                     $incompleteIds[] = $faq->id;
                 }
             }
@@ -322,7 +312,7 @@ class FaqController extends Controller
             if (!empty($incompleteIds)) {
                 DB::rollBack();
                 $listStr = implode(', ', $incompleteIds);
-                $msg = "Peringatan: FAQ ({$listStr}) belum memiliki Kata Kunci atau Sumber Pustaka. Silakan lengkapi terlebih dahulu sebelum diajukan.";
+                $msg = "Peringatan: FAQ ({$listStr}) belum memiliki Kata Kunci. Silakan lengkapi terlebih dahulu sebelum diajukan.";
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -559,7 +549,7 @@ class FaqController extends Controller
         $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 50.0, $jawaban);
         $hasExactDraftMatch = (bool) ($analysis['has_exact_draft_match'] ?? false);
 
-        $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && $pustakaJudul !== '' && !$hasExactDraftMatch);
+        $isReady = ($pertanyaan !== '' && $jawaban !== '' && !empty($tags) && !$hasExactDraftMatch);
         $status = $isReady ? 'ready' : 'incomplete';
 
         $items = session('uploaded_faqs', []);
@@ -670,7 +660,7 @@ class FaqController extends Controller
                     $exactDraftConflicts[] = ($item['id'] ?? $itemKey) . " (sama persis dengan Draf {$draftMatch['id']} / {$draftMatch['version_id']})";
                 }
 
-                if ($status === 'Menunggu Validasi' && (empty($itemTags) || !$hasValidSource)) {
+                if ($status === 'Menunggu Validasi' && empty($itemTags)) {
                     $missingTagsOrSource[] = $item['id'] ?? $itemKey;
                 }
             }
@@ -686,7 +676,7 @@ class FaqController extends Controller
         if ($status === 'Menunggu Validasi' && !empty($missingTagsOrSource)) {
             return redirect()->back()->with(
                 'error',
-                'Peringatan: FAQ (' . implode(', ', $missingTagsOrSource) . ') belum memiliki Kata Kunci atau Sumber Pustaka. Silakan lengkapi melalui tombol Ubah sebelum mengajukan validasi.'
+                'Peringatan: FAQ (' . implode(', ', $missingTagsOrSource) . ') belum memiliki Kata Kunci. Silakan lengkapi melalui tombol Ubah sebelum mengajukan validasi.'
             );
         }
 
@@ -729,7 +719,6 @@ class FaqController extends Controller
                                 'link' => substr($pustakaJudul, 0, 45),
                             ], [
                                 'judul' => substr($pustakaJudul, 0, 100),
-                                'type'  => 'public',
                             ]);
                         }
                         $pustakaId = $dp->id;
@@ -878,7 +867,6 @@ class FaqController extends Controller
             }
 
             $pustakaId = null;
-            $visibility = strtolower((string) $request->input('sumber_visibility', 'public')) === 'private' ? 'private' : 'public';
 
             if ($request->filled('pustaka_id')) {
                 $pustakaId = (int) $request->pustaka_id;
@@ -889,7 +877,6 @@ class FaqController extends Controller
                     'link' => $linkText,
                 ], [
                     'judul'  => $linkText,
-                    'type'   => $visibility,
                     'upload' => null,
                 ]);
                 $pustakaId = $pustaka->id;
@@ -910,19 +897,12 @@ class FaqController extends Controller
                 }
             }
 
-            // Jika status = Menunggu Validasi, wajib memiliki Kata Kunci dan Sumber Pustaka
-            if ($status === 'Menunggu Validasi' && (empty($tagIds) || empty($pustakaId))) {
+            // Jika status = Menunggu Validasi, wajib memiliki Kata Kunci (Sumber Pustaka bersifat opsional)
+            if ($status === 'Menunggu Validasi' && empty($tagIds)) {
                 DB::rollBack();
-                $missing = [];
-                if (empty($tagIds)) {
-                    $missing[] = 'Kata Kunci';
-                }
-                if (empty($pustakaId)) {
-                    $missing[] = 'Sumber Pustaka';
-                }
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Peringatan: ' . implode(' dan ', $missing) . ' wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
+                    ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
             }
 
             FaqVersion::create([
@@ -1001,7 +981,6 @@ class FaqController extends Controller
                             'daftar_pustaka' => $dp ? [
                                 'id'       => $dp->id,
                                 'judul'    => $dp->judul_tampil,
-                                'type'     => strtolower((string) $dp->type) === 'private' ? 'Privat' : 'Publik',
                                 'link'     => $dp->link,
                                 'is_file'  => $isFile,
                                 'view_url' => $isFile ? route('dataentry.pustaka.view', $dp->id) : null,
@@ -1109,8 +1088,7 @@ class FaqController extends Controller
                 'pertanyaan' => $request->pertanyaan,
             ]);
 
-            $pustakaId = $latest ? $latest->tDaftarPustakas_id : null;
-            $visibility = strtolower((string) $request->input('sumber_visibility', 'public')) === 'private' ? 'private' : 'public';
+            $pustakaId = null;
 
             if ($request->filled('pustaka_id')) {
                 $pustakaId = (int) $request->pustaka_id;
@@ -1121,7 +1099,6 @@ class FaqController extends Controller
                     'link' => $linkText,
                 ], [
                     'judul'  => $linkText,
-                    'type'   => $visibility,
                     'upload' => null,
                 ]);
                 $pustakaId = $pustaka->id;
@@ -1143,19 +1120,12 @@ class FaqController extends Controller
                 }
             }
 
-            // Jika status = Menunggu Validasi, wajib memiliki Kata Kunci dan Sumber Pustaka
-            if ($targetStatus === 'Menunggu Validasi' && (empty($tagIds) || empty($pustakaId))) {
+            // Jika status = Menunggu Validasi, wajib memiliki Kata Kunci (Sumber Pustaka bersifat opsional)
+            if ($targetStatus === 'Menunggu Validasi' && empty($tagIds)) {
                 DB::rollBack();
-                $missing = [];
-                if (empty($tagIds)) {
-                    $missing[] = 'Kata Kunci';
-                }
-                if (empty($pustakaId)) {
-                    $missing[] = 'Sumber Pustaka';
-                }
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Peringatan: ' . implode(' dan ', $missing) . ' wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
+                    ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
             }
 
             // Buat versi baru (FAQ-0001-V2, V3, dst.) jika dipilih new_version atau jika status sebelumnya bukan draf
@@ -1454,7 +1424,6 @@ class FaqController extends Controller
         $request->validate([
             'judul'       => 'required|string|max:100',
             'source_kind' => 'required|in:link,upload',
-            'type'        => 'required|in:public,private,Public,Private',
             'link'        => 'nullable|string|max:60',
             'file_upload' => 'nullable|file|max:10240',
         ], [
@@ -1464,7 +1433,6 @@ class FaqController extends Controller
         ]);
 
         $judulText = substr(trim($request->judul), 0, 100);
-        $visibilityType = strtolower(trim($request->type)) === 'private' ? 'private' : 'public';
         $sourceKind = $request->input('source_kind', 'link');
 
         if ($sourceKind === 'upload') {
@@ -1477,13 +1445,12 @@ class FaqController extends Controller
 
             DaftarPustaka::create([
                 'judul'  => $judulText,
-                'type'   => $visibilityType,
                 'link'   => $filename,
                 'upload' => file_get_contents($file->getRealPath()),
             ]);
 
             return redirect()->route('dataentry.sumberpustaka')
-                ->with('success', "Dokumen '{$judulText}' (" . ucfirst($visibilityType) . ") berhasil diunggah ke Sumber Pustaka!");
+                ->with('success', "Dokumen '{$judulText}' berhasil diunggah ke Sumber Pustaka!");
         }
 
         if (!$request->filled('link')) {
@@ -1493,13 +1460,12 @@ class FaqController extends Controller
         $linkText = substr(trim($request->link), 0, 60);
         DaftarPustaka::create([
             'judul'  => $judulText,
-            'type'   => $visibilityType,
             'link'   => $linkText,
             'upload' => null,
         ]);
 
         return redirect()->route('dataentry.sumberpustaka')
-            ->with('success', "Tautan sumber pustaka '{$judulText}' (" . ucfirst($visibilityType) . ") berhasil ditambahkan!");
+            ->with('success', "Tautan sumber pustaka '{$judulText}' berhasil ditambahkan!");
     }
 
     public function sumberPustakaUpdate(Request $request, $id)
@@ -1510,7 +1476,6 @@ class FaqController extends Controller
 
         $request->validate([
             'judul'       => 'required|string|max:100',
-            'type'        => 'required|in:public,private,Public,Private',
             'link'        => 'nullable|string|max:60',
             'file_upload' => 'nullable|file|max:10240',
         ], [
@@ -1519,7 +1484,6 @@ class FaqController extends Controller
         ]);
 
         $newJudul = substr(trim($request->judul), 0, 100);
-        $visibilityType = strtolower(trim($request->type)) === 'private' ? 'private' : 'public';
         $isFileRecord = !empty($pustaka->upload);
 
         if ($request->hasFile('file_upload')) {
@@ -1528,19 +1492,17 @@ class FaqController extends Controller
 
             $pustaka->update([
                 'judul'  => $newJudul,
-                'type'   => $visibilityType,
                 'link'   => $filename,
                 'upload' => file_get_contents($file->getRealPath()),
             ]);
 
             return redirect()->route('dataentry.sumberpustaka')
-                ->with('success', "File sumber pustaka '{$newJudul}' (" . ucfirst($visibilityType) . ") berhasil diperbarui!");
+                ->with('success', "Berkas sumber pustaka '{$newJudul}' berhasil diperbarui!");
         }
 
         if ($isFileRecord) {
             $pustaka->update([
                 'judul' => $newJudul,
-                'type'  => $visibilityType,
             ]);
 
             return redirect()->route('dataentry.sumberpustaka')
@@ -1554,12 +1516,11 @@ class FaqController extends Controller
         $newLink = substr(trim($request->link), 0, 60);
         $pustaka->update([
             'judul' => $newJudul,
-            'type'  => $visibilityType,
             'link'  => $newLink,
         ]);
 
         return redirect()->route('dataentry.sumberpustaka')
-            ->with('success', "Sumber pustaka '{$newJudul}' (" . ucfirst($visibilityType) . ") berhasil diperbarui!");
+            ->with('success', "Sumber pustaka '{$newJudul}' berhasil diperbarui!");
     }
 
     public function sumberPustakaUpload(Request $request)
@@ -1577,7 +1538,7 @@ class FaqController extends Controller
 
         if (empty($sources)) {
             return redirect()->route('dataentry.sumberpustaka')
-                ->with('error', "Tidak ditemukan daftar tautan sumber pustaka yang dapat dibaca dari file {$filename}. Pastikan file mengikuti format 3 kolom: (1. Judul Link, 2. Link-nya, 3. Tipe Private/Public).");
+                ->with('error', "Tidak ditemukan daftar tautan sumber pustaka yang dapat dibaca dari file {$filename}. Pastikan file mengikuti format 2 kolom: (1. Judul Tautan, 2. Tautan/Link).");
         }
 
         session([
@@ -1586,7 +1547,7 @@ class FaqController extends Controller
         ]);
 
         return redirect()->route('dataentry.sumberpustaka')
-            ->with('success', 'Berhasil membaca ' . count($sources) . " baris tautan dari {$filename}. Silakan pantau kesesuaian 3 kolom (Judul Link, Link, & Tipe) pada pratinjau di bawah!");
+            ->with('success', 'Berhasil membaca ' . count($sources) . " baris tautan dari {$filename}. Silakan pantau kesesuaian pada pratinjau di bawah!");
     }
 
     public function sumberPustakaSaveImport(Request $request)
@@ -1601,7 +1562,6 @@ class FaqController extends Controller
             if (empty($selectedIndexes) || in_array((string) $idx, $selectedIndexes, true)) {
                 $judulName = substr(trim($src['judul'] ?? ''), 0, 100);
                 $linkName  = substr(trim($src['link'] ?? ''), 0, 60);
-                $visibility = strtolower(trim($src['type'] ?? 'public')) === 'private' ? 'private' : 'public';
 
                 if ($judulName === '' && $linkName !== '') {
                     $judulName = $linkName;
@@ -1612,7 +1572,6 @@ class FaqController extends Controller
                         'link' => $linkName,
                     ], [
                         'judul'  => $judulName,
-                        'type'   => $visibility,
                         'upload' => null,
                     ]);
                     $saved++;
@@ -1649,11 +1608,11 @@ class FaqController extends Controller
 
     public function downloadTemplatePustaka()
     {
-        $headers = ['Judul Link', 'Link', 'Tipe (Private/Public)'];
+        $headers = ['Judul Tautan', 'Tautan'];
         $rows = [
-            ['Pedoman Akademik UBAYA 2026/2027', 'https://akademik.kampus.ac.id/pedoman-2026', 'Public'],
-            ['SOP Layanan Administrasi BAAK', 'https://baak.kampus.ac.id/standar-operasional', 'Private'],
-            ['Panduan KRS dan Perwalian Mahasiswa', 'https://my.ubaya.ac.id/panduan-krs-2026', 'Public'],
+            ['Pedoman Akademik UBAYA 2026/2027', 'https://akademik.kampus.ac.id/pedoman-2026'],
+            ['SOP Layanan Administrasi BAAK', 'https://baak.kampus.ac.id/standar-operasional'],
+            ['Panduan KRS dan Perwalian Mahasiswa', 'https://my.ubaya.ac.id/panduan-krs-2026'],
         ];
 
         $filePath = FileImportParser::generateXlsx($headers, $rows, 'Template Sumber Pustaka');

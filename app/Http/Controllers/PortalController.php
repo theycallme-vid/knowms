@@ -212,6 +212,86 @@ class PortalController extends Controller
     }
 
     /**
+     * Halaman Full Page Riwayat Versi Jawaban untuk 1 pertanyaan FAQ Mahasiswa.
+     * Diurutkan dari versi paling terbaru di posisi paling atas.
+     */
+    public function faqHistory(Request $request, string $id)
+    {
+        $kodeFakultas = session('kode_fakultas');
+        $namaFakultas = session('nama_fakultas');
+        if (!$namaFakultas && $kodeFakultas) {
+            $namaFakultas = self::FAKULTAS_MAP[$kodeFakultas] ?? ('Fakultas (Kode ' . $kodeFakultas . ')');
+        }
+
+        $kodeAngkatan  = session('kode_angkatan');
+        $tahunAngkatan = session('tahun_angkatan') ?: ($kodeAngkatan ? ('20' . $kodeAngkatan) : null);
+        $semester      = session('semester') ?: self::estimateSemester($tahunAngkatan);
+        $settings      = Setting::allIntValues();
+
+        DaftarPustaka::ensurePublicPrivateEnum();
+        FaqVersion::ensureIndonesianStatusEnum();
+        FaqVersion::processDueScheduledPublications();
+
+        $faq = Faq::with([
+            'tags',
+            'versions' => fn ($q) => $q->where('status', 'Terbit'),
+            'versions.daftarPustaka',
+        ])->findOrFail($id);
+
+        $tagNamesList = $faq->tags->pluck('nama')->values()->all();
+
+        // Urutkan versi dari yang paling terbaru (nomor versi tertinggi / waktu terbaru) di urutan teratas
+        $sortedVersions = $faq->versions
+            ->sort(function ($a, $b) {
+                $numA = preg_match('/-V(\d+)$/i', (string) $a->id, $mA) ? (int) $mA[1] : 0;
+                $numB = preg_match('/-V(\d+)$/i', (string) $b->id, $mB) ? (int) $mB[1] : 0;
+                if ($numA !== $numB) {
+                    return $numB <=> $numA;
+                }
+                $tA = ($a->updated_at ?? $a->created_at)?->timestamp ?? 0;
+                $tB = ($b->updated_at ?? $b->created_at)?->timestamp ?? 0;
+                return $tB <=> $tA;
+            })
+            ->values();
+
+        $versions = [];
+        foreach ($sortedVersions as $vIdx => $verItem) {
+            $vPustaka = $verItem->daftarPustaka;
+            $vIsFile = $vPustaka ? !empty($vPustaka->upload) : false;
+            $vSourceLabel = $vPustaka ? ($vPustaka->judul_tampil ?: $vPustaka->link) : null;
+            $vSourceUrl = $vPustaka
+                ? ($vIsFile ? route('pustaka.lihat', $vPustaka->id) : (filter_var($vPustaka->link, FILTER_VALIDATE_URL) ? $vPustaka->link : null))
+                : null;
+            $vTs = $verItem->updated_at ?? $verItem->created_at;
+
+            $versions[] = [
+                'version_id'     => $verItem->id,
+                'version_label'  => FaqVersion::formatVersiLabel($verItem->id),
+                'is_latest'      => ($vIdx === 0),
+                'updated_at'     => $vTs ? $vTs->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-',
+                'date_only'      => $vTs ? $vTs->timezone('Asia/Jakarta')->translatedFormat('d M Y') : '-',
+                'jawaban'        => $verItem->jawaban,
+                'tags'           => $tagNamesList,
+                'source_label'   => $vSourceLabel,
+                'source_url'     => $vSourceUrl,
+                'source_is_file' => $vIsFile,
+            ];
+        }
+
+        return view('mahasiswa.riwayat-jawaban', [
+            'faq'                  => $faq,
+            'versions'             => $versions,
+            'tags'                 => $tagNamesList,
+            'kodeFakultas'         => $kodeFakultas,
+            'namaFakultas'         => $namaFakultas ?: 'Umum (Semua Fakultas)',
+            'tahunAngkatan'        => $tahunAngkatan,
+            'semester'             => $semester,
+            'idleTimeoutSeconds'   => $settings['idle_timeout_seconds'] ?? 30,
+            'idleCountdownSeconds' => $settings['idle_countdown_seconds'] ?? 10,
+        ]);
+    }
+
+    /**
      * Mencatat interaksi / akses FAQ oleh mahasiswa ke tabel tlogmahasiswa
      * dengan membedakan antara View ('view') dan Feedback ('like' / 'dislike').
      */
