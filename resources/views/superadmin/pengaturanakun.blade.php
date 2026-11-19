@@ -63,6 +63,10 @@
                     <i class="bi bi-people"></i>
                     <span>Pengguna &amp; Akses</span>
                 </a>
+                <a href="{{ route('superadmin.pengaturanSistem') }}" class="nav-link-custom">
+                    <i class="bi bi-sliders"></i>
+                    <span>Pengaturan Sistem</span>
+                </a>
                 <a href="#" class="nav-link-custom">
                     <i class="bi bi-diagram-3"></i>
                     <span>Kategori</span>

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\superadmin;
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\FaqVersion;
+use App\Models\LogMahasiswa;
 use App\Models\Role;
 use App\Models\Session;
+use App\Models\Setting;
 use App\Models\Tag;
 use App\Models\User;
 use Carbon\Carbon;
@@ -81,7 +83,7 @@ class PenggunaAksesController extends Controller
             for ($i = 6; $i >= 0; $i--) {
                 $day = $nowJkt->copy()->subDays($i);
                 $trendLabels[] = $day->translatedFormat('d M');
-                $daySessionCount = Session::whereDate('waktu_mulai', $day->toDateString())->count();
+                $daySessionCount = Session::whereDate('created_at', $day->toDateString())->count();
                 // Jika tabel tsession kosong/sedikit, kombinasikan dengan aktivitas FAQ agar grafik tetap informatif
                 $dayFaqCount = FaqVersion::whereDate('updated_at', $day->toDateString())->count();
                 $trendCounts[] = max($daySessionCount + ($dayFaqCount * 5), ($i === 0 ? max($totalFaq * 3, 12) : max($totalFaq * 2, 8)));
@@ -92,6 +94,34 @@ class PenggunaAksesController extends Controller
             if (empty($topTags)) {
                 $topTags = ['KRS', 'Pembayaran kuliah', 'Cuti akademik'];
             }
+
+            // Ringkasan Views, Like (Membantu), dan Dislike (Tidak Membantu) untuk Dashboard Super Admin
+            $interactionSummary = LogMahasiswa::getFaqInteractionSummary();
+            $totalViewsCount    = 0;
+            $totalLikesCount    = 0;
+            $totalDislikesCount = 0;
+
+            foreach ($allFaqs as $f) {
+                $st = $interactionSummary[$f->id] ?? ['views' => 0, 'likes' => 0, 'dislikes' => 0];
+                $f->views_count    = $st['views'];
+                $f->likes_count    = $st['likes'];
+                $f->dislikes_count = $st['dislikes'];
+
+                $totalViewsCount    += $st['views'];
+                $totalLikesCount    += $st['likes'];
+                $totalDislikesCount += $st['dislikes'];
+            }
+
+            $topViewedFaqs = $allFaqs
+                ->sortByDesc(fn ($f) => ($f->views_count * 100) + $f->likes_count)
+                ->take(5)
+                ->values();
+
+            $topDislikedFaqs = $allFaqs
+                ->filter(fn ($f) => $f->dislikes_count > 0)
+                ->sortByDesc('dislikes_count')
+                ->take(5)
+                ->values();
 
             // Aktivitas terbaru gabungan dari versi FAQ dan perubahan user
             $recentVersions = FaqVersion::with(['faq.dataEntry.role', 'validator.role'])
@@ -165,6 +195,11 @@ class PenggunaAksesController extends Controller
             $weeklySearches = array_sum($trendCounts);
             $topTags = ['KRS', 'Pembayaran kuliah', 'Cuti akademik'];
             $activities = collect();
+            $totalViewsCount = 0;
+            $totalLikesCount = 0;
+            $totalDislikesCount = 0;
+            $topViewedFaqs = collect();
+            $topDislikedFaqs = collect();
         }
 
         return view('superadmin.dashboard', compact(
@@ -186,8 +221,79 @@ class PenggunaAksesController extends Controller
             'trendCounts',
             'weeklySearches',
             'topTags',
-            'activities'
+            'activities',
+            'totalViewsCount',
+            'totalLikesCount',
+            'totalDislikesCount',
+            'topViewedFaqs',
+            'topDislikedFaqs'
         ));
+    }
+
+    /**
+     * Halaman Pengaturan Sistem (Bobot Algoritma Rekomendasi FAQ & Waktu Idle Auto-Logout Mahasiswa/Guest).
+     */
+    public function pengaturanSistem()
+    {
+        $currentValues = Setting::allIntValues();
+        $settingsMeta  = Setting::DEFAULTS;
+
+        return view('superadmin.pengaturansistem', compact('currentValues', 'settingsMeta'));
+    }
+
+    /**
+     * Simpan pembaruan Pengaturan Sistem ke tabel tsettings.
+     */
+    public function updatePengaturanSistem(Request $request)
+    {
+        $rules = [];
+        foreach (Setting::DEFAULTS as $key => $meta) {
+            $rules[$key] = $meta['group'] === 'session'
+                ? ['required', 'integer', 'min:1']
+                : ['required', 'integer'];
+        }
+
+        $validated = $request->validate($rules, [
+            '*.required' => 'Semua nilai pengaturan wajib diisi.',
+            '*.integer'  => 'Nilai pengaturan harus berupa angka bulat (integer).',
+            '*.min'      => 'Waktu durasi sesi minimal harus 1 detik.',
+        ]);
+
+        try {
+            Setting::ensureDefaults();
+            foreach (Setting::DEFAULTS as $key => $meta) {
+                if (array_key_exists($key, $validated)) {
+                    Setting::updateOrCreate(
+                        ['key' => $key],
+                        [
+                            'value'      => (string) ((int) $validated[$key]),
+                            'keterangan' => $meta['keterangan'],
+                        ]
+                    );
+                }
+            }
+
+            return redirect()->route('superadmin.pengaturanSistem')
+                ->with('success', 'Pengaturan sistem (bobot rekomendasi & waktu auto-logout) berhasil disimpan.');
+        } catch (Throwable $e) {
+            return redirect()->route('superadmin.pengaturanSistem')
+                ->with('error', 'Gagal menyimpan pengaturan sistem: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset seluruh nilai di tabel tsettings kembali ke nilai bawaan (DEFAULTS).
+     */
+    public function resetPengaturanSistem()
+    {
+        try {
+            Setting::resetToDefaults();
+            return redirect()->route('superadmin.pengaturanSistem')
+                ->with('success', 'Seluruh pengaturan sistem berhasil dikembalikan ke nilai bawaan (default).');
+        } catch (Throwable $e) {
+            return redirect()->route('superadmin.pengaturanSistem')
+                ->with('error', 'Gagal mereset pengaturan sistem: ' . $e->getMessage());
+        }
     }
     /**
      * Menampilkan daftar pengguna dan hak akses.

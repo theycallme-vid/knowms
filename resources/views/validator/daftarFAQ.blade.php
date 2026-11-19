@@ -311,6 +311,19 @@
                                                 @if($faq->tags->count() > 3)
                                                     <span class="tag-pill">+{{ $faq->tags->count() - 3 }}</span>
                                                 @endif
+                                                <span class="tag-pill" style="background-color:#F8FAFC; color:#475569; border-color:#E2E8F0;" title="Statistik Views, Like & Dislike Mahasiswa">
+                                                    <i class="bi bi-eye me-1"></i>{{ $faq->views_count ?? 0 }}
+                                                    &middot; <i class="bi bi-hand-thumbs-up text-success ms-1 me-1"></i>{{ $faq->likes_count ?? 0 }}
+                                                    &middot; <i class="bi bi-hand-thumbs-down text-danger ms-1 me-1"></i>{{ $faq->dislikes_count ?? 0 }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <div class="faq-tags">
+                                                <span class="tag-pill" style="background-color:#F8FAFC; color:#475569; border-color:#E2E8F0;" title="Statistik Views, Like & Dislike Mahasiswa">
+                                                    <i class="bi bi-eye me-1"></i>{{ $faq->views_count ?? 0 }}
+                                                    &middot; <i class="bi bi-hand-thumbs-up text-success ms-1 me-1"></i>{{ $faq->likes_count ?? 0 }}
+                                                    &middot; <i class="bi bi-hand-thumbs-down text-danger ms-1 me-1"></i>{{ $faq->dislikes_count ?? 0 }}
+                                                </span>
                                             </div>
                                         @endif
                                     </td>
@@ -661,6 +674,11 @@
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="badge rounded-pill fw-bold" style="background-color: #85172C; color: #FFFFFF; font-size: 0.78rem; padding: 0.42rem 0.9rem;">${d.id}</span>
                                     ${statusBadge}
+                                    <span class="badge rounded-pill" style="background-color: #F8FAFC; color: #334155; border: 1px solid #E2E8F0; font-size: 0.74rem; padding: 0.38rem 0.75rem;">
+                                        <i class="bi bi-eye me-1"></i>${d.views_count ?? 0} dilihat
+                                        &middot; <i class="bi bi-hand-thumbs-up text-success ms-1 me-1"></i>${d.likes_count ?? 0}
+                                        &middot; <i class="bi bi-hand-thumbs-down text-danger ms-1 me-1"></i>${d.dislikes_count ?? 0}
+                                    </span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.78rem;">
                                     <span><i class="bi bi-person me-1"></i><strong class="text-dark">${d.data_entry || '-'}</strong></span>

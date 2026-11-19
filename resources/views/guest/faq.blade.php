@@ -38,12 +38,93 @@
         ['key' => 'tugas',     'label' => 'Tugas akhir',          'icon' => 'bi-mortarboard'],
     ];
 
+    $resolveCategoryKeys = function ($dbFaq) {
+        $tagNames = $dbFaq->tags->pluck('nama')->toArray();
+        $tagString = strtolower(implode(' ', $tagNames));
+        $qLower = strtolower($dbFaq->pertanyaan);
+        $keys = ['top'];
+
+        // Kategori Umum
+        if (
+            str_contains($tagString, 'umum') ||
+            str_contains($qLower, 'umum') ||
+            str_contains($qLower, 'seluruh mahasiswa') ||
+            str_contains($qLower, 'registrasi ulang')
+        ) {
+            $keys[] = 'umum';
+        }
+
+        // Kategori Akademik
+        if (
+            str_contains($tagString, 'akademik') ||
+            str_contains($tagString, 'krs') ||
+            str_contains($tagString, 'rencana studi') ||
+            str_contains($tagString, 'cuti') ||
+            str_contains($tagString, 'transkrip') ||
+            str_contains($tagString, 'surat akademik') ||
+            str_contains($tagString, 'pindah prodi') ||
+            str_contains($qLower, 'krs') ||
+            str_contains($qLower, 'perwalian') ||
+            str_contains($qLower, 'sks') ||
+            str_contains($qLower, 'mata kuliah') ||
+            str_contains($qLower, 'semester') ||
+            str_contains($qLower, 'akademik')
+        ) {
+            $keys[] = 'akademik';
+        }
+
+        // Kategori Biaya & Beasiswa
+        if (
+            str_contains($tagString, 'biaya') ||
+            str_contains($tagString, 'beasiswa') ||
+            str_contains($qLower, 'biaya') ||
+            str_contains($qLower, 'ukt') ||
+            str_contains($qLower, 'cicilan') ||
+            str_contains($qLower, 'beasiswa') ||
+            str_contains($qLower, 'keuangan')
+        ) {
+            $keys[] = 'biaya';
+        }
+
+        // Kategori Praktikum
+        if (
+            str_contains($tagString, 'praktikum') ||
+            str_contains($tagString, 'laboratorium') ||
+            str_contains($tagString, 'fasilitas') ||
+            str_contains($qLower, 'praktikum') ||
+            str_contains($qLower, 'laboratorium') ||
+            str_contains($qLower, 'lab') ||
+            str_contains($qLower, 'alat') ||
+            str_contains($qLower, 'k3')
+        ) {
+            $keys[] = 'praktikum';
+        }
+
+        // Kategori Tugas Akhir
+        if (
+            str_contains($tagString, 'tugas akhir') ||
+            str_contains($tagString, 'yudisium') ||
+            str_contains($tagString, 'wisuda') ||
+            str_contains($tagString, 'capstone') ||
+            str_contains($qLower, 'tugas akhir') ||
+            str_contains($qLower, 'skripsi') ||
+            str_contains($qLower, 'sempro') ||
+            str_contains($qLower, 'sidang') ||
+            str_contains($qLower, 'yudisium') ||
+            str_contains($qLower, 'turnitin')
+        ) {
+            $keys[] = 'tugas';
+        }
+
+        return array_values(array_unique($keys));
+    };
+
     $faqs = [
-        ['id' => 1, 'q' => 'Bagaimana cara mengisi dan mengajukan KRS?', 'cat' => 'KRS & perkuliahan', 'key' => 'akademik', 'a' => null, 'source_type' => 'public', 'source_label' => 'Cek jadwal dan ketentuan terbaru di portal akademik fakultasmu.', 'source_url' => '#'],
-        ['id' => 2, 'q' => 'Apa yang perlu disiapkan untuk registrasi ulang?', 'cat' => 'Administrasi akademik', 'key' => 'umum', 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka petunjuk teknis layanan akademik mahasiswa', 'source_url' => '#'],
-        ['id' => 3, 'q' => 'Bagaimana prosedur pengajuan cuti kuliah?', 'cat' => 'Administrasi akademik', 'key' => 'umum', 'a' => null, 'source_type' => 'private', 'source_label' => 'SOP Internal Pengajuan Cuti Kuliah', 'source_url' => '#'],
-        ['id' => 4, 'q' => 'Di mana saya bisa melihat hasil studi (KHS)?', 'cat' => 'KRS & perkuliahan', 'key' => 'akademik', 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka petunjuk teknis layanan akademik mahasiswa', 'source_url' => '#'],
-        ['id' => 5, 'q' => 'Bagaimana cara mengajukan beasiswa?', 'cat' => 'Biaya & beasiswa', 'key' => 'biaya', 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka panduan pengajuan beasiswa mahasiswa', 'source_url' => '#'],
+        ['id' => 1, 'q' => 'Bagaimana cara mengisi dan mengajukan KRS?', 'cat' => 'KRS & perkuliahan', 'keys' => ['top', 'akademik', 'umum'], 'a' => null, 'source_type' => 'public', 'source_label' => 'Cek jadwal dan ketentuan terbaru di portal akademik fakultasmu.', 'source_url' => '#'],
+        ['id' => 2, 'q' => 'Apa yang perlu disiapkan untuk registrasi ulang?', 'cat' => 'Administrasi akademik', 'keys' => ['top', 'umum', 'akademik'], 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka petunjuk teknis layanan akademik mahasiswa', 'source_url' => '#'],
+        ['id' => 3, 'q' => 'Bagaimana prosedur pengajuan cuti kuliah?', 'cat' => 'Administrasi akademik', 'keys' => ['top', 'umum', 'akademik'], 'a' => null, 'source_type' => 'private', 'source_label' => 'SOP Internal Pengajuan Cuti Kuliah', 'source_url' => '#'],
+        ['id' => 4, 'q' => 'Di mana saya bisa melihat hasil studi (KHS)?', 'cat' => 'KRS & perkuliahan', 'keys' => ['top', 'akademik'], 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka petunjuk teknis layanan akademik mahasiswa', 'source_url' => '#'],
+        ['id' => 5, 'q' => 'Bagaimana cara mengajukan beasiswa?', 'cat' => 'Biaya & beasiswa', 'keys' => ['top', 'biaya'], 'a' => null, 'source_type' => 'public', 'source_label' => 'Buka panduan pengajuan beasiswa mahasiswa', 'source_url' => '#'],
     ];
 
     if (isset($publishedFaqs) && $publishedFaqs->isNotEmpty()) {
@@ -55,15 +136,21 @@
             $sourceLabel = $pustaka ? $pustaka->link : null;
             $sourceUrl = ($pustaka && filter_var($pustaka->link, FILTER_VALIDATE_URL)) ? $pustaka->link : '#';
             $tagNames = $dbFaq->tags->pluck('nama')->implode(' · ');
+            $assignedKeys = $resolveCategoryKeys($dbFaq);
             $mappedDbFaqs[] = [
-                'id'           => $idx + 1,
-                'q'            => $dbFaq->pertanyaan,
-                'a'            => $activeVer?->jawaban,
-                'cat'          => $tagNames ?: 'Panduan Akademik',
-                'key'          => 'akademik',
-                'source_type'  => $sourceType,
-                'source_label' => $sourceLabel,
-                'source_url'   => $sourceUrl,
+                'id'             => $idx + 1,
+                'faq_id'         => $dbFaq->id,
+                'q'              => $dbFaq->pertanyaan,
+                'a'              => $activeVer?->jawaban,
+                'cat'            => $tagNames ?: 'Panduan Akademik',
+                'keys'           => $assignedKeys,
+                'source_type'    => $sourceType,
+                'source_label'   => $sourceLabel,
+                'source_url'     => $sourceUrl,
+                'access_count'   => (int) ($dbFaq->views_count ?? $dbFaq->total_access_count ?? 0),
+                'views_count'    => (int) ($dbFaq->views_count ?? $dbFaq->total_access_count ?? 0),
+                'likes_count'    => (int) ($dbFaq->likes_count ?? 0),
+                'dislikes_count' => (int) ($dbFaq->dislikes_count ?? 0),
             ];
         }
         $faqs = $mappedDbFaqs;
@@ -205,7 +292,11 @@
         <!-- Accordion FAQ List -->
         <div id="faqList" class="accordion mt-3" style="--bs-accordion-border-width:0;">
             @foreach($faqs as $f)
-                <article class="faq-item" data-cat="{{ $f['key'] }}" data-text="{{ strtolower($f['q'].' '.$f['cat']) }}">
+                @php
+                    $catClasses = is_array($f['keys'] ?? null) ? implode(' ', $f['keys']) : ($f['key'] ?? 'akademik');
+                    $realFaqId = $f['faq_id'] ?? ('FAQ-' . sprintf('%04d', $f['id']));
+                @endphp
+                <article class="faq-item" data-faq-id="{{ $realFaqId }}" data-cat="{{ $catClasses }}" data-text="{{ strtolower($f['q'].' '.$f['cat']) }}">
                     <button class="faq-toggle {{ $f['id'] === 1 ? '' : 'collapsed' }}" 
                             type="button" 
                             data-bs-toggle="collapse" 
@@ -215,15 +306,28 @@
                         <span class="faq-num">{{ sprintf('%02d', $f['id']) }}</span>
                         <div class="flex-grow-1 text-start">
                             @if($f['id'] === 1)
-                                <div class="d-flex align-items-center gap-2 mb-1.5">
-                                    <span class="tag-soft">KRS &amp; perkuliahan</span>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1.5">
+                                    <span class="tag-soft">{{ $f['cat'] }}</span>
                                     <span class="fs-12 text-muted fw-normal">Panduan umum &middot; Untuk seluruh mahasiswa</span>
+                                    <span class="fs-11 text-muted d-inline-flex align-items-center gap-2 ms-1">
+                                        <span><i class="bi bi-eye me-1"></i><span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span> dilihat</span>
+                                        <span>&middot;</span>
+                                        <span class="text-success"><i class="bi bi-hand-thumbs-up me-1"></i><span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span></span>
+                                        <span class="text-secondary"><i class="bi bi-hand-thumbs-down me-1"></i><span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span></span>
+                                    </span>
                                 </div>
                             @endif
                             <div class="faq-q">{{ $f['q'] }}</div>
                         </div>
                         @if($f['id'] !== 1)
-                            <span class="faq-cat-label">{{ $f['cat'] }}</span>
+                            <span class="faq-cat-label d-inline-flex align-items-center gap-2">
+                                <span>{{ $f['cat'] }}</span>
+                                <span class="text-muted" style="font-size: 0.72rem;">
+                                    <i class="bi bi-eye"></i> <span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span>
+                                    &middot; <i class="bi bi-hand-thumbs-up text-success"></i> <span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span>
+                                    &middot; <i class="bi bi-hand-thumbs-down text-secondary"></i> <span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span>
+                                </span>
+                            </span>
                         @endif
                         <span class="faq-icon">
                             <i class="bi bi-plus-lg faq-icon-plus"></i>
@@ -231,7 +335,7 @@
                         </span>
                     </button>
 
-                    <div id="faq{{ $f['id'] }}" class="collapse {{ $f['id'] === 1 ? 'show' : '' }}" data-bs-parent="#faqList">
+                    <div id="faq{{ $f['id'] }}" class="collapse {{ $f['id'] === 1 ? 'show' : '' }}" data-faq-id="{{ $realFaqId }}" data-bs-parent="#faqList">
                         <div class="faq-body pt-1">
                             @if(!empty($f['a']))
                                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -255,10 +359,10 @@
                                 <div class="d-flex justify-content-between align-items-center pt-2 border-top border-light fs-11 text-muted">
                                     <span>Apakah jawaban ini membantu?</span>
                                     <span class="d-flex gap-3">
-                                        <button class="btn btn-link p-0 fs-12 text-decoration-none fw-semibold" style="color: var(--brand-maroon);" onclick="alert('Terima kasih atas masukan Anda!'); return false;">
+                                        <button type="button" class="btn btn-link p-0 fs-12 text-decoration-none fw-semibold" style="color: var(--brand-maroon);" onclick="submitFaqFeedback('{{ $realFaqId }}', 1, this); return false;">
                                             <i class="bi bi-hand-thumbs-up me-1"></i>Ya, membantu
                                         </button>
-                                        <button class="btn btn-link p-0 fs-12 text-decoration-none text-muted" onclick="alert('Terima kasih, kami akan menyempurnakan jawaban ini.'); return false;">
+                                        <button type="button" class="btn btn-link p-0 fs-12 text-decoration-none text-muted" onclick="submitFaqFeedback('{{ $realFaqId }}', 0, this); return false;">
                                             <i class="bi bi-hand-thumbs-down me-1"></i>Belum
                                         </button>
                                     </span>
@@ -425,7 +529,7 @@
 
                 <!-- Subtitle -->
                 <p class="text-muted fs-13 mb-3" style="line-height: 1.55;">
-                    Tidak ada aktivitas terdeteksi selama 30 detik. Demi keamanan dan kenyamanan bersama, sesi akan berakhir otomatis dalam:
+                    Tidak ada aktivitas terdeteksi selama {{ $idleTimeoutSeconds ?? 30 }} detik. Demi keamanan dan kenyamanan bersama, sesi akan berakhir otomatis dalam:
                 </p>
 
                 <!-- Countdown Box -->
@@ -433,7 +537,7 @@
                     class="py-2.5 px-3 mb-3 mx-auto d-inline-flex align-items-center gap-2"
                     style="background-color: #FAF8F5; border: 1px solid #EBE6DF; border-radius: 999px;"
                 >
-                    <span class="fw-bold" style="color: #85172C; font-size: 1.05rem;" id="idleCountdownNumber">10</span>
+                    <span class="fw-bold" style="color: #85172C; font-size: 1.05rem;" id="idleCountdownNumber">{{ $idleCountdownSeconds ?? 10 }}</span>
                     <span class="text-muted fs-12 fw-medium">detik tersisa</span>
                 </div>
 
@@ -444,9 +548,9 @@
                         class="progress-bar"
                         role="progressbar"
                         style="width: 100%; background-color: #85172C; transition: width 1s linear;"
-                        aria-valuenow="10"
+                        aria-valuenow="{{ $idleCountdownSeconds ?? 10 }}"
                         aria-valuemin="0"
-                        aria-valuemax="10"
+                        aria-valuemax="{{ $idleCountdownSeconds ?? 10 }}"
                     ></div>
                 </div>
 
@@ -485,6 +589,64 @@
 <!-- Filter & Search Script -->
 <script>
     let activeCat = 'top';
+    const faqLogUrl = "{{ route('faq.log-access') }}";
+    const csrfToken = "{{ csrf_token() }}";
+    const viewedFaqIds = new Set();
+
+    function updateFaqStatDom(faqId, counts) {
+        if (!faqId || !counts) return;
+        document.querySelectorAll(`[data-stat-views="${faqId}"]`).forEach(el => { el.textContent = counts.views ?? 0; });
+        document.querySelectorAll(`[data-stat-likes="${faqId}"]`).forEach(el => { el.textContent = counts.likes ?? 0; });
+        document.querySelectorAll(`[data-stat-dislikes="${faqId}"]`).forEach(el => { el.textContent = counts.dislikes ?? 0; });
+    }
+
+    function logFaqInteraction(faqId, jenisInteraksi = 'view', keyword = '', hasil = 1) {
+        if (!faqId) return;
+        if (jenisInteraksi === 'view') {
+            if (viewedFaqIds.has(faqId)) return;
+            viewedFaqIds.add(faqId);
+        }
+
+        fetch(faqLogUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                faq_id: faqId,
+                jenis_interaksi: jenisInteraksi,
+                keyword: keyword || (document.getElementById('faqSearch')?.value || '').trim() || 'buka-faq-guest',
+                hasil: hasil
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res && res.counts) {
+                updateFaqStatDom(faqId, res.counts);
+            }
+        })
+        .catch(() => {});
+    }
+
+    function submitFaqFeedback(faqId, hasil, btnEl) {
+        const jenis = hasil === 1 ? 'like' : 'dislike';
+        logFaqInteraction(faqId, jenis, hasil === 1 ? 'feedback-membantu' : 'feedback-belum', hasil);
+        if (btnEl && btnEl.parentElement) {
+            btnEl.parentElement.innerHTML = '<span class="text-success fw-semibold fs-12"><i class="bi bi-check-circle me-1"></i>Terima kasih atas masukanmu!</span>';
+        }
+    }
+
+    const faqListEl = document.getElementById('faqList');
+    if (faqListEl) {
+        faqListEl.addEventListener('shown.bs.collapse', function (e) {
+            const faqId = e.target?.dataset?.faqId;
+            if (faqId) {
+                logFaqInteraction(faqId, 'view', '', 1);
+            }
+        });
+    }
 
     function setCategory(key, btn) {
         activeCat = key;
@@ -503,7 +665,8 @@
         let visible = 0;
         
         document.querySelectorAll('#faqList .faq-item').forEach(item => {
-            const matchCat = activeCat === 'top' || item.dataset.cat === activeCat;
+            const itemCats = (item.dataset.cat || '').split(' ');
+            const matchCat = activeCat === 'top' || itemCats.includes(activeCat);
             const matchText = !q || (item.dataset.text || '').includes(q);
             const show = matchCat && matchText;
             item.classList.toggle('d-none', !show);
@@ -524,10 +687,10 @@
     document.getElementById('faqSearch').addEventListener('input', filterFaq);
 
     // =========================================================================
-    // SISTEM IDLE TIMEOUT 30 DETIK & POP-UP HITUNG MUNDUR 10 DETIK (GUEST)
+    // SISTEM IDLE TIMEOUT & POP-UP HITUNG MUNDUR (GUEST - DARI TSETTINGS)
     // =========================================================================
-    const IDLE_LIMIT_SECONDS     = 30; // 30 detik tanpa aktivitas -> munculkan pop-up
-    const POPUP_COUNTDOWN_SEC    = 10; // 10 detik waktu tunggu pada pop-up
+    const IDLE_LIMIT_SECONDS     = {{ (int) ($idleTimeoutSeconds ?? 30) }};
+    const POPUP_COUNTDOWN_SEC    = {{ (int) ($idleCountdownSeconds ?? 10) }};
 
     let idleTimeoutTimer         = null;
     let popupCountdownInterval   = null;

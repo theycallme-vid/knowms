@@ -53,6 +53,10 @@
                     <i class="bi bi-people"></i>
                     <span>Pengguna &amp; Akses</span>
                 </a>
+                <a href="{{ route('superadmin.pengaturanSistem') }}" class="nav-link-custom">
+                    <i class="bi bi-sliders"></i>
+                    <span>Pengaturan Sistem</span>
+                </a>
                 <a href="#" class="nav-link-custom">
                     <i class="bi bi-diagram-3"></i>
                     <span>Kategori</span>
@@ -377,11 +381,111 @@
                                 </div>
                                 <i class="bi bi-chevron-right text-muted fs-12"></i>
                             </a>
+
+                            <!-- Action Item 4: Pengaturan Sistem -->
+                            <a href="{{ route('superadmin.pengaturanSistem') }}" class="quick-action-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="stat-icon" style="width: 36px; height: 36px; background-color: #FEF2F2; color: #85172C;">
+                                        <i class="bi bi-sliders fs-6"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold fs-13 text-dark lh-sm">Pengaturan sistem</div>
+                                        <div class="fs-11 text-muted">Bobot rekomendasi &amp; waktu idle</div>
+                                    </div>
+                                </div>
+                                <i class="bi bi-chevron-right text-muted fs-12"></i>
+                            </a>
                         </div>
 
                         <!-- Footer Note -->
                         <div class="fs-11 text-muted pt-2">
                             Semua akses tercatat dalam riwayat.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Statistik Views, Like & Dislike FAQ (Ala YouTube) -->
+            <div class="row g-3 g-xl-4 mb-4">
+                <!-- Kolom Kiri: Top FAQ Paling Banyak Dilihat & Disukai -->
+                <div class="col-12 col-xl-7">
+                    <div class="card-custom h-100">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h2 class="fw-bold fs-15 text-dark mb-0">FAQ Paling Banyak Dilihat &amp; Disukai</h2>
+                                <div class="fs-12 text-muted">Total interaksi mahasiswa: <strong>{{ $totalViewsCount ?? 0 }} views</strong> &middot; <span class="text-success fw-semibold">{{ $totalLikesCount ?? 0 }} like</span> &middot; <span class="text-danger fw-semibold">{{ $totalDislikesCount ?? 0 }} dislike</span></div>
+                            </div>
+                            <a href="{{ route('superadmin.pengaturanSistem') }}" class="btn btn-sm rounded-pill px-3 py-1 fs-12 fw-semibold" style="background-color: #FCEEEF; color: #85172C; border: 1px solid #F5D0D6;">
+                                <i class="bi bi-sliders me-1"></i>Atur Bobot Skor
+                            </a>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table activity-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 100px;">KODE</th>
+                                        <th>PERTANYAAN FAQ</th>
+                                        <th class="text-center" style="width: 90px;">VIEWS</th>
+                                        <th class="text-center" style="width: 85px;">LIKE</th>
+                                        <th class="text-center" style="width: 85px;">DISLIKE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse(($topViewedFaqs ?? collect()) as $tf)
+                                        <tr>
+                                            <td class="fw-bold" style="color: var(--brand-maroon);">{{ $tf->id }}</td>
+                                            <td class="text-dark">{{ \Illuminate\Support\Str::limit($tf->pertanyaan, 68) }}</td>
+                                            <td class="text-center fw-semibold text-dark"><i class="bi bi-eye text-secondary me-1"></i>{{ $tf->views_count ?? 0 }}</td>
+                                            <td class="text-center fw-semibold text-success"><i class="bi bi-hand-thumbs-up me-1"></i>{{ $tf->likes_count ?? 0 }}</td>
+                                            <td class="text-center fw-semibold text-danger"><i class="bi bi-hand-thumbs-down me-1"></i>{{ $tf->dislikes_count ?? 0 }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-4 fs-13">Belum ada data interaksi mahasiswa.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: FAQ Paling Banyak Dislike (Perlu Evaluasi Jawaban) -->
+                <div class="col-12 col-xl-5">
+                    <div class="card-custom h-100">
+                        <div class="mb-3">
+                            <h2 class="fw-bold fs-15 text-dark mb-0">FAQ Perlu Evaluasi (Dislike Tertinggi)</h2>
+                            <div class="fs-12 text-muted">Daftar FAQ yang mendapat umpan balik "Belum membantu" dari mahasiswa.</div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table activity-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 95px;">KODE</th>
+                                        <th>PERTANYAAN</th>
+                                        <th class="text-center" style="width: 90px;">DISLIKE</th>
+                                        <th class="text-center" style="width: 80px;">VIEWS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse(($topDislikedFaqs ?? collect()) as $df)
+                                        <tr>
+                                            <td class="fw-bold" style="color: var(--brand-maroon);">{{ $df->id }}</td>
+                                            <td class="text-dark">{{ \Illuminate\Support\Str::limit($df->pertanyaan, 52) }}</td>
+                                            <td class="text-center fw-bold text-danger"><i class="bi bi-hand-thumbs-down-fill me-1"></i>{{ $df->dislikes_count ?? 0 }}</td>
+                                            <td class="text-center text-muted">{{ $df->views_count ?? 0 }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-4 fs-13">
+                                                <i class="bi bi-check-circle text-success me-1"></i>Belum ada FAQ yang mendapat dislike.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -533,8 +637,8 @@
         gradientFill.addColorStop(0, 'rgba(133, 23, 44, 0.16)');
         gradientFill.addColorStop(1, 'rgba(133, 23, 44, 0.00)');
 
-        const trendLabelsData = @json($trendLabels ?? ['15 Okt', '16 Okt', '17 Okt', '18 Okt', '19 Okt', '20 Okt', '21 Okt']);
-        const trendCountsData = @json($trendCounts ?? [10, 15, 12, 18, 20, 16, 22]);
+        const trendLabelsData = {{ \Illuminate\Support\Js::from($trendLabels ?? ['15 Okt', '16 Okt', '17 Okt', '18 Okt', '19 Okt', '20 Okt', '21 Okt']) }};
+        const trendCountsData = {{ \Illuminate\Support\Js::from($trendCounts ?? [10, 15, 12, 18, 20, 16, 22]) }};
         const maxTrendVal = Math.max(...trendCountsData, 10);
         const lastTrendVal = String(trendCountsData[trendCountsData.length - 1] ?? 0);
 
