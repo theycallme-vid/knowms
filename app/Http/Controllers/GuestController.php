@@ -55,9 +55,12 @@ class GuestController extends Controller
                 $q->where('status', 'Terbit');
             })->orderBy('created_at', 'desc')->get();
 
+            $recLogDays = max(1, (int) ($settings['rec_log_days'] ?? 30));
+
             $logStats = DB::table('tlogmahasiswa')
                 ->leftJoin('tsession', 'tlogmahasiswa.tSession_id', '=', 'tsession.id')
                 ->whereNotNull('tlogmahasiswa.tFaqs_id')
+                ->where('tlogmahasiswa.waktu_pencarian', '>=', now()->subDays($recLogDays))
                 ->select(
                     'tlogmahasiswa.tFaqs_id as faq_id',
                     'tsession.kode_fakultas as session_key',

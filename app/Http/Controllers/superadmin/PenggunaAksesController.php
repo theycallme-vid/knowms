@@ -232,7 +232,7 @@ class PenggunaAksesController extends Controller
     }
 
     /**
-     * Halaman Pengaturan Sistem (Bobot Algoritma Rekomendasi FAQ & Waktu Idle Auto-Logout Mahasiswa/Guest).
+     * Halaman Pengaturan Sistem Utama (Waktu Idle Auto-Logout & Rentang Hari Log Rekomendasi FAQ).
      */
     public function pengaturanSistem()
     {
@@ -243,13 +243,34 @@ class PenggunaAksesController extends Controller
     }
 
     /**
-     * Simpan pembaruan Pengaturan Sistem ke tabel tsettings.
+     * Halaman Khusus Pengaturan Poin & Bobot Algoritma Rekomendasi FAQ.
+     */
+    public function pengaturanPoin()
+    {
+        $currentValues = Setting::allIntValues();
+        $settingsMeta  = Setting::DEFAULTS;
+
+        return view('superadmin.pengaturanpoin', compact('currentValues', 'settingsMeta'));
+    }
+
+    /**
+     * Simpan pembaruan Pengaturan Sistem / Pengaturan Poin ke tabel tsettings.
      */
     public function updatePengaturanSistem(Request $request)
     {
+        $scope = $request->input('scope', 'all');
+        $targetGroups = match ($scope) {
+            'main' => ['session', 'log_window'],
+            'poin' => ['recommendation'],
+            default => ['session', 'log_window', 'recommendation'],
+        };
+
         $rules = [];
         foreach (Setting::DEFAULTS as $key => $meta) {
-            $rules[$key] = $meta['group'] === 'session'
+            if (!in_array($meta['group'] ?? '', $targetGroups, true)) {
+                continue;
+            }
+            $rules[$key] = in_array($meta['group'], ['session', 'log_window'], true)
                 ? ['required', 'integer', 'min:1']
                 : ['required', 'integer'];
         }
@@ -257,8 +278,10 @@ class PenggunaAksesController extends Controller
         $validated = $request->validate($rules, [
             '*.required' => 'Semua nilai pengaturan wajib diisi.',
             '*.integer'  => 'Nilai pengaturan harus berupa angka bulat (integer).',
-            '*.min'      => 'Waktu durasi sesi minimal harus 1 detik.',
+            '*.min'      => 'Nilai durasi waktu / rentang hari minimal harus 1.',
         ]);
+
+        $redirectRoute = $scope === 'poin' ? 'superadmin.pengaturanPoin' : 'superadmin.pengaturanSistem';
 
         try {
             Setting::ensureDefaults();
@@ -274,25 +297,49 @@ class PenggunaAksesController extends Controller
                 }
             }
 
-            return redirect()->route('superadmin.pengaturanSistem')
-                ->with('success', 'Pengaturan sistem (bobot rekomendasi & waktu auto-logout) berhasil disimpan.');
+            $msg = $scope === 'poin'
+                ? 'Pengaturan poin & bobot algoritma rekomendasi berhasil disimpan.'
+                : 'Pengaturan sistem (waktu sesi & rentang hari log rekomendasi) berhasil disimpan.';
+
+            return redirect()->route($redirectRoute)->with('success', $msg);
         } catch (Throwable $e) {
-            return redirect()->route('superadmin.pengaturanSistem')
-                ->with('error', 'Gagal menyimpan pengaturan sistem: ' . $e->getMessage());
+            return redirect()->route($redirectRoute)
+                ->with('error', 'Gagal menyimpan pengaturan: ' . $e->getMessage());
         }
     }
 
     /**
-     * Reset seluruh nilai di tabel tsettings kembali ke nilai bawaan (DEFAULTS).
+     * Reset nilai di tabel tsettings kembali ke nilai bawaan (DEFAULTS).
      */
-    public function resetPengaturanSistem()
+    public function resetPengaturanSistem(Request $request)
     {
+        $scope = $request->input('scope', 'all');
+        $redirectRoute = $scope === 'poin' ? 'superadmin.pengaturanPoin' : 'superadmin.pengaturanSistem';
+
         try {
-            Setting::resetToDefaults();
-            return redirect()->route('superadmin.pengaturanSistem')
-                ->with('success', 'Seluruh pengaturan sistem berhasil dikembalikan ke nilai bawaan (default).');
+            Setting::ensureDefaults();
+            $targetGroups = match ($scope) {
+                'main' => ['session', 'log_window'],
+                'poin' => ['recommendation'],
+                default => ['session', 'log_window', 'recommendation'],
+            };
+
+            foreach (Setting::DEFAULTS as $key => $meta) {
+                if (in_array($meta['group'] ?? '', $targetGroups, true)) {
+                    Setting::updateOrCreate(
+                        ['key' => $key],
+                        [
+                            'value'      => $meta['value'],
+                            'keterangan' => $meta['keterangan'],
+                        ]
+                    );
+                }
+            }
+
+            return redirect()->route($redirectRoute)
+                ->with('success', 'Pengaturan berhasil dikembalikan ke nilai bawaan (default).');
         } catch (Throwable $e) {
-            return redirect()->route('superadmin.pengaturanSistem')
+            return redirect()->route($redirectRoute)
                 ->with('error', 'Gagal mereset pengaturan sistem: ' . $e->getMessage());
         }
     }

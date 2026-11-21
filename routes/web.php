@@ -95,6 +95,7 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
 
     // Pengaturan Sistem (Bobot Algoritma Rekomendasi & Idle Auto-Logout Mahasiswa)
     Route::get('/superadmin/pengaturan-sistem', [PenggunaAksesController::class, 'pengaturanSistem'])->name('superadmin.pengaturanSistem');
+    Route::get('/superadmin/pengaturan-sistem/poin', [PenggunaAksesController::class, 'pengaturanPoin'])->name('superadmin.pengaturanPoin');
     Route::post('/superadmin/pengaturan-sistem/update', [PenggunaAksesController::class, 'updatePengaturanSistem'])->name('superadmin.pengaturanSistem.update');
     Route::post('/superadmin/pengaturan-sistem/reset', [PenggunaAksesController::class, 'resetPengaturanSistem'])->name('superadmin.pengaturanSistem.reset');
 });

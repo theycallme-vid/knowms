@@ -33,6 +33,12 @@ class Setting extends Model
             'keterangan' => 'Durasi hitung mundur pada pop-up (detik) sebelum sesi berakhir dan otomatis kembali ke Portal.',
             'group'      => 'session',
         ],
+        'rec_log_days' => [
+            'value'      => '30',
+            'label'      => 'Rentang Waktu Log Rekomendasi (Hari Terakhir)',
+            'keterangan' => 'Hanya interaksi mahasiswa (View, Like, Dislike) dalam kurun waktu N hari terakhir yang dihitung oleh algoritma rekomendasi FAQ.',
+            'group'      => 'log_window',
+        ],
         'rec_weight_exact' => [
             'value'      => '10',
             'label'      => 'Bobot View Segmen Persis (Fakultas + Angkatan Sama)',
