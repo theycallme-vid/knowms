@@ -259,10 +259,10 @@
                             <tbody id="faqTableBody">
                                 @forelse($faqs as $faq)
                                     @php
-                                        $latestVersion = $faq->versions->first();
+                                        $latestVersion = $faq->versions->first(fn ($v) => in_array($v->status, ['Draf', 'Ditolak', 'Menunggu Validasi'], true)) ?? $faq->versions->first();
                                         $status        = $latestVersion?->status ?? 'Draf';
                                         $stLower       = strtolower($status);
-                                        $versionCount  = max(1, $faq->versions->count());
+                                        $versionLabel  = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                         $deName        = $faq->dataEntry?->nama ?? 'Data Entry';
                                         $nextVerId     = $faq->generateNextVersionId();
                                         $canSubmit     = in_array($stLower, ['draf', 'draft', 'ditolak', 'rejected'], true);
@@ -310,13 +310,13 @@
                                         <!-- Kode / Versi -->
                                         <td>
                                             <div class="faq-code">{{ $faq->id }}</div>
-                                            <div class="faq-version">Versi {{ $versionCount }}</div>
+                                            <div class="faq-version">{{ $versionLabel }}</div>
                                         </td>
 
                                         <!-- Pertanyaan -->
                                         <td>
                                             <div class="faq-question">{{ $faq->pertanyaan }}</div>
-                                            @if($stLower === 'rejected' && $latestVersion && $latestVersion->catatan)
+                                            @if(in_array($stLower, ['ditolak', 'rejected'], true) && $latestVersion && $latestVersion->catatan)
                                                 <div class="mt-1">
                                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-normal">
                                                         <i class="bi bi-exclamation-circle me-1"></i>Catatan Revisi: {{ \Illuminate\Support\Str::limit($latestVersion->catatan, 65) }}
@@ -748,7 +748,7 @@
 
     // Lihat Detail FAQ
     function viewFaqDetail(faqId) {
-        fetch(`{{ url('/data-entry/faq') }}/${faqId}`, {
+        fetch(`{{ url('/data-entry/faq') }}/${faqId}?source=pengajuan`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())

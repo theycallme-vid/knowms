@@ -445,7 +445,7 @@
                                     $terbitFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
                                     $latestVersion = $terbitFaqVersion ?? $rawLatestVersion;
                                     $status        = $latestVersion?->status ?? 'Draf';
-                                    $versionCount  = max(1, $faq->versions->count());
+                                    $versionLabel  = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                     $de            = $faq->dataEntry;
                                     $statusClass   = match($status) {
                                         'Diterima'          => 'badge-approved',
@@ -473,7 +473,7 @@
                                 <tr>
                                     <td>
                                         <div class="faq-code">{{ $faq->id }}</div>
-                                        <div class="faq-version">Versi {{ $versionCount }}</div>
+                                        <div class="faq-version">{{ $versionLabel }}</div>
                                     </td>
 
                                     <td>

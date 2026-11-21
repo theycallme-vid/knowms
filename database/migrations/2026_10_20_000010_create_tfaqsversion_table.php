@@ -30,6 +30,7 @@ return new class extends Migration
                       ->on('tusers');
 
                 $table->text('jawaban');
+                $table->text('jawaban_sebelumnya')->nullable();
                 $table->enum('status', ['Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit'])
                       ->default('Draf');
                 $table->text('catatan')->nullable();

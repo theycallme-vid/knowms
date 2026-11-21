@@ -467,7 +467,7 @@
                                     $terbitFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
                                     $latestVersion = $terbitFaqVersion ?? $rawLatestVersion;
                                     $status        = $latestVersion?->status ?? 'Draf';
-                                    $versionCount  = max(1, $faq->versions->count());
+                                    $versionLabel  = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                     $de            = $faq->dataEntry;
                                     $statusClass   = match($status) {
                                         'Diterima'          => 'badge-approved',
@@ -496,7 +496,7 @@
                                     <!-- Kode / Versi -->
                                     <td>
                                         <div class="faq-code">{{ $faq->id }}</div>
-                                        <div class="faq-version">Versi {{ $versionCount }}</div>
+                                        <div class="faq-version">{{ $versionLabel }}</div>
                                     </td>
 
                                     <!-- Pertanyaan + Tags -->
@@ -893,8 +893,8 @@
                                         `
                                         : '';
                                     const vNoteHtml = (v.catatan && !String(v.catatan).startsWith('[PUBLISH_SCHEDULE|'))
-                                        ? `<div class="rounded-3 mt-3" style="background-color:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:0.78rem;padding:0.6rem 0.85rem;"><strong>Catatan:</strong> ${v.catatan}</div>`
-                                        : '';
+                                        ? `<div class="rounded-3 mt-3" style="background-color:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:0.78rem;padding:0.6rem 0.85rem;"><strong>Catatan:</strong> ${v.catatan}${v.jawaban_sebelumnya ? `<div class="mt-2 pt-2" style="border-top:1px dashed #FCA5A5;"><strong>Jawaban Sebelum Direvisi:</strong><div class="text-dark mt-1">${v.jawaban_sebelumnya}</div></div>` : ''}</div>`
+                                        : (v.jawaban_sebelumnya ? `<div class="rounded-3 mt-3" style="background-color:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:0.78rem;padding:0.6rem 0.85rem;"><strong>Jawaban Sebelum Direvisi:</strong><div class="text-dark mt-1">${v.jawaban_sebelumnya}</div></div>` : '');
 
                                     return `
                                         <div class="kms-ver-item ${isCurrent ? 'is-latest' : ''}">

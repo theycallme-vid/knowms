@@ -177,16 +177,14 @@
                 $defaultMode = (!$isEditing && isset($selectedExistingFaq) && $selectedExistingFaq) ? 'existing' : 'new';
 
                 if ($isEditing) {
-                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active']);
+                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['diterima', 'terbit', 'approved', 'active']);
                     $displayFaqId = $faq->id;
-                    $displayVersionId = $shouldCreateNewVerByDefault
-                        ? ($nextVersionId ?? $faq->generateNextVersionId())
-                        : ($latestVer ? $latestVer->id : ($faq->id . '-V1'));
+                    $displayVersionId = $nextVersionId ?? $faq->generateNextVersionId();
                     $displayVerNum = (int) preg_replace('/.*-V/i', '', $displayVersionId) ?: 1;
                 } elseif ($defaultMode === 'existing' && $selectedExistingFaq) {
                     $displayFaqId = $selectedExistingFaq->id;
                     $displayVersionId = $selectedExistingFaq->generateNextVersionId();
-                    $displayVerNum = (int) preg_replace('/.*-V/i', '', $displayVersionId) ?: 2;
+                    $displayVerNum = (int) preg_replace('/.*-V/i', '', $displayVersionId) ?: 1;
                 } else {
                     $displayFaqId = $newFaqId ?? 'FAQ-0001';
                     $displayVersionId = $displayFaqId . '-V1';
@@ -204,13 +202,13 @@
                 </div>
             @endif
 
-            @if($isEditing && in_array($faqStatus, ['ditolak', 'rejected'], true) && $latestVer && $latestVer->catatan)
+            @if($isEditing && in_array($faqStatus, ['ditolak', 'rejected', 'draf', 'draft'], true) && $latestVer && $latestVer->catatan && !str_starts_with(trim((string) $latestVer->catatan), '[PUBLISH_SCHEDULE|'))
                 <div class="alert alert-danger rounded-4 border-danger-subtle d-flex align-items-start gap-3 mb-4">
                     <i class="bi bi-exclamation-octagon-fill fs-5 text-danger mt-1"></i>
                     <div>
                         <div class="fw-bold fs-12 text-uppercase mb-1">Catatan Revisi dari Validator</div>
                         <div class="fs-13 text-dark">{{ $latestVer->catatan }}</div>
-                        <div class="fs-11 text-danger mt-1">FAQ ini akan diajukan ulang sebagai versi jawaban baru: <strong>{{ $nextVersionId ?? $faq->generateNextVersionId() }}</strong>.</div>
+                        <div class="fs-11 text-danger mt-1">Perbaikan akan disimpan tetap pada <strong>Versi {{ $displayVerNum }} ({{ $displayVersionId }})</strong> tanpa menambah nomor versi baru.</div>
                     </div>
                 </div>
             @endif

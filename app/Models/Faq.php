@@ -32,7 +32,10 @@ class Faq extends Model
     /** Versi-versi dari FAQ ini */
     public function versions()
     {
-        return $this->hasMany(FaqVersion::class, 'tFaqs_id')->orderBy('created_at', 'desc');
+        return $this->hasMany(FaqVersion::class, 'tFaqs_id')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->orderBy('id', 'desc');
     }
 
     /** Versi terbaru (apapun statusnya) */
@@ -105,16 +108,24 @@ class Faq extends Model
 
     /**
      * Generate ID versi berikutnya untuk FAQ ini (contoh: FAQ-0001-V1, FAQ-0001-V2).
-     * Format sesuai varchar(15) pada tabel tfaqsversion.
+     * Nomor versi hanya naik dari versi terakhir yang sudah valid (Diterima / Terbit).
      */
     public function generateNextVersionId(): string
     {
-        $versions = $this->versions()->pluck('id');
+        $validStatuses = ['diterima', 'terbit', 'approved', 'accepted', 'disetujui', 'active', 'publish'];
+        $validVersionIds = $this->relationLoaded('versions')
+            ? $this->versions
+                ->filter(fn ($v) => in_array(strtolower((string) $v->status), $validStatuses, true))
+                ->pluck('id')
+            : $this->versions()
+                ->whereIn('status', ['Diterima', 'Terbit', 'approved', 'accepted', 'disetujui', 'active', 'publish'])
+                ->pluck('id');
+
         $maxVersion = 0;
 
-        foreach ($versions as $vid) {
-            if (preg_match('/-V(\d+)$/i', $vid, $matches)) {
-                $num = (int)$matches[1];
+        foreach ($validVersionIds as $vid) {
+            if (preg_match('/-V(\d+)$/i', (string) $vid, $matches)) {
+                $num = (int) $matches[1];
                 if ($num > $maxVersion) {
                     $maxVersion = $num;
                 }
