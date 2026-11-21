@@ -85,8 +85,20 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     // Dashboard Super Admin
     Route::get('/admin/dashboard', [PenggunaAksesController::class, 'dashboard'])->name('admin.dashboard');
-
     Route::get('/superadmin/dashboard', [PenggunaAksesController::class, 'dashboard'])->name('superadmin.dashboard');
+
+    // Daftar FAQ Super Admin (Read-Only Monitoring)
+    Route::get('/superadmin/daftar-faq', [ValidatorFaqController::class, 'index'])->name('superadmin.daftarFAQ');
+    Route::get('/superadmin/faq/{id}/detail', [ValidatorFaqController::class, 'show'])->name('superadmin.faq.show');
+
+    // Pengguna & Hak Akses Super Admin
+    Route::get('/superadmin/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('superadmin.pengguna-akses');
+    Route::get('/superadmin/pengguna&akses', [PenggunaAksesController::class, 'index']);
+    Route::post('/superadmin/pengguna-akses/store', [PenggunaAksesController::class, 'store'])->name('superadmin.pengguna.store');
+    Route::post('/superadmin/pengguna-akses/update/{id}', [PenggunaAksesController::class, 'update'])->name('superadmin.pengguna.update');
+    Route::post('/superadmin/pengguna-akses/role/{id}', [PenggunaAksesController::class, 'updateRole'])->name('superadmin.pengguna.updateRole');
+    Route::post('/superadmin/pengguna-akses/remove-role/{id}', [PenggunaAksesController::class, 'removeRole'])->name('superadmin.pengguna.removeRole');
+    Route::post('/superadmin/pengguna-akses/toggle-status/{id}', [PenggunaAksesController::class, 'toggleStatus'])->name('superadmin.pengguna.toggleStatus');
 
     // Pengaturan Akun Super Admin
     Route::get('/superadmin/pengaturan-akun', [SuperAdminPengaturanAkunController::class, 'index'])->name('superadmin.pengaturanAkun');
@@ -100,29 +112,15 @@ Route::middleware(['auth', 'role:Super Admin'])->group(function () {
     Route::post('/superadmin/pengaturan-sistem/reset', [PenggunaAksesController::class, 'resetPengaturanSistem'])->name('superadmin.pengaturanSistem.reset');
 });
 
-// DAFTAR FAQ & AKSI VALIDATOR (Dapat diakses Validator & Super Admin)
-Route::middleware(['auth', 'role:Super Admin,Validator'])->prefix('validator')->name('validator.')->group(function () {
+// VALIDATOR ROUTES
+Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('validator.')->group(function () {
     Route::get('/daftar-faq', [ValidatorFaqController::class, 'index'])->name('daftarFAQ');
     Route::get('/faq/{id}/detail', [ValidatorFaqController::class, 'show'])->name('faq.show');
     Route::post('/faq/{id}/status', [ValidatorFaqController::class, 'updateStatus'])->name('faq.updateStatus');
     Route::delete('/faq/{id}', [ValidatorFaqController::class, 'destroy'])->name('faq.destroy');
     Route::post('/faq/{id}/approve', [ValidatorFaqController::class, 'approve'])->name('faq.approve');
     Route::post('/faq/{id}/reject', [ValidatorFaqController::class, 'reject'])->name('faq.reject');
-});
 
-// PENGGUNA & HAK AKSES (Dapat diakses Super Admin & Validator sementara disamakan)
-Route::middleware(['auth', 'role:Super Admin,Validator'])->group(function () {
-    Route::get('/superadmin/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('superadmin.pengguna-akses');
-    Route::get('/superadmin/pengguna&akses', [PenggunaAksesController::class, 'index']);
-    Route::post('/superadmin/pengguna-akses/store', [PenggunaAksesController::class, 'store'])->name('superadmin.pengguna.store');
-    Route::post('/superadmin/pengguna-akses/update/{id}', [PenggunaAksesController::class, 'update'])->name('superadmin.pengguna.update');
-    Route::post('/superadmin/pengguna-akses/role/{id}', [PenggunaAksesController::class, 'updateRole'])->name('superadmin.pengguna.updateRole');
-    Route::post('/superadmin/pengguna-akses/remove-role/{id}', [PenggunaAksesController::class, 'removeRole'])->name('superadmin.pengguna.removeRole');
-    Route::post('/superadmin/pengguna-akses/toggle-status/{id}', [PenggunaAksesController::class, 'toggleStatus'])->name('superadmin.pengguna.toggleStatus');
-});
-
-// VALIDATOR ROUTES
-Route::middleware(['auth', 'role:Super Admin,Validator'])->prefix('validator')->name('validator.')->group(function () {
     Route::get('/dashboard', [ValidatorFaqController::class, 'dashboard'])->name('dashboard');
 
     // Halaman Validasi FAQ (Antrean Validasi) + Aksi Approve, Reject, Massal Approve & Publish

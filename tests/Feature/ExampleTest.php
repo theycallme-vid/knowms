@@ -51,4 +51,44 @@ class ExampleTest extends TestCase
             ->assertJsonPath('counts_map.FAQ-0001.dislikes', 1);
         $this->assertMatchesRegularExpression('/^\d{2}:\d{2}:\d{2}$/', $res->json('synced_at'));
     }
+
+    public function test_superadmin_and_validator_daftar_faq_are_strictly_separated_by_role(): void
+    {
+        $superAdmin = new \App\Models\User([
+            'id' => 1,
+            'nama' => 'Admin KMS',
+            'email' => 'admin@campus.ac.id',
+            'tRoles_id' => 1,
+            'is_active' => true,
+        ]);
+        $superAdmin->setRelation('role', new \App\Models\Role(['id' => 1, 'nama' => 'Super Admin']));
+
+        $validator = new \App\Models\User([
+            'id' => 2,
+            'nama' => 'Validator KMS',
+            'email' => 'validator@campus.ac.id',
+            'tRoles_id' => 3,
+            'is_active' => true,
+        ]);
+        $validator->setRelation('role', new \App\Models\Role(['id' => 3, 'nama' => 'Validator']));
+
+        $this->actingAs($superAdmin)
+            ->get(route('superadmin.daftarFAQ'))
+            ->assertOk()
+            ->assertSee('Ruang Super Admin')
+            ->assertDontSee('Buat FAQ');
+
+        $this->actingAs($superAdmin)
+            ->get(route('validator.daftarFAQ'))
+            ->assertForbidden();
+
+        $this->actingAs($validator)
+            ->get(route('validator.daftarFAQ'))
+            ->assertOk()
+            ->assertSee('Ruang Validator');
+
+        $this->actingAs($validator)
+            ->get(route('superadmin.daftarFAQ'))
+            ->assertForbidden();
+    }
 }

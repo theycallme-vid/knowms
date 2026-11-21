@@ -120,7 +120,9 @@ class ValidatorFaqController extends Controller
             $totalRejected  = 0;
         }
 
-        return view('validator.daftarFAQ', compact(
+        $viewName = $request->routeIs('superadmin.*') ? 'superadmin.daftarFAQ' : 'validator.daftarFAQ';
+
+        return view($viewName, compact(
             'faqs',
             'kataKunciOptions',
             'totalFaq',

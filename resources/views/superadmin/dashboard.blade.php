@@ -45,7 +45,7 @@
                     <i class="bi bi-grid"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
+                <a href="{{ route('superadmin.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
@@ -369,7 +369,7 @@
                             </a>
 
                             <!-- Action Item 3 -->
-                            <a href="{{ route('validator.daftarFAQ') }}" class="quick-action-item">
+                            <a href="{{ route('superadmin.daftarFAQ') }}" class="quick-action-item">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: #F0FDF4; color: #0D9488;">
                                         <i class="bi bi-journal-check fs-6"></i>
@@ -495,7 +495,7 @@
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h2 class="fw-bold fs-15 text-dark mb-0">Aktivitas terbaru (Zona Waktu Jakarta WIB)</h2>
-                    <a href="{{ route('validator.daftarFAQ') }}" class="fs-13 fw-semibold text-decoration-none" style="color: var(--brand-maroon);">
+                    <a href="{{ route('superadmin.daftarFAQ') }}" class="fs-13 fw-semibold text-decoration-none" style="color: var(--brand-maroon);">
                         Lihat seluruh FAQ &rarr;
                     </a>
                 </div>
