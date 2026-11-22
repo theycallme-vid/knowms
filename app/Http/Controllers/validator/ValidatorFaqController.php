@@ -1500,4 +1500,41 @@ class ValidatorFaqController extends Controller
         return redirect()->route('validator.sumberpustaka')
             ->with('success', "Sumber pustaka '{$nama}' berhasil dihapus.");
     }
+
+    /**
+     * Halaman Pengaturan Unit Penerima Alert Call Layanan Akademik:
+     * Validator dapat menentukan unit/direktorat mana yang berhak menerima notifikasi panggilan suara/layanan.
+     */
+    public function pengaturanAlertCall()
+    {
+        $direktorats = \App\Models\Direktorat::with(['users' => function ($q) {
+            $q->with('role')->where('is_active', 1);
+        }])->orderBy('nama', 'asc')->get();
+
+        $selectedUnitIds = \App\Models\Setting::getAllowedCallUnitIds();
+
+        return view('validator.pengaturan-alert-call', [
+            'direktorats'     => $direktorats,
+            'selectedUnitIds' => $selectedUnitIds,
+        ]);
+    }
+
+    /**
+     * Simpan Pengaturan Unit Penerima Alert Call oleh Validator ke tabel tsettings
+     */
+    public function updatePengaturanAlertCall(Request $request)
+    {
+        $request->validate([
+            'unit_ids'   => 'required|array|min:1',
+            'unit_ids.*' => 'integer|exists:tdirektorat,id',
+        ], [
+            'unit_ids.required' => 'Pilih minimal satu unit / direktorat untuk menerima alert call.',
+            'unit_ids.min'      => 'Pilih minimal satu unit / direktorat untuk menerima alert call.',
+        ]);
+
+        \App\Models\Setting::setAllowedCallUnitIds($request->input('unit_ids', []));
+
+        return redirect()->route('validator.pengaturanAlertCall')
+            ->with('success', 'Pengaturan unit penerima alert call berhasil disimpan ke tabel pengaturan sistem (tsettings).');
+    }
 }

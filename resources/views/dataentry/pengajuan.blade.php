@@ -929,6 +929,9 @@
         confirmDeleteFaq(info.id, info.pertanyaan);
     }
 </script>
+
+<!-- Notifikasi Panggilan Masuk Layanan Akademik untuk Staf Unit Terpilih -->
+@include('partials.admin-incoming-call-alert')
 </body>
 </html>
 
