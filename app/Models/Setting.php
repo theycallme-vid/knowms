@@ -105,6 +105,12 @@ class Setting extends Model
             'keterangan' => 'Bonus skor untuk topik yang relevan dengan tingkat semester mahasiswa (Maba / Praktikum / KP & MBKM).',
             'group'      => 'recommendation',
         ],
+        'alert_call_unit_ids' => [
+            'value'      => '1',
+            'label'      => 'Unit Penerima Alert Call',
+            'keterangan' => 'Daftar ID Unit/Direktorat yang ditugaskan menerima notifikasi panggilan masuk dari mahasiswa (dipisahkan koma jika lebih dari satu).',
+            'group'      => 'call_routing',
+        ],
     ];
 
     /**
@@ -194,5 +200,46 @@ class Setting extends Model
                 ]
             );
         }
+    }
+
+    /**
+     * Mengambil daftar ID unit/direktorat yang berhak menerima notifikasi panggilan masuk dari tsettings.
+     *
+     * @return array<int>
+     */
+    public static function getAllowedCallUnitIds(): array
+    {
+        self::ensureDefaults();
+        $raw = self::where('key', 'alert_call_unit_ids')->value('value');
+        if ($raw === null || trim((string) $raw) === '') {
+            $raw = self::DEFAULTS['alert_call_unit_ids']['value'] ?? '1';
+        }
+
+        $ids = array_filter(array_map('intval', explode(',', (string) $raw)));
+        return !empty($ids) ? array_values(array_unique($ids)) : [1];
+    }
+
+    /**
+     * Menyimpan daftar ID unit yang dipilih oleh Validator ke tabel tsettings.
+     *
+     * @param array<int>|string $unitIds
+     */
+    public static function setAllowedCallUnitIds($unitIds): void
+    {
+        self::ensureDefaults();
+        if (is_array($unitIds)) {
+            $cleaned = array_filter(array_map('intval', $unitIds));
+            $val = implode(',', array_unique($cleaned));
+        } else {
+            $val = trim((string) $unitIds);
+        }
+
+        self::updateOrCreate(
+            ['key' => 'alert_call_unit_ids'],
+            [
+                'value'      => $val,
+                'keterangan' => 'Daftar ID Unit/Direktorat yang ditugaskan menerima notifikasi panggilan masuk dari mahasiswa.',
+            ]
+        );
     }
 }

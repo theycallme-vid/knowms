@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GuestController;
+use App\Http\Controllers\LayananAkademikController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\dataentry\FaqController as DataEntryFaqController;
 use App\Http\Controllers\dataentry\PengaturanAkunController as DataEntryPengaturanAkunController;
@@ -56,6 +57,17 @@ Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
 Route::get('/faq/{id}/riwayat', [PortalController::class, 'faqHistory'])->name('mahasiswa.faq.riwayat');
 Route::post('/faq/log-access', [PortalController::class, 'logFaqAccess'])->name('faq.log-access');
 Route::get('/sumber-pustaka/{id}/lihat', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.lihat');
+
+// HALAMAN LAYANAN AKADEMIK: KONTAK LANGSUNG (PANGGILAN SUARA AUDIO ONLY & HOTLINE WHATSAPP QR)
+Route::get('/layanan-akademik/kontak', [LayananAkademikController::class, 'kontak'])->name('layanan.kontak');
+Route::post('/layanan-akademik/api/start-audio', [LayananAkademikController::class, 'startAudioCallApi'])->name('layanan.audiocall.api.start');
+
+// LAYANAN AKADEMIK: VIDEO/AUDIO CALL JITSI MEET & API
+Route::get('/layanan-akademik/video-call/start', [LayananAkademikController::class, 'startVideoCall'])->name('layanan.videocall.create');
+Route::get('/layanan-akademik/video-call/{roomId}', [LayananAkademikController::class, 'videoCallRoom'])->name('layanan.videocall.room');
+Route::post('/layanan-akademik/video-call/join', [LayananAkademikController::class, 'joinRoom'])->name('layanan.videocall.join');
+Route::get('/layanan-akademik/api/active-calls', [LayananAkademikController::class, 'getActiveCalls'])->name('layanan.videocall.api.active');
+Route::post('/layanan-akademik/api/end/{roomId}', [LayananAkademikController::class, 'endCall'])->name('layanan.videocall.api.end');
 
 // HALAMAN GUEST: FAQ untuk Tamu / Pengunjung tanpa input NRP & tanpa Scan KTM
 Route::get('/guest', [GuestController::class, 'index'])->name('guest.faq');
@@ -167,6 +179,10 @@ Route::middleware(['auth', 'role:Validator'])->prefix('validator')->name('valida
 
     // Halaman Pengguna & Akses untuk Validator (disamakan sementara dengan Super Admin)
     Route::get('/pengguna-akses', [PenggunaAksesController::class, 'index'])->name('pengguna-akses');
+
+    // Pengaturan Unit Penerima Alert Call (Hanya Validator yang berhak mengatur)
+    Route::get('/pengaturan-alert-call', [ValidatorFaqController::class, 'pengaturanAlertCall'])->name('pengaturanAlertCall');
+    Route::post('/pengaturan-alert-call/update', [ValidatorFaqController::class, 'updatePengaturanAlertCall'])->name('pengaturanAlertCall.update');
 
     // Pengaturan Akun Validator
     Route::get('/pengaturan-akun', [ValidatorPengaturanAkunController::class, 'index'])->name('pengaturanAkun');
