@@ -455,20 +455,20 @@
         </div>
     </section>
 
-    <!-- ============================ CTA BANNER ============================ -->
+    <!-- ============================ CTA BANNER UNTUK GUEST ============================ -->
     <section class="cta-card mt-5 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm">
         <div class="d-flex align-items-center gap-3">
             <div class="cta-icon">
-                <i class="bi bi-chat-square-text fs-4"></i>
+                <i class="bi bi-info-circle fs-4"></i>
             </div>
             <div>
-                <div class="display-serif fs-4 fw-bold text-dark">Belum menemukan jawabanmu?</div>
-                <div class="fs-13 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
+                <div class="display-serif fs-4 fw-bold text-dark">Butuh Bantuan Layanan Akademik?</div>
+                <div class="fs-13 text-muted">Layanan kontak dan konsultasi akademik langsung hanya tersedia untuk mahasiswa aktif. Silakan masuk melalui portal mahasiswa.</div>
             </div>
         </div>
-        <a href="#" class="btn-maroon px-4 py-2.5 fs-13">
-            <span>Hubungi layanan akademik</span>
-            <i class="bi bi-arrow-up-right"></i>
+        <a href="{{ route('portal') }}" class="btn-maroon px-4 py-2.5 fs-13 text-decoration-none">
+            <span>Masuk Portal Mahasiswa</span>
+            <i class="bi bi-arrow-right"></i>
         </a>
     </section>
 </main>
