@@ -75,6 +75,10 @@
                     <i class="bi bi-people"></i>
                     <span>Pengguna &amp; Akses</span>
                 </a>
+                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
+                    <i class="bi bi-bell-fill"></i>
+                    <span>Setting Alert Call</span>
+                </a>
             </nav>
         </div>
 
