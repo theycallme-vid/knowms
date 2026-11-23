@@ -156,7 +156,7 @@ class FileImportParser
      */
     public static function parseCsv(string $filePath): array
     {
-        if (!is_readable($filePath)) {
+        if (!is_file($filePath)) {
             return [];
         }
 
@@ -408,10 +408,11 @@ class FileImportParser
 
             // Skip baris header (baris pertama yang berisi judul kolom)
             if ($rowIndex === 0) {
-                $headerCheck = strtolower($col0 . ' ' . $col1);
+                $headerCheck = strtolower($col0 . ' ' . $col1 . ' ' . trim($row[2] ?? '') . ' ' . trim($row[3] ?? ''));
                 if (
                     str_contains($headerCheck, 'pertanyaan') ||
                     str_contains($headerCheck, 'jawaban') ||
+                    str_contains($headerCheck, 'kata kunci') ||
                     str_contains($headerCheck, 'question') ||
                     str_contains($headerCheck, 'answer') ||
                     str_contains($headerCheck, 'kode') ||
@@ -443,16 +444,22 @@ class FileImportParser
                 $pustakaBagian = trim($row[4] ?? '');
             }
 
-            // Jika file 1 kolom dengan format "Pertanyaan | Jawaban" atau "Pertanyaan ; Jawaban"
+            // Jika file 1 kolom dengan format "Pertanyaan | Jawaban | Kata Kunci" atau "Pertanyaan ; Jawaban ; Kata Kunci"
             if ($pertanyaan !== '' && $jawaban === '') {
                 if (str_contains($pertanyaan, '|')) {
-                    [$qPart, $aPart] = array_pad(explode('|', $pertanyaan, 2), 2, '');
-                    $pertanyaan = trim($qPart);
-                    $jawaban    = trim($aPart);
+                    $parts = array_map('trim', explode('|', $pertanyaan));
+                    $pertanyaan = $parts[0] ?? '';
+                    $jawaban    = $parts[1] ?? '';
+                    if ($tagsRaw === '' && !empty($parts[2])) {
+                        $tagsRaw = $parts[2];
+                    }
                 } elseif (str_contains($pertanyaan, ';')) {
-                    [$qPart, $aPart] = array_pad(explode(';', $pertanyaan, 2), 2, '');
-                    $pertanyaan = trim($qPart);
-                    $jawaban    = trim($aPart);
+                    $parts = array_map('trim', explode(';', $pertanyaan));
+                    $pertanyaan = $parts[0] ?? '';
+                    $jawaban    = $parts[1] ?? '';
+                    if ($tagsRaw === '' && !empty($parts[2])) {
+                        $tagsRaw = $parts[2];
+                    }
                 }
             }
 
@@ -460,13 +467,14 @@ class FileImportParser
                 continue;
             }
 
-            // Pecah kata kunci dengan koma atau titik koma (jika ada)
+            // Pecah kata kunci dengan koma, titik koma, baris baru, atau pipa (jika ada) lalu cocokkan dengan Kata Kunci sistem
             $tags = [];
             if ($tagsRaw !== '') {
-                $tags = array_values(array_filter(
-                    array_map('trim', preg_split('/[,;]+/', $tagsRaw)),
+                $rawTagList = array_values(array_filter(
+                    array_map('trim', preg_split('/[,;\r\n|]+/', $tagsRaw)),
                     fn($t) => $t !== ''
                 ));
+                $tags = self::resolveMatchingSystemTags($rawTagList);
             }
 
             // 1. Selalu gunakan ID FAQ terbaru berurutan tanpa duplikat
@@ -514,6 +522,313 @@ class FileImportParser
         }
 
         return $items;
+    }
+
+    /**
+     * Kamus sinonim, singkatan, dan variasi makna kata kunci akademik kampus
+     */
+    private const TAG_SYNONYM_PHRASES = [
+        'ft'                              => 'Fakultas Teknik',
+        'fak teknik'                      => 'Fakultas Teknik',
+        'fakultas tehnik'                 => 'Fakultas Teknik',
+        'fak tehnik'                      => 'Fakultas Teknik',
+        'tehnik'                          => 'Teknik',
+        'fh'                              => 'Fakultas Hukum',
+        'fak hukum'                       => 'Fakultas Hukum',
+        'fbe'                             => 'Fakultas Bisnis dan Ekonomika',
+        'feb'                             => 'Fakultas Bisnis dan Ekonomika',
+        'fak bisnis'                      => 'Fakultas Bisnis dan Ekonomika',
+        'fakultas ekonomi'                => 'Fakultas Bisnis dan Ekonomika',
+        'fakultas bisnis'                 => 'Fakultas Bisnis dan Ekonomika',
+        'fakultas bisnis ekonomika'       => 'Fakultas Bisnis dan Ekonomika',
+        'ff'                              => 'Fakultas Farmasi',
+        'fak farmasi'                     => 'Fakultas Farmasi',
+        'fp'                              => 'Fakultas Psikologi',
+        'fpsi'                            => 'Fakultas Psikologi',
+        'fak psikologi'                   => 'Fakultas Psikologi',
+        'ftb'                             => 'Fakultas Teknobiologi',
+        'fak teknobiologi'                => 'Fakultas Teknobiologi',
+        'fakultas bioteknologi'           => 'Fakultas Teknobiologi',
+        'fik'                             => 'Fakultas Industri Kreatif',
+        'fak industri kreatif'            => 'Fakultas Industri Kreatif',
+        'fk'                              => 'Fakultas Kedokteran',
+        'fak kedokteran'                  => 'Fakultas Kedokteran',
+        'ta'                              => 'Tugas Akhir',
+        'skripsi'                         => 'Tugas Akhir',
+        'tugas akhir skripsi'             => 'Tugas Akhir',
+        'kartu rencana studi'             => 'KRS',
+        'pengisian krs'                   => 'KRS',
+        'perencanaan studi'               => 'Rencana Studi',
+        'cuti'                            => 'Cuti Akademik',
+        'cuti kuliah'                     => 'Cuti Akademik',
+        'berhenti sementara'              => 'Cuti Akademik',
+        'lab'                             => 'Laboratorium',
+        'praktek'                         => 'Praktikum',
+        'kemahasiswaan'                   => 'Layanan Mahasiswa',
+        'layanan mhs'                     => 'Layanan Mahasiswa',
+        'admin akademik'                  => 'Administrasi Akademik',
+        'surat keterangan'                => 'Surat Akademik',
+        'uang kuliah'                     => 'Biaya Pendidikan',
+        'spp'                             => 'Biaya Pendidikan',
+        'ukt'                             => 'Biaya Pendidikan',
+    ];
+
+    private const TAG_WORD_NORMALIZATION = [
+        'fak'          => 'fakultas',
+        'fklts'        => 'fakultas',
+        'fkltas'       => 'fakultas',
+        'faklutas'     => 'fakultas',
+        'fakults'      => 'fakultas',
+        'tehnik'       => 'teknik',
+        'teknk'        => 'teknik',
+        'ekonomi'      => 'ekonomika',
+        'mhs'          => 'mahasiswa',
+        'mahasiwa'     => 'mahasiswa',
+        'mahasisa'     => 'mahasiswa',
+        'mhsiswa'      => 'mahasiswa',
+        'admin'        => 'administrasi',
+        'adm'          => 'administrasi',
+        'akademk'      => 'akademik',
+        'akadmik'      => 'akademik',
+        'akdemik'      => 'akademik',
+        'lab'          => 'laboratorium',
+        'laboratrium'  => 'laboratorium',
+        'praktek'      => 'praktikum',
+        'praktkum'     => 'praktikum',
+        'beasisw'      => 'beasiswa',
+        'besiswa'      => 'beasiswa',
+        'psikolog'     => 'psikologi',
+        'kedoktran'    => 'kedokteran',
+        'farmas'       => 'farmasi',
+        'hukm'         => 'hukum',
+        'kreatf'       => 'kreatif',
+    ];
+
+    /**
+     * Normalisasi string kata kunci untuk perbandingan (lowercase, hapus tanda baca, ganti kata singkatan/typo umum).
+     */
+    private static function normalizeTagForComparison(string $tag): string
+    {
+        $clean = mb_strtolower(trim($tag), 'UTF-8');
+        $clean = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $clean) ?? $clean;
+        $clean = preg_replace('/\s+/u', ' ', trim($clean)) ?? '';
+
+        if ($clean === '') {
+            return '';
+        }
+
+        if (isset(self::TAG_SYNONYM_PHRASES[$clean])) {
+            $mapped = mb_strtolower(self::TAG_SYNONYM_PHRASES[$clean], 'UTF-8');
+            $mapped = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mapped) ?? $mapped;
+            return preg_replace('/\s+/u', ' ', trim($mapped)) ?? $mapped;
+        }
+
+        $words = explode(' ', $clean);
+        $normWords = [];
+        foreach ($words as $w) {
+            $normWords[] = self::TAG_WORD_NORMALIZATION[$w] ?? $w;
+        }
+
+        $rebuilt = implode(' ', $normWords);
+        if (isset(self::TAG_SYNONYM_PHRASES[$rebuilt])) {
+            $mapped = mb_strtolower(self::TAG_SYNONYM_PHRASES[$rebuilt], 'UTF-8');
+            $mapped = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mapped) ?? $mapped;
+            return preg_replace('/\s+/u', ' ', trim($mapped)) ?? $mapped;
+        }
+
+        return $rebuilt;
+    }
+
+    /**
+     * Hitung skor kemiripan antara input kata kunci dengan kata kunci terdaftar di sistem (0.0 s/d 1.0).
+     * Menangani perbedaan huruf besar/kecil, typo (Levenshtein & word-level), serta kemiripan makna/sinonim.
+     */
+    private static function calculateTagSimilarityScore(string $rawInput, string $normInput, string $sysTag, string $normSys): float
+    {
+        if ($normInput === '' || $normSys === '') {
+            return 0.0;
+        }
+
+        // 1. Sama persis setelah normalisasi huruf kecil & sinonim
+        if ($normInput === $normSys || mb_strtolower(trim($rawInput), 'UTF-8') === mb_strtolower(trim($sysTag), 'UTF-8')) {
+            return 1.0;
+        }
+
+        // 2. Full-string Levenshtein similarity (untuk string <= 255 byte)
+        $maxLen = max(strlen($normInput), strlen($normSys));
+        $levScore = 0.0;
+        if ($maxLen > 0 && strlen($normInput) <= 250 && strlen($normSys) <= 250) {
+            $dist = levenshtein($normInput, $normSys);
+            $levScore = max(0.0, 1.0 - ($dist / $maxLen));
+
+            // Toleransi typo langsung: jarak edit <= 1 pada kata >= 4 huruf, atau <= 2 pada kata >= 7 huruf, atau <= 3 pada frasa >= 12 huruf
+            $minLen = min(mb_strlen($normInput, 'UTF-8'), mb_strlen($normSys, 'UTF-8'));
+            if (
+                ($minLen >= 4 && $dist <= 1) ||
+                ($minLen >= 7 && $dist <= 2) ||
+                ($minLen >= 12 && $dist <= 3)
+            ) {
+                $levScore = max($levScore, 0.88);
+            }
+        }
+
+        // 3. similar_text percentage
+        $simPct = 0.0;
+        similar_text($normInput, $normSys, $simPct);
+        $simTextScore = $simPct / 100.0;
+
+        // 4. Perbandingan kata demi kata (tahan typo pada masing-masing kata dalam frasa seperti "fakults tehnik" vs "Fakultas Teknik")
+        $wordsA = array_values(array_filter(explode(' ', $normInput), fn($w) => $w !== ''));
+        $wordsB = array_values(array_filter(explode(' ', $normSys), fn($w) => $w !== ''));
+        $wordLevelScore = 0.0;
+
+        if (!empty($wordsA) && !empty($wordsB)) {
+            $sumBestA = 0.0;
+            foreach ($wordsA as $wA) {
+                $bestW = 0.0;
+                foreach ($wordsB as $wB) {
+                    if ($wA === $wB) {
+                        $bestW = 1.0;
+                        break;
+                    }
+                    $wMax = max(strlen($wA), strlen($wB));
+                    if ($wMax > 0) {
+                        $wDist = levenshtein($wA, $wB);
+                        $wSim = max(0.0, 1.0 - ($wDist / $wMax));
+                        if (min(strlen($wA), strlen($wB)) >= 5 && $wDist <= 2) {
+                            $wSim = max($wSim, 0.84);
+                        }
+                        if ($wSim > $bestW) {
+                            $bestW = $wSim;
+                        }
+                    }
+                }
+                $sumBestA += $bestW;
+            }
+
+            $sumBestB = 0.0;
+            foreach ($wordsB as $wB) {
+                $bestW = 0.0;
+                foreach ($wordsA as $wA) {
+                    if ($wB === $wA) {
+                        $bestW = 1.0;
+                        break;
+                    }
+                    $wMax = max(strlen($wA), strlen($wB));
+                    if ($wMax > 0) {
+                        $wDist = levenshtein($wA, $wB);
+                        $wSim = max(0.0, 1.0 - ($wDist / $wMax));
+                        if (min(strlen($wA), strlen($wB)) >= 5 && $wDist <= 2) {
+                            $wSim = max($wSim, 0.84);
+                        }
+                        if ($wSim > $bestW) {
+                            $bestW = $wSim;
+                        }
+                    }
+                }
+                $sumBestB += $bestW;
+            }
+
+            $avgA = $sumBestA / count($wordsA);
+            $avgB = $sumBestB / count($wordsB);
+            $wordLevelScore = (2 * $avgA * $avgB) / max(0.0001, $avgA + $avgB);
+        }
+
+        return max($levScore, ($simTextScore * 0.5) + ($wordLevelScore * 0.5), $wordLevelScore);
+    }
+
+    /**
+     * Mencocokkan satu input Kata Kunci dengan daftar Kata Kunci yang terdaftar di sistem (tabel ttag).
+     * Mengembalikan nama Kata Kunci resmi dari sistem jika cocok (termasuk beda huruf besar/kecil, typo, atau kemiripan makna).
+     */
+    public static function resolveSingleSystemTag(string $inputTag, ?array $systemTags = null): string
+    {
+        $cleanInput = substr(trim($inputTag), 0, 100);
+        if ($cleanInput === '') {
+            return '';
+        }
+
+        if ($systemTags === null) {
+            try {
+                $systemTags = \App\Models\Tag::orderBy('id', 'asc')->pluck('nama')->all();
+            } catch (\Throwable $e) {
+                $systemTags = [];
+            }
+        }
+
+        if (empty($systemTags)) {
+            $norm = self::normalizeTagForComparison($cleanInput);
+            if (isset(self::TAG_SYNONYM_PHRASES[$norm])) {
+                return self::TAG_SYNONYM_PHRASES[$norm];
+            }
+            return $cleanInput;
+        }
+
+        $normInput = self::normalizeTagForComparison($cleanInput);
+        $bestMatch = null;
+        $bestScore = 0.0;
+
+        foreach ($systemTags as $sysTag) {
+            $sysTagStr = trim((string) $sysTag);
+            if ($sysTagStr === '') {
+                continue;
+            }
+
+            $normSys = self::normalizeTagForComparison($sysTagStr);
+            $score = self::calculateTagSimilarityScore($cleanInput, $normInput, $sysTagStr, $normSys);
+
+            if ($score >= 0.999) {
+                return $sysTagStr;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $sysTagStr;
+            }
+        }
+
+        // Jika tingkat kemiripan >= 68% (mencakup perbedaan kapitalisasi, typo ringan/sedang, atau kemiripan penulisan/makna),
+        // gunakan Kata Kunci resmi yang sudah terdaftar di sistem
+        if ($bestMatch !== null && $bestScore >= 0.68) {
+            return $bestMatch;
+        }
+
+        return $cleanInput;
+    }
+
+    /**
+     * Mencocokkan array input Kata Kunci dari file unggahan dengan Kata Kunci yang terdaftar di sistem (tabel ttag).
+     */
+    public static function resolveMatchingSystemTags(array $rawTags, ?array $systemTags = null): array
+    {
+        if (empty($rawTags)) {
+            return [];
+        }
+
+        if ($systemTags === null) {
+            try {
+                $systemTags = \App\Models\Tag::orderBy('id', 'asc')->pluck('nama')->all();
+            } catch (\Throwable $e) {
+                $systemTags = [];
+            }
+        }
+
+        $resolved = [];
+        $seenLower = [];
+
+        foreach ($rawTags as $raw) {
+            $matched = self::resolveSingleSystemTag((string) $raw, $systemTags);
+            if ($matched === '') {
+                continue;
+            }
+            $lower = mb_strtolower($matched, 'UTF-8');
+            if (!isset($seenLower[$lower])) {
+                $seenLower[$lower] = true;
+                $resolved[] = $matched;
+            }
+        }
+
+        return $resolved;
     }
 
     /**
@@ -847,7 +1162,7 @@ class FileImportParser
      */
     private static function readZipEntries(string $filePath): array
     {
-        if (!is_readable($filePath)) {
+        if (!is_file($filePath)) {
             return [];
         }
 

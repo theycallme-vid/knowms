@@ -50,13 +50,17 @@ class ValidatorFaqController extends Controller
                 $selectedKataKunci = 'Semua';
             }
 
+            $nonDraftStatuses = ['Menunggu Validasi', 'Ditolak', 'Diterima', 'Terbit'];
+
             $query = Faq::with([
                 'dataEntry',
                 'tags',
-                'versions' => fn ($q) => $q->where('status', '!=', 'Draf')->latest('updated_at'),
+                'versions' => fn ($q) => $q->where('status', '!=', 'Draf')
+                    ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->orderBy('updated_at', 'desc'),
                 'versions.daftarPustaka',
                 'versions.validator',
-            ])->whereHas('versions', fn ($q) => $q->where('status', '!=', 'Draf'));
+            ])->whereLatestVersionIn($nonDraftStatuses);
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -79,14 +83,14 @@ class ValidatorFaqController extends Controller
                     'active'    => 'Terbit',
                     default     => $request->status,
                 };
-                $query->whereHas('versions', fn ($q) => $q->where('status', $statusFilter)->where('status', '!=', 'Draf'));
+                $query->whereLatestVersionIn([$statusFilter]);
             }
 
             $sort = $request->get('sort', 'terbaru');
             match ($sort) {
-                'terlama' => $query->oldest(),
+                'terlama' => $query->oldest('updated_at'),
                 'az'      => $query->orderBy('pertanyaan'),
-                default   => $query->latest(),
+                default   => $query->latest('updated_at'),
             };
 
             $faqs = $query->paginate(6)->withQueryString();
@@ -99,17 +103,19 @@ class ValidatorFaqController extends Controller
                 return $f;
             });
 
-            $statBase = Faq::query()->whereHas('versions', fn ($q) => $q->where('status', '!=', 'Draf'));
-            if ($selectedKataKunci !== 'Semua') {
-                $statBase->whereHas('tags', fn ($q) => $q->where('nama', $selectedKataKunci));
-            }
-            $faqIds = $statBase->pluck('id');
+            $buildStatQuery = function (array $statuses) use ($selectedKataKunci) {
+                $sq = Faq::query()->whereLatestVersionIn($statuses);
+                if ($selectedKataKunci !== 'Semua') {
+                    $sq->whereHas('tags', fn ($q) => $q->where('nama', $selectedKataKunci));
+                }
+                return $sq->count();
+            };
 
-            $totalFaq       = $faqIds->count();
-            $totalAktif     = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Terbit')->distinct('tFaqs_id')->count('tFaqs_id');
-            $totalApproved  = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Diterima')->distinct('tFaqs_id')->count('tFaqs_id');
-            $totalSubmitted = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Menunggu Validasi')->distinct('tFaqs_id')->count('tFaqs_id');
-            $totalRejected  = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Ditolak')->distinct('tFaqs_id')->count('tFaqs_id');
+            $totalFaq       = $buildStatQuery($nonDraftStatuses);
+            $totalAktif     = $buildStatQuery(['Terbit']);
+            $totalApproved  = $buildStatQuery(['Diterima']);
+            $totalSubmitted = $buildStatQuery(['Menunggu Validasi']);
+            $totalRejected  = $buildStatQuery(['Ditolak']);
         } catch (Throwable $e) {
             Log::warning('Gagal memuat Daftar FAQ dari DB: ' . $e->getMessage());
             $faqs           = new LengthAwarePaginator([], 0, 6);
@@ -145,22 +151,16 @@ class ValidatorFaqController extends Controller
             FaqVersion::ensureIndonesianStatusEnum();
             FaqVersion::processDueScheduledPublications();
 
-            $totalWaiting = Faq::whereHas('versions', function ($q) {
-                $q->where('status', 'Menunggu Validasi');
-            })->count();
-
-            $totalApprovedQueue = Faq::whereHas('versions', function ($q) {
-                $q->where('status', 'Diterima');
-            })->count();
+            $totalWaiting       = Faq::whereLatestVersionIn(['Menunggu Validasi'])->count();
+            $totalApprovedQueue = Faq::whereLatestVersionIn(['Diterima'])->count();
 
             $query = Faq::with([
                 'dataEntry',
                 'tags',
-                'versions' => fn ($q) => $q->latest('created_at'),
+                'versions' => fn ($q) => $q->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->orderBy('updated_at', 'desc'),
                 'versions.daftarPustaka',
-            ])->whereHas('versions', function ($q) {
-                $q->whereIn('status', ['Menunggu Validasi', 'Diterima']);
-            });
+            ])->whereLatestVersionIn(['Menunggu Validasi', 'Diterima']);
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -176,16 +176,15 @@ class ValidatorFaqController extends Controller
 
             $sort = $request->get('sort', 'terbaru');
             if ($sort === 'terlama') {
-                $query->oldest('created_at');
+                $query->oldest('updated_at');
             } else {
-                $query->latest('created_at');
+                $query->latest('updated_at');
             }
 
             $paginatedFaqs = $query->paginate(6)->withQueryString();
 
             $paginatedFaqs->getCollection()->transform(function ($faq) {
-                $targetVersion = $faq->versions->first(fn ($v) => in_array($v->status, ['Menunggu Validasi', 'Diterima'], true))
-                    ?? $faq->versions->first();
+                $targetVersion    = $faq->latest_version ?? $faq->versions->first();
                 $versionNumber    = max(1, $faq->versions->count());
                 $deName           = $faq->dataEntry?->nama ?? 'Data Entry';
                 $words            = explode(' ', trim($deName));
@@ -195,7 +194,7 @@ class ValidatorFaqController extends Controller
 
                 $tagsArray    = $faq->tags->pluck('nama')->values()->all();
                 $tagNames     = implode(' · ', $tagsArray);
-                $createdAt    = ($faq->created_at ?? $targetVersion?->created_at ?? now())->timezone('Asia/Jakarta');
+                $createdAt    = ($targetVersion?->updated_at ?? $targetVersion?->created_at ?? $faq->updated_at ?? $faq->created_at ?? now())->timezone('Asia/Jakarta');
                 $status       = ($targetVersion?->status === 'Diterima') ? 'Diterima' : 'Menunggu Validasi';
                 $scheduleInfo = $targetVersion?->getPublishScheduleInfo();
                 $dp           = $targetVersion?->daftarPustaka;
@@ -257,13 +256,16 @@ class ValidatorFaqController extends Controller
             FaqVersion::ensureIndonesianStatusEnum();
             $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
 
-            FaqVersion::where('tFaqs_id', $id)
-                ->where('status', 'Menunggu Validasi')
-                ->update([
+            $faq = Faq::with('versions')->findOrFail($id);
+            $latest = $faq->latest_version;
+            if ($latest && $latest->status === 'Menunggu Validasi') {
+                $latest->update([
                     'status'       => 'Diterima',
                     'id_validator' => $validatorId,
                     'updated_at'   => now(),
                 ]);
+                $faq->touch();
+            }
 
             return redirect()->back()
                 ->with('success', "FAQ {$id} berhasil diterima.");
@@ -284,14 +286,17 @@ class ValidatorFaqController extends Controller
             FaqVersion::ensureIndonesianStatusEnum();
             $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
 
-            FaqVersion::where('tFaqs_id', $id)
-                ->whereIn('status', ['Menunggu Validasi', 'Diterima'])
-                ->update([
+            $faq = Faq::with('versions')->findOrFail($id);
+            $latest = $faq->latest_version;
+            if ($latest && in_array($latest->status, ['Menunggu Validasi', 'Diterima'], true)) {
+                $latest->update([
                     'status'       => 'Ditolak',
                     'id_validator' => $validatorId,
                     'catatan'      => $catatan ?: 'Perlu revisi oleh Data Entry.',
                     'updated_at'   => now(),
                 ]);
+                $faq->touch();
+            }
 
             return redirect()->back()
                 ->with('success', "FAQ {$id} telah ditolak dan dikembalikan ke Data Entry.");
@@ -317,16 +322,23 @@ class ValidatorFaqController extends Controller
             FaqVersion::ensureIndonesianStatusEnum();
             $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
 
-            FaqVersion::whereIn('tFaqs_id', $faqIds)
-                ->where('status', 'Menunggu Validasi')
-                ->update([
-                    'status'       => 'Diterima',
-                    'id_validator' => $validatorId,
-                    'updated_at'   => now(),
-                ]);
+            $faqs = Faq::with('versions')->whereIn('id', $faqIds)->get();
+            $approvedCodes = [];
+            foreach ($faqs as $faq) {
+                $latest = $faq->latest_version;
+                if ($latest && $latest->status === 'Menunggu Validasi') {
+                    $latest->update([
+                        'status'       => 'Diterima',
+                        'id_validator' => $validatorId,
+                        'updated_at'   => now(),
+                    ]);
+                    $faq->touch();
+                    $approvedCodes[] = $faq->id;
+                }
+            }
 
-            $count    = count($faqIds);
-            $listKode = implode(', ', $faqIds);
+            $count    = count($approvedCodes);
+            $listKode = implode(', ', $approvedCodes ?: $faqIds);
 
             return redirect()->route('validator.validasiFAQ')
                 ->with('success', "{$count} FAQ ({$listKode}) berhasil diterima. Silakan terbitkan melalui tombol Lihat atau Terbitkan.");
@@ -362,9 +374,14 @@ class ValidatorFaqController extends Controller
             FaqVersion::ensureIndonesianStatusEnum();
             $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
 
-            $versions = FaqVersion::whereIn('tFaqs_id', $faqIds)
-                ->where('status', 'Diterima')
-                ->get();
+            $faqs = Faq::with('versions')->whereIn('id', $faqIds)->get();
+            $versions = collect();
+            foreach ($faqs as $faq) {
+                $latest = $faq->latest_version;
+                if ($latest && $latest->status === 'Diterima') {
+                    $versions->push($latest);
+                }
+            }
 
             if ($versions->isEmpty()) {
                 return redirect()->route('validator.validasiFAQ')
@@ -392,6 +409,7 @@ class ValidatorFaqController extends Controller
                         'id_validator' => $validatorId,
                         'updated_at'   => now(),
                     ]);
+                    Faq::where('id', $ver->tFaqs_id)->update(['updated_at' => now()]);
                 }
 
                 return redirect()->route('validator.validasiFAQ')
@@ -406,6 +424,7 @@ class ValidatorFaqController extends Controller
                     'id_validator' => $validatorId,
                     'updated_at'   => now(),
                 ]);
+                Faq::where('id', $ver->tFaqs_id)->update(['updated_at' => now()]);
             }
 
             return redirect()->route('validator.validasiFAQ')
@@ -426,15 +445,17 @@ class ValidatorFaqController extends Controller
         FaqVersion::processDueScheduledPublications();
 
         $faq = Faq::with([
-            'versions' => fn ($q) => $q->where('status', '!=', 'Draf')->latest('created_at'),
+            'versions' => fn ($q) => $q->where('status', '!=', 'Draf')
+                ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                ->orderBy('updated_at', 'desc'),
             'versions.daftarPustaka',
             'versions.validator',
             'tags',
             'dataEntry',
         ])->findOrFail($id);
 
-        $terbitVer = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
-        $displayLatest = $terbitVer ?? $faq->versions->first();
+        $displayLatest = $faq->versions->first();
+        $latestTs = $displayLatest?->updated_at ?? $displayLatest?->created_at ?? $faq->created_at;
         $st = \App\Models\LogMahasiswa::getFaqInteractionSummary([$faq->id])[$faq->id] ?? ['views' => 0, 'likes' => 0, 'dislikes' => 0];
 
         return response()->json([
@@ -442,7 +463,7 @@ class ValidatorFaqController extends Controller
             'data'   => [
                 'id'             => $faq->id,
                 'pertanyaan'     => $faq->pertanyaan,
-                'created_at'     => $faq->created_at ? $faq->created_at->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-',
+                'created_at'     => $latestTs ? $latestTs->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-',
                 'data_entry'     => $faq->dataEntry?->nama,
                 'tags'           => $faq->tags->pluck('nama'),
                 'views_count'    => $st['views'],
@@ -501,6 +522,7 @@ class ValidatorFaqController extends Controller
                     $updateData['catatan'] = $request->catatan;
                 }
                 $latest->update($updateData);
+                $faq->touch();
             }
 
             return redirect()->back()
@@ -578,7 +600,7 @@ class ValidatorFaqController extends Controller
         $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
         $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
-        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active'], true);
+        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['diterima', 'terbit', 'approved', 'active'], true);
 
         return view('validator.buatfaq', [
             'faq'             => $faq,
@@ -633,10 +655,12 @@ class ValidatorFaqController extends Controller
             $tagIds = [];
             if ($request->filled('tags')) {
                 $rawTags = explode(',', $request->tags);
-                foreach ($rawTags as $tagText) {
+                $resolvedTags = FileImportParser::resolveMatchingSystemTags($rawTags);
+                foreach ($resolvedTags as $tagText) {
                     $cleanTag = substr(trim($tagText), 0, 100);
                     if ($cleanTag !== '') {
-                        $t = Tag::firstOrCreate(['nama' => $cleanTag]);
+                        $existingTag = Tag::whereRaw('LOWER(nama) = ?', [mb_strtolower($cleanTag, 'UTF-8')])->first();
+                        $t = $existingTag ?: Tag::firstOrCreate(['nama' => $cleanTag]);
                         $tagIds[] = $t->id;
                     }
                 }
@@ -649,9 +673,18 @@ class ValidatorFaqController extends Controller
                     ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum menyimpan FAQ.');
             }
 
+            $existingVersionToUpdate = null;
             if ($isExistingMode) {
                 $faq = Faq::with('versions')->findOrFail($request->existing_faq_id);
                 $faqId = $faq->id;
+                $latestExisting = $faq->latest_version;
+                $latestExistingSt = $latestExisting ? strtolower((string) $latestExisting->status) : 'draf';
+                if (!in_array($latestExistingSt, ['diterima', 'terbit', 'approved', 'active'], true)) {
+                    DB::rollBack();
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', "Peringatan: Versi jawaban baru hanya dapat ditambahkan pada FAQ yang sudah berstatus Diterima atau Terbit ({$faqId} saat ini berstatus " . ($latestExisting?->status ?? 'Draf') . ").");
+                }
                 $versionId = $faq->generateNextVersionId();
             } else {
                 $faqId = Faq::generateNextId();
@@ -678,15 +711,29 @@ class ValidatorFaqController extends Controller
             }
 
             // Langsung berstatus 'Diterima' & divalidasi oleh Validator saat ini (siap diterbitkan di Validasi FAQ)
-            FaqVersion::create([
-                'id'                 => $versionId,
-                'tDaftarPustakas_id' => $pustakaId,
-                'tFaqs_id'           => $faqId,
-                'id_validator'       => $validatorId,
-                'jawaban'            => $request->jawaban,
-                'status'             => 'Diterima',
-                'catatan'            => null,
-            ]);
+            if ($existingVersionToUpdate) {
+                $existingVersionToUpdate->update([
+                    'tDaftarPustakas_id' => $pustakaId,
+                    'id_validator'       => $validatorId,
+                    'jawaban'            => $request->jawaban,
+                    'status'             => 'Diterima',
+                    'catatan'            => null,
+                ]);
+            } else {
+                FaqVersion::create([
+                    'id'                 => $versionId,
+                    'tDaftarPustakas_id' => $pustakaId,
+                    'tFaqs_id'           => $faqId,
+                    'id_validator'       => $validatorId,
+                    'jawaban'            => $request->jawaban,
+                    'status'             => 'Diterima',
+                    'catatan'            => null,
+                ]);
+            }
+
+            if ($isExistingMode) {
+                $faq->touch();
+            }
 
             $faq->tags()->syncWithoutDetaching(array_unique($tagIds));
 
@@ -738,10 +785,12 @@ class ValidatorFaqController extends Controller
             $tagIds = [];
             if ($request->filled('tags')) {
                 $rawTags = explode(',', $request->tags);
-                foreach ($rawTags as $tagText) {
+                $resolvedTags = FileImportParser::resolveMatchingSystemTags($rawTags);
+                foreach ($resolvedTags as $tagText) {
                     $cleanTag = substr(trim($tagText), 0, 100);
                     if ($cleanTag !== '') {
-                        $t = Tag::firstOrCreate(['nama' => $cleanTag]);
+                        $existingTag = Tag::whereRaw('LOWER(nama) = ?', [mb_strtolower($cleanTag, 'UTF-8')])->first();
+                        $t = $existingTag ?: Tag::firstOrCreate(['nama' => $cleanTag]);
                         $tagIds[] = $t->id;
                     }
                 }
@@ -756,6 +805,7 @@ class ValidatorFaqController extends Controller
 
             $faq->update([
                 'pertanyaan' => $request->pertanyaan,
+                'updated_at' => now(),
             ]);
 
             $pustakaId = null;
@@ -772,8 +822,11 @@ class ValidatorFaqController extends Controller
                 $pustakaId = $pustaka->id;
             }
 
-            $versionAction = $request->input('version_action', 'new_version');
-            $shouldCreateNewVersion = ($versionAction === 'new_version') || in_array($currentStatus, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active'], true);
+            // Buat versi baru (FAQ-0001-V2, dst.) hanya jika status sebelumnya sudah Diterima atau Terbit.
+            // Jika statusnya Ditolak (kondisi Revisi) atau Draf, tetap pertahankan nomor versi yang sama.
+            $versionAction = $request->input('version_action', 'update_draft');
+            $shouldCreateNewVersion = ($versionAction === 'new_version' && in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true))
+                || in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true);
 
             if ($shouldCreateNewVersion || !$latest) {
                 $savedVersionId = $faq->generateNextVersionId();
@@ -896,7 +949,7 @@ class ValidatorFaqController extends Controller
         if (empty($faqs)) {
             return redirect()->back()->with(
                 'error',
-                "File {$filename} tidak berisi baris pertanyaan & jawaban yang dapat dibaca. Pastikan mengikuti format kolom: Kolom A: Pertanyaan | Kolom B: Jawaban."
+                "File {$filename} tidak berisi baris pertanyaan & jawaban yang dapat dibaca. Pastikan mengikuti format kolom: Kolom A: Pertanyaan | Kolom B: Jawaban | Kolom C: Kata Kunci."
             );
         }
 
@@ -918,10 +971,11 @@ class ValidatorFaqController extends Controller
         $pustakaJudul = trim((string) $request->input('pustaka_judul', ''));
         $pustakaBagian = trim((string) $request->input('pustaka_bagian', ''));
 
-        $tags = array_values(array_filter(
-            array_map('trim', preg_split('/[,;]+/', $tagsRaw)),
+        $rawTagList = array_values(array_filter(
+            array_map('trim', preg_split('/[,;\r\n|]+/', $tagsRaw)),
             fn($t) => $t !== ''
         ));
+        $tags = FileImportParser::resolveMatchingSystemTags($rawTagList);
 
         $similarityService = new FaqSimilarityService();
         $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 50.0, $jawaban);
@@ -1102,10 +1156,12 @@ class ValidatorFaqController extends Controller
 
                     if (!empty($item['tags']) && is_array($item['tags'])) {
                         $tagIds = [];
-                        foreach ($item['tags'] as $tagName) {
+                        $resolvedTags = FileImportParser::resolveMatchingSystemTags($item['tags']);
+                        foreach ($resolvedTags as $tagName) {
                             $clean = substr(trim((string) $tagName), 0, 100);
                             if ($clean !== '') {
-                                $t = Tag::firstOrCreate(['nama' => $clean]);
+                                $existingTag = Tag::whereRaw('LOWER(nama) = ?', [mb_strtolower($clean, 'UTF-8')])->first();
+                                $t = $existingTag ?: Tag::firstOrCreate(['nama' => $clean]);
                                 $tagIds[] = $t->id;
                             }
                         }

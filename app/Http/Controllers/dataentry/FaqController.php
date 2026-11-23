@@ -37,13 +37,17 @@ class FaqController extends Controller
                 $selectedKataKunci = 'Semua';
             }
 
+            $nonDraftStatuses = ['Menunggu Validasi', 'Ditolak', 'Diterima', 'Terbit'];
+
             $query = Faq::with([
                 'dataEntry',
                 'tags',
-                'versions' => fn ($q) => $q->where('status', '!=', 'Draf')->latest('updated_at'),
+                'versions' => fn ($q) => $q->where('status', '!=', 'Draf')
+                    ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->orderBy('updated_at', 'desc'),
                 'versions.daftarPustaka',
                 'versions.validator',
-            ])->whereHas('versions', fn ($q) => $q->where('status', '!=', 'Draf'));
+            ])->whereLatestVersionIn($nonDraftStatuses);
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -66,14 +70,14 @@ class FaqController extends Controller
                     'active'    => 'Terbit',
                     default     => $request->status,
                 };
-                $query->whereHas('versions', fn ($q) => $q->where('status', $statusFilter)->where('status', '!=', 'Draf'));
+                $query->whereLatestVersionIn([$statusFilter]);
             }
 
             $sort = $request->get('sort', 'terbaru');
             match ($sort) {
-                'terlama' => $query->oldest(),
+                'terlama' => $query->oldest('updated_at'),
                 'az'      => $query->orderBy('pertanyaan'),
-                default   => $query->latest(),
+                default   => $query->latest('updated_at'),
             };
 
             $faqs = $query->paginate(6)->withQueryString();
@@ -86,17 +90,19 @@ class FaqController extends Controller
                 return $f;
             });
 
-            $statBase = Faq::query()->whereHas('versions', fn ($q) => $q->where('status', '!=', 'Draf'));
-            if ($selectedKataKunci !== 'Semua') {
-                $statBase->whereHas('tags', fn ($q) => $q->where('nama', $selectedKataKunci));
-            }
-            $faqIds = $statBase->pluck('id');
+            $buildStatQuery = function (array $statuses) use ($selectedKataKunci) {
+                $sq = Faq::query()->whereLatestVersionIn($statuses);
+                if ($selectedKataKunci !== 'Semua') {
+                    $sq->whereHas('tags', fn ($q) => $q->where('nama', $selectedKataKunci));
+                }
+                return $sq->count();
+            };
 
-            $totalFaq       = $faqIds->count();
-            $totalAktif     = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Terbit')->distinct('tFaqs_id')->count('tFaqs_id');
-            $totalApproved  = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Diterima')->distinct('tFaqs_id')->count('tFaqs_id');
-            $totalSubmitted = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Menunggu Validasi')->distinct('tFaqs_id')->count('tFaqs_id');
-            $totalRejected  = FaqVersion::whereIn('tFaqs_id', $faqIds)->where('status', 'Ditolak')->distinct('tFaqs_id')->count('tFaqs_id');
+            $totalFaq       = $buildStatQuery($nonDraftStatuses);
+            $totalAktif     = $buildStatQuery(['Terbit']);
+            $totalApproved  = $buildStatQuery(['Diterima']);
+            $totalSubmitted = $buildStatQuery(['Menunggu Validasi']);
+            $totalRejected  = $buildStatQuery(['Ditolak']);
             $totalInaktif   = 0;
             $totalDraft     = 0;
 
@@ -156,27 +162,18 @@ class FaqController extends Controller
             FaqVersion::ensureIndonesianStatusEnum();
             FaqVersion::processDueScheduledPublications();
 
-            $totalDraft = Faq::whereHas('versions', function ($q) {
-                $q->where('status', 'Draf');
-            })->count();
-
-            $totalRejected = Faq::whereHas('versions', function ($q) {
-                $q->where('status', 'Ditolak');
-            })->count();
-
-            $totalSubmitted = Faq::whereHas('versions', function ($q) {
-                $q->where('status', 'Menunggu Validasi');
-            })->count();
+            $totalDraft     = Faq::whereLatestVersionIn(['Draf'])->count();
+            $totalRejected  = Faq::whereLatestVersionIn(['Ditolak'])->count();
+            $totalSubmitted = Faq::whereLatestVersionIn(['Menunggu Validasi'])->count();
 
             $query = Faq::with([
                 'dataEntry',
                 'tags',
-                'versions' => fn ($q) => $q->latest('updated_at'),
+                'versions' => fn ($q) => $q->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->orderBy('updated_at', 'desc'),
                 'versions.daftarPustaka',
                 'versions.validator',
-            ])->whereHas('versions', function ($q) {
-                $q->whereIn('status', ['Draf', 'Ditolak', 'Menunggu Validasi']);
-            });
+            ])->whereLatestVersionIn(['Draf', 'Ditolak', 'Menunggu Validasi']);
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -193,14 +190,14 @@ class FaqController extends Controller
                     'submitted' => 'Menunggu Validasi',
                     default     => $request->status,
                 };
-                $query->whereHas('versions', fn ($q) => $q->where('status', $stFilter));
+                $query->whereLatestVersionIn([$stFilter]);
             }
 
             $sort = $request->get('sort', 'terbaru');
             if ($sort === 'terlama') {
-                $query->oldest('created_at');
+                $query->oldest('updated_at');
             } else {
-                $query->latest('created_at');
+                $query->latest('updated_at');
             }
 
             $faqs = $query->paginate(6)->withQueryString();
@@ -255,9 +252,11 @@ class FaqController extends Controller
 
             if ($latest) {
                 $latest->update([
-                    'status'  => 'Menunggu Validasi',
-                    'catatan' => null,
+                    'status'     => 'Menunggu Validasi',
+                    'catatan'    => null,
+                    'updated_at' => now(),
                 ]);
+                $faq->touch();
             }
 
             DB::commit();
@@ -326,9 +325,11 @@ class FaqController extends Controller
                 $latest = $faq->latest_version;
                 if ($latest && in_array(strtolower((string) $latest->status), ['draf', 'draft', 'ditolak', 'rejected'], true)) {
                     $latest->update([
-                        'status'  => 'Menunggu Validasi',
-                        'catatan' => null,
+                        'status'     => 'Menunggu Validasi',
+                        'catatan'    => null,
+                        'updated_at' => now(),
                     ]);
+                    $faq->touch();
                     $count++;
                 }
             }
@@ -515,7 +516,7 @@ class FaqController extends Controller
         if (empty($faqs)) {
             return redirect()->back()->with(
                 'error',
-                "File {$filename} tidak berisi baris pertanyaan & jawaban yang dapat dibaca. Pastikan mengikuti format kolom: Kolom A: Pertanyaan | Kolom B: Jawaban."
+                "File {$filename} tidak berisi baris pertanyaan & jawaban yang dapat dibaca. Pastikan mengikuti format kolom: Kolom A: Pertanyaan | Kolom B: Jawaban | Kolom C: Kata Kunci."
             );
         }
 
@@ -540,10 +541,11 @@ class FaqController extends Controller
         $pustakaJudul = trim((string) $request->input('pustaka_judul', ''));
         $pustakaBagian = trim((string) $request->input('pustaka_bagian', ''));
 
-        $tags = array_values(array_filter(
-            array_map('trim', preg_split('/[,;]+/', $tagsRaw)),
+        $rawTagList = array_values(array_filter(
+            array_map('trim', preg_split('/[,;\r\n|]+/', $tagsRaw)),
             fn($t) => $t !== ''
         ));
+        $tags = FileImportParser::resolveMatchingSystemTags($rawTagList);
 
         $similarityService = new FaqSimilarityService();
         $analysis = $similarityService->analyzeQuestion($pertanyaan, null, 50.0, $jawaban);
@@ -709,7 +711,7 @@ class FaqController extends Controller
 
                     $pustakaId = null;
                     $pustakaJudul = trim((string) ($item['pustaka_judul'] ?? ''));
-                    if ($pustakaJudul !== '' && strtolower($pustakaJudul) !== 'belum diisi') {
+                    if ($pustakaJudul !== '' && !in_array(strtolower($pustakaJudul), ['belum diisi', 'tidak ada (opsional)'], true)) {
                         // Cari sumber pustaka yang sudah terdaftar berdasarkan judul atau link
                         $dp = DaftarPustaka::where('judul', $pustakaJudul)
                             ->orWhere('link', $pustakaJudul)
@@ -736,10 +738,12 @@ class FaqController extends Controller
 
                     if (!empty($item['tags']) && is_array($item['tags'])) {
                         $tagIds = [];
-                        foreach ($item['tags'] as $tagName) {
+                        $resolvedTags = FileImportParser::resolveMatchingSystemTags($item['tags']);
+                        foreach ($resolvedTags as $tagName) {
                             $clean = substr(trim((string) $tagName), 0, 100);
                             if ($clean !== '') {
-                                $t = Tag::firstOrCreate(['nama' => $clean]);
+                                $existingTag = Tag::whereRaw('LOWER(nama) = ?', [mb_strtolower($clean, 'UTF-8')])->first();
+                                $t = $existingTag ?: Tag::firstOrCreate(['nama' => $clean]);
                                 $tagIds[] = $t->id;
                             }
                         }
@@ -777,23 +781,26 @@ class FaqController extends Controller
     }
 
     /**
-     * Unduh Template Excel (.xlsx) asli untuk Unggah File FAQ (Kolom A: Pertanyaan, Kolom B: Jawaban).
+     * Unduh Template Excel (.xlsx) asli untuk Unggah File FAQ (Kolom A: Pertanyaan, Kolom B: Jawaban, Kolom C: Kata Kunci).
      */
     public function downloadTemplateFaq()
     {
-        $headers = ['Pertanyaan', 'Jawaban'];
+        $headers = ['Pertanyaan', 'Jawaban', 'Kata Kunci'];
         $rows = [
             [
                 'Bagaimana prosedur pengajuan cuti akademik?',
                 'Pengajuan cuti dilakukan melalui layanan akademik sebelum batas kalender akademik dan disetujui Dosen Wali.',
+                'Fakultas Teknik, Akademik, Cuti Akademik',
             ],
             [
                 'Bagaimana cara mengajukan beasiswa UBAYA?',
                 'Pendaftaran beasiswa dibuka sesuai jadwal kemahasiswaan dengan melampirkan transkrip nilai dan surat rekomendasi.',
+                'Umum, Beasiswa, Layanan Mahasiswa',
             ],
             [
                 'Apa syarat mengambil mata kuliah lintas prodi?',
                 'Mahasiswa dapat mengambil mata kuliah lintas prodi dengan persetujuan dosen PA dan kuota kelas tersedia.',
+                'Akademik, KRS, Rencana Studi',
             ],
         ];
 
@@ -850,10 +857,18 @@ class FaqController extends Controller
                     );
             }
 
+            $existingVersionToUpdate = null;
             if ($isExistingMode) {
-                // Mode Tambah Versi Jawaban Baru pada FAQ yang sudah ada: ID FAQ tetap (misal FAQ-0001), ID Versi naik (FAQ-0001-V2)
                 $faq = Faq::with('versions')->findOrFail($request->existing_faq_id);
                 $faqId = $faq->id;
+                $latestExisting = $faq->latest_version;
+                $latestExistingSt = $latestExisting ? strtolower((string) $latestExisting->status) : 'draf';
+                if (!in_array($latestExistingSt, ['diterima', 'terbit', 'approved', 'active'], true)) {
+                    DB::rollBack();
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', "Peringatan: Versi jawaban baru hanya dapat ditambahkan pada FAQ yang sudah berstatus Diterima atau Terbit ({$faqId} saat ini berstatus " . ($latestExisting?->status ?? 'Draf') . ").");
+                }
                 $versionId = $faq->generateNextVersionId();
             } else {
                 // Mode Buat FAQ Baru: selalu gunakan ID FAQ terbaru berurutan tanpa duplikat
@@ -888,10 +903,12 @@ class FaqController extends Controller
             $tagIds = [];
             if ($request->filled('tags')) {
                 $rawTags = explode(',', $request->tags);
-                foreach ($rawTags as $tagText) {
+                $resolvedTags = FileImportParser::resolveMatchingSystemTags($rawTags);
+                foreach ($resolvedTags as $tagText) {
                     $cleanTag = substr(trim($tagText), 0, 100);
                     if ($cleanTag !== '') {
-                        $t = Tag::firstOrCreate(['nama' => $cleanTag]);
+                        $existingTag = Tag::whereRaw('LOWER(nama) = ?', [mb_strtolower($cleanTag, 'UTF-8')])->first();
+                        $t = $existingTag ?: Tag::firstOrCreate(['nama' => $cleanTag]);
                         $tagIds[] = $t->id;
                     }
                 }
@@ -905,15 +922,28 @@ class FaqController extends Controller
                     ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
             }
 
-            FaqVersion::create([
-                'id'                 => $versionId,
-                'tDaftarPustakas_id' => $pustakaId,
-                'tFaqs_id'           => $faqId,
-                'id_validator'       => null,
-                'jawaban'            => $request->jawaban,
-                'status'             => $status,
-                'catatan'            => null,
-            ]);
+            if ($existingVersionToUpdate) {
+                $existingVersionToUpdate->update([
+                    'tDaftarPustakas_id' => $pustakaId,
+                    'jawaban'            => $request->jawaban,
+                    'status'             => $status,
+                    'catatan'            => $status === 'Menunggu Validasi' ? null : $existingVersionToUpdate->catatan,
+                ]);
+            } else {
+                FaqVersion::create([
+                    'id'                 => $versionId,
+                    'tDaftarPustakas_id' => $pustakaId,
+                    'tFaqs_id'           => $faqId,
+                    'id_validator'       => null,
+                    'jawaban'            => $request->jawaban,
+                    'status'             => $status,
+                    'catatan'            => null,
+                ]);
+            }
+
+            if ($isExistingMode) {
+                $faq->touch();
+            }
 
             if (!empty($tagIds)) {
                 $faq->tags()->syncWithoutDetaching(array_unique($tagIds));
@@ -951,8 +981,8 @@ class FaqController extends Controller
         ])->findOrFail($id);
 
         if ($request->expectsJson() || $request->ajax()) {
-            $terbitVer = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
-            $displayLatest = $terbitVer ?? $faq->latest_version;
+            $displayLatest = $faq->latest_version;
+            $latestTs = $displayLatest?->updated_at ?? $displayLatest?->created_at ?? $faq->created_at;
             $st = \App\Models\LogMahasiswa::getFaqInteractionSummary([$faq->id])[$faq->id] ?? ['views' => 0, 'likes' => 0, 'dislikes' => 0];
 
             return response()->json([
@@ -960,7 +990,7 @@ class FaqController extends Controller
                 'data'   => [
                     'id'             => $faq->id,
                     'pertanyaan'     => $faq->pertanyaan,
-                    'created_at'     => $faq->created_at?->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB',
+                    'created_at'     => $latestTs ? $latestTs->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-',
                     'data_entry'     => $faq->dataEntry?->nama,
                     'tags'           => $faq->tags->pluck('nama'),
                     'views_count'    => $st['views'],
@@ -998,7 +1028,7 @@ class FaqController extends Controller
 
     /**
      * Menampilkan form edit FAQ atau tambah versi baru (FAQ-XXXX-V2, dst.).
-     * Dikunci ketika berstatus 'Menunggu Validasi' atau 'Diterima' (sebelum Terbit).
+     * Dikunci ketika berstatus 'Menunggu Validasi'. Jika sudah 'Diterima' atau 'Terbit', akan membuka pembuatan versi baru.
      */
     public function edit(Request $request, $id)
     {
@@ -1010,18 +1040,15 @@ class FaqController extends Controller
         $latest = $faq->latest_version;
         $st = $latest ? strtolower((string) $latest->status) : 'draf';
 
-        if (in_array($st, ['menunggu validasi', 'diterima', 'submitted', 'approved'], true)) {
-            $msg = in_array($st, ['diterima', 'approved'], true)
-                ? "FAQ {$faq->id} sudah diterima dan menunggu terbit, sehingga tidak dapat diubah."
-                : "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.";
+        if (in_array($st, ['menunggu validasi', 'submitted'], true)) {
             return redirect()->route('dataentry.daftarFAQ')
-                ->with('error', $msg);
+                ->with('error', "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.");
         }
 
         $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
         $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
-        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active'], true);
+        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['diterima', 'terbit', 'approved', 'active'], true);
 
         return view('dataentry.buatfaq', [
             'faq'             => $faq,
@@ -1062,13 +1089,10 @@ class FaqController extends Controller
             $latest = $faq->latest_version;
             $currentStatus = $latest ? strtolower((string) $latest->status) : 'draf';
 
-            if (in_array($currentStatus, ['menunggu validasi', 'diterima', 'submitted', 'approved'], true)) {
+            if (in_array($currentStatus, ['menunggu validasi', 'submitted'], true)) {
                 DB::rollBack();
-                $msg = in_array($currentStatus, ['diterima', 'approved'], true)
-                    ? "FAQ {$faq->id} sudah diterima dan menunggu terbit, sehingga tidak dapat diubah."
-                    : "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.";
                 return redirect()->route('dataentry.daftarFAQ')
-                    ->with('error', $msg);
+                    ->with('error', "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.");
             }
 
             // Cek apakah Pertanyaan dan Jawaban sama persis dengan FAQ lain yang berstatus Draf
@@ -1086,6 +1110,7 @@ class FaqController extends Controller
 
             $faq->update([
                 'pertanyaan' => $request->pertanyaan,
+                'updated_at' => now(),
             ]);
 
             $pustakaId = null;
@@ -1106,15 +1131,17 @@ class FaqController extends Controller
 
             $rawTargetStatus = strtolower((string) $request->input('status', 'draft'));
             $targetStatus = in_array($rawTargetStatus, ['submitted', 'menunggu validasi'], true) ? 'Menunggu Validasi' : 'Draf';
-            $versionAction = $request->input('version_action', 'new_version');
+            $versionAction = $request->input('version_action', 'update_draft');
 
             $tagIds = [];
             if ($request->filled('tags')) {
                 $rawTags = explode(',', $request->tags);
-                foreach ($rawTags as $tagText) {
+                $resolvedTags = FileImportParser::resolveMatchingSystemTags($rawTags);
+                foreach ($resolvedTags as $tagText) {
                     $cleanTag = substr(trim($tagText), 0, 100);
                     if ($cleanTag !== '') {
-                        $t = Tag::firstOrCreate(['nama' => $cleanTag]);
+                        $existingTag = Tag::whereRaw('LOWER(nama) = ?', [mb_strtolower($cleanTag, 'UTF-8')])->first();
+                        $t = $existingTag ?: Tag::firstOrCreate(['nama' => $cleanTag]);
                         $tagIds[] = $t->id;
                     }
                 }
@@ -1128,8 +1155,10 @@ class FaqController extends Controller
                     ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
             }
 
-            // Buat versi baru (FAQ-0001-V2, V3, dst.) jika dipilih new_version atau jika status sebelumnya bukan draf
-            $shouldCreateNewVersion = ($versionAction === 'new_version') || in_array($currentStatus, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active'], true);
+            // Buat versi baru (FAQ-0001-V2, V3, dst.) hanya jika FAQ sudah Diterima atau Terbit
+            // Jika status Draf atau Ditolak (kondisi Revisi), tetap gunakan nomor versi yang sama
+            $shouldCreateNewVersion = ($versionAction === 'new_version' && in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true))
+                || in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true);
 
             if ($shouldCreateNewVersion) {
                 $savedVersionId = $faq->generateNextVersionId();
@@ -1146,11 +1175,15 @@ class FaqController extends Controller
             } else {
                 if ($latest) {
                     $savedVersionId = $latest->id;
-                    $latest->update([
+                    $updatePayload = [
                         'tDaftarPustakas_id' => $pustakaId,
                         'jawaban'            => $request->jawaban,
                         'status'             => $targetStatus,
-                    ]);
+                    ];
+                    if ($targetStatus === 'Menunggu Validasi') {
+                        $updatePayload['catatan'] = null;
+                    }
+                    $latest->update($updatePayload);
                 } else {
                     $savedVersionId = $faq->id . '-V1';
                     FaqVersion::create([
