@@ -95,6 +95,20 @@ class FaqVersion extends Model
                 DB::statement("UPDATE tfaqsversion SET status = 'Draf' WHERE status NOT IN ('Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit')");
                 DB::statement("ALTER TABLE tfaqsversion MODIFY status ENUM('Draf', 'Menunggu Validasi', 'Diterima', 'Ditolak', 'Terbit') NOT NULL DEFAULT 'Draf'");
             }
+
+            // Pastikan seluruh versi lama (di bawah versi tertinggi) yang masih berstatus Draf/Menunggu Validasi/Ditolak dinormalisasi menjadi Terbit,
+            // karena versi baru hanya dapat dibuat setelah versi sebelumnya Diterima/Terbit.
+            DB::statement("
+                UPDATE tfaqsversion fv
+                INNER JOIN (
+                    SELECT tFaqs_id, MAX(CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED)) AS max_v
+                    FROM tfaqsversion
+                    GROUP BY tFaqs_id
+                ) latest_map ON latest_map.tFaqs_id = fv.tFaqs_id
+                SET fv.status = 'Terbit'
+                WHERE CAST(SUBSTRING_INDEX(fv.id, '-V', -1) AS UNSIGNED) < latest_map.max_v
+                  AND fv.status IN ('Draf', 'Menunggu Validasi', 'Ditolak')
+            ");
         } catch (Throwable $e) {
             // Abaikan jika tabel belum siap
         }

@@ -46,14 +46,13 @@ class PenggunaAksesController extends Controller
             $overdueWaitingCount = 0;
 
             foreach ($allFaqs as $faq) {
-                $terbitVer = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
-                $latestVer = $faq->versions->sortByDesc('id')->first();
+                $latestVer = $faq->latest_version;
 
-                if ($terbitVer) {
-                    $terbitCount++;
-                } elseif ($latestVer) {
+                if ($latestVer) {
                     $st = strtolower((string) $latestVer->status);
-                    if ($st === 'diterima') {
+                    if ($st === 'terbit') {
+                        $terbitCount++;
+                    } elseif ($st === 'diterima') {
                         $disetujuiCount++;
                     } elseif ($st === 'menunggu validasi') {
                         $menungguCount++;

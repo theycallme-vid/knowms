@@ -166,7 +166,9 @@ class PortalController extends Controller
 
             $faqs = Faq::with([
                 'tags',
-                'versions' => fn ($q) => $q->where('status', 'Terbit')->latest('updated_at'),
+                'versions' => fn ($q) => $q->where('status', 'Terbit')
+                    ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->latest('updated_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
                 $q->where('status', 'Terbit');

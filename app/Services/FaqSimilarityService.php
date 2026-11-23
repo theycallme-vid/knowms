@@ -189,7 +189,8 @@ class FaqSimilarityService
     public function getCandidateFaqs(?string $excludeFaqId = null): Collection
     {
         $query = Faq::with(['versions' => function ($q) {
-            $q->orderBy('created_at', 'desc')->orderBy('id', 'desc');
+            $q->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+              ->orderBy('updated_at', 'desc');
         }]);
 
         if ($excludeFaqId) {
@@ -197,10 +198,8 @@ class FaqSimilarityService
         }
 
         return $query->get()->map(function (Faq $faq) {
-            // Cari versi dengan status Terbit/Diterima/Menunggu Validasi, atau gunakan versi terbaru (termasuk Draf)
-            $relevantVersion = $faq->versions->first(function ($v) {
-                return in_array(strtolower((string) $v->status), ['terbit', 'diterima', 'menunggu validasi', 'active', 'approved', 'accepted', 'submitted', 'pending'], true);
-            }) ?? $faq->versions->first();
+            // Gunakan versi terbaru (nomor versi tertinggi) sebagai status aktif FAQ
+            $relevantVersion = $faq->versions->first();
 
             $status = $relevantVersion ? (string) $relevantVersion->status : 'Draf';
 

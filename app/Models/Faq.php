@@ -29,25 +29,52 @@ class Faq extends Model
         return $this->belongsTo(RiwayatImport::class, 'id_riwayat_import');
     }
 
-    /** Versi-versi dari FAQ ini */
+    /** Versi-versi dari FAQ ini (diurutkan dari nomor versi tertinggi Vn..V1) */
     public function versions()
     {
-        return $this->hasMany(FaqVersion::class, 'tFaqs_id')->orderBy('created_at', 'desc');
+        return $this->hasMany(FaqVersion::class, 'tFaqs_id')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+            ->orderBy('updated_at', 'desc');
     }
 
-    /** Versi terbaru (apapun statusnya) */
+    /** Versi terbaru (berdasarkan nomor versi tertinggi Vn) */
     public function latestVersion()
     {
-        return $this->hasOne(FaqVersion::class, 'tFaqs_id')->latestOfMany('created_at');
+        return $this->hasOne(FaqVersion::class, 'tFaqs_id')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+            ->orderBy('updated_at', 'desc');
     }
 
-    /** Accessor untuk latest version yang aman */
+    /** Accessor untuk latest version yang selalu mengambil nomor versi tertinggi */
     public function getLatestVersionAttribute()
     {
         if ($this->relationLoaded('versions')) {
-            return $this->versions->first();
+            return $this->versions
+                ->sortByDesc(function ($v) {
+                    return preg_match('/-V(\d+)$/i', (string) $v->id, $m) ? (int) $m[1] : 0;
+                })
+                ->first();
         }
-        return $this->versions()->latest('created_at')->first();
+        return $this->versions()->first();
+    }
+
+    /**
+     * Scope: Filter FAQ berdasarkan status pada VERSI TERBARU (nomor -Vn tertinggi) saja,
+     * sehingga satu FAQ hanya pernah memiliki 1 status aktif dan tidak pernah redundant antar halaman.
+     */
+    public function scopeWhereLatestVersionIn($query, array $statuses)
+    {
+        return $query->whereExists(function ($sub) use ($statuses) {
+            $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                ->from('tfaqsversion as fv_latest')
+                ->whereColumn('fv_latest.tFaqs_id', 'tfaqs.id')
+                ->whereIn('fv_latest.status', $statuses)
+                ->whereRaw("CAST(SUBSTRING_INDEX(fv_latest.id, '-V', -1) AS UNSIGNED) = (
+                    SELECT MAX(CAST(SUBSTRING_INDEX(fv_max.id, '-V', -1) AS UNSIGNED))
+                    FROM tfaqsversion as fv_max
+                    WHERE fv_max.tFaqs_id = tfaqs.id
+                )");
+        });
     }
 
     /** Versi terbaru yang diterima atau terbit */
@@ -61,15 +88,18 @@ class Faq extends Model
     /**
      * Ambil angka urut terbesar dari seluruh kode FAQ di database (contoh: FAQ-0003 -> 3)
      */
+    /**
+     * Ambil angka urut terbesar dari ID FAQ berformat FAQ-XXXX (0001..9999) di database.
+     */
     public static function getMaxSequenceNumber(): int
     {
         $ids = self::pluck('id');
         $maxNumber = 0;
 
         foreach ($ids as $id) {
-            if (preg_match('/FAQ-(\d+)/i', (string) $id, $matches)) {
+            if (preg_match('/^FAQ-(\d{1,4})$/i', trim((string) $id), $matches)) {
                 $num = (int) $matches[1];
-                if ($num > $maxNumber) {
+                if ($num >= 1 && $num <= 9999 && $num > $maxNumber) {
                     $maxNumber = $num;
                 }
             }
@@ -79,28 +109,46 @@ class Faq extends Model
     }
 
     /**
-     * Format angka urut menjadi kode FAQ standar (FAQ-0001, FAQ-0004, dst.)
+     * Format angka urut menjadi kode FAQ standar (FAQ-0001 s.d. FAQ-9999).
      */
     public static function formatSequenceId(int $number): string
     {
-        return sprintf('FAQ-%04d', max(1, $number));
+        return sprintf('FAQ-%04d', min(9999, max(1, $number)));
     }
 
     /**
-     * Generate ID FAQ otomatis dengan format FAQ-XXXX (contoh: FAQ-0001, FAQ-0002).
-     * Selalu melanjutkan dari nomor terbesar di database dan tidak pernah duplikat.
+     * Generate ID FAQ otomatis dengan format FAQ-0001 s.d. FAQ-9999.
+     * Melanjutkan nomor terbesar atau mengisi celah kosong jika sudah mencapai 9999.
      */
     public static function generateNextId(int $offset = 0): string
     {
-        $nextNumber = self::getMaxSequenceNumber() + 1 + max(0, $offset);
-        $candidate = self::formatSequenceId($nextNumber);
+        $safeOffset = max(0, $offset);
+        $nextNumber = self::getMaxSequenceNumber() + 1 + $safeOffset;
 
-        while (self::where('id', $candidate)->exists()) {
-            $nextNumber++;
-            $candidate = self::formatSequenceId($nextNumber);
+        if ($nextNumber <= 9999) {
+            while ($nextNumber <= 9999) {
+                $candidate = self::formatSequenceId($nextNumber);
+                if (!self::where('id', $candidate)->exists()) {
+                    return $candidate;
+                }
+                $nextNumber++;
+            }
         }
 
-        return $candidate;
+        // Fallback: cari celah nomor kosong dari 1..9999 jika angka tertinggi sudah 9999
+        $existingIds = array_flip(self::pluck('id')->all());
+        $skipped = 0;
+        for ($num = 1; $num <= 9999; $num++) {
+            $candidate = self::formatSequenceId($num);
+            if (!isset($existingIds[$candidate])) {
+                if ($skipped === $safeOffset) {
+                    return $candidate;
+                }
+                $skipped++;
+            }
+        }
+
+        throw new \RuntimeException('Kapasitas kode FAQ (FAQ-0001 s.d. FAQ-9999) sudah penuh.');
     }
 
     /**
