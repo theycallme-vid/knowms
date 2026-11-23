@@ -306,7 +306,7 @@
                                                     $em = $item['exact_match'];
                                                     $stLabel = $em['status_label'] ?? 'Terbit';
                                                 @endphp
-                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">
+                                                <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-2 bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">
                                                     <i class="bi bi-exclamation-octagon-fill"></i>
                                                     <span>Peringatan: Mirip 100% dengan <strong>{{ $em['id'] }}</strong> (Kondisi: <strong>{{ $stLabel }}</strong>)</span>
                                                 </div>
@@ -315,14 +315,14 @@
                                                     $topCand = $item['similar_candidates'][0];
                                                     $candLabel = $topCand['status_label'] ?? 'Terbit';
                                                 @endphp
-                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-warning-subtle text-dark border border-warning-subtle fs-11">
+                                                <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-2 bg-warning-subtle text-dark border border-warning-subtle fs-11">
                                                     <i class="bi bi-info-circle-fill text-warning"></i>
                                                     <span>Mirip <strong>{{ $topCand['similarity'] }}%</strong> dengan <strong>{{ $topCand['id'] }}</strong> ({{ $candLabel }}: "{{ \Illuminate\Support\Str::limit($topCand['pertanyaan'], 48) }}")</span>
                                                 </div>
                                             @endif
 
                                             @if(!empty($item['in_file_duplicate']))
-                                                <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-2 bg-secondary-subtle text-secondary border fs-11 mt-0.5">
+                                                <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-2 bg-secondary-subtle text-secondary border fs-11 mt-0.5">
                                                     <i class="bi bi-files"></i>
                                                     <span>Duplikat di dalam file yang sama dengan <strong>{{ $item['in_file_duplicate'] }}</strong></span>
                                                 </div>
@@ -368,16 +368,16 @@
                                     <td style="text-align: right;" class="text-nowrap">
                                         <div class="d-inline-flex align-items-center gap-2">
                                             @if($isWaitingValPreview)
-                                                <button type="button" class="btn-table-edit action-icon-disabled" style="opacity: 0.5; cursor: not-allowed;" title="Terkunci — Sedang Menunggu Validasi" disabled>
-                                                    <i class="bi bi-pencil"></i> Ubah
+                                                <button type="button" class="btn-action btn-action-edit action-icon-disabled" style="opacity: 0.5; cursor: not-allowed;" title="Terkunci — Sedang Menunggu Validasi" disabled>
+                                                    <i class="bi bi-pencil"></i><span>Ubah</span>
                                                 </button>
                                             @else
-                                                <button type="button" class="btn-table-edit" onclick="openEditModal('{{ $rowKey }}')">
-                                                    <i class="bi bi-pencil"></i> Ubah
+                                                <button type="button" class="btn-action btn-action-edit" onclick="openEditModal('{{ $rowKey }}')">
+                                                    <i class="bi bi-pencil"></i><span>Ubah</span>
                                                 </button>
                                             @endif
                                             <button type="button" class="btn-table-delete" onclick="deleteRow('{{ $rowKey }}')">
-                                                <i class="bi bi-trash3"></i> Hapus
+                                                <i class="bi bi-trash3"></i><span>Hapus</span>
                                             </button>
                                         </div>
                                     </td>
@@ -434,12 +434,12 @@
         <div class="modal-content border-0 rounded-4 shadow">
             <div class="modal-header border-bottom">
                 <div>
-                    <h5 class="modal-title fw-bold fs-16" id="modalEditTitle">Edit FAQ</h5>
-                    <div class="fs-12 text-muted">Lengkapi pertanyaan, jawaban, pilih kata kunci, dan sumber pustaka agar siap diajukan.</div>
+                    <h5 class="modal-title fw-bold fs-16" id="modalEditTitle">EDIT FAQ</h5>
+                    <div class="fs-12 text-muted mt-1">Lengkapi pertanyaan, jawaban, serta pilih kata kunci agar siap diajukan. Sumber pustaka bersifat opsional.</div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <input type="hidden" id="editRowId">
 
                 <div class="mb-3">
@@ -457,41 +457,57 @@
                     <input type="hidden" id="modalEditTags">
 
                     <!-- Kata kunci yang sudah dipilih -->
-                    <div id="modalSelectedTagsBox" class="d-flex flex-wrap gap-1 p-2 rounded-3 border bg-white mb-2" style="min-height: 38px;">
-                        <span class="text-muted fs-12">Belum ada kata kunci dipilih</span>
+                    <div id="modalSelectedTagsBox" class="modal-tag-selected-box">
+                        <span class="text-muted fs-12 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-tags"></i>
+                            <span>Belum ada kata kunci dipilih — klik kata kunci di bawah untuk menambahkan</span>
+                        </span>
                     </div>
 
                     <!-- Pencarian & Daftar Kata Kunci yang Bisa Di-scroll -->
-                    <div class="p-2.5 bg-light border rounded-3">
-                        <div class="position-relative mb-2">
-                            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted fs-12"></i>
+                    <div class="modal-tag-library-box">
+                        <div class="modal-tag-search-wrap">
+                            <i class="bi bi-search modal-tag-search-icon"></i>
                             <input type="text"
                                    id="searchModalTagInput"
-                                   class="form-control form-control-sm rounded-3 ps-4 fs-12"
+                                   class="modal-tag-search-input"
                                    placeholder="Cari kata kunci di Daftar Kata Kunci..."
                                    oninput="filterModalTagChoices(this.value)">
                         </div>
-                        <div id="modalTagChoiceContainer" class="d-flex flex-wrap gap-1" style="max-height: 115px; overflow-y: auto;">
+
+                        <div class="modal-tag-library-header">
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <i class="bi bi-collection"></i>
+                                <span>Daftar Kata Kunci Tersedia</span>
+                            </span>
+                            <span id="modalTagVisibleCount">{{ isset($tags) ? $tags->count() : 0 }} kata kunci</span>
+                        </div>
+
+                        <div id="modalTagChoiceContainer" class="modal-tag-choices-scroll">
                             @if(isset($tags) && $tags->isNotEmpty())
                                 @foreach($tags as $t)
                                     <button type="button"
-                                            class="btn btn-sm btn-white border rounded-pill fs-11 py-0.5 px-2.5 modal-tag-choice"
+                                            class="modal-tag-choice-pill modal-tag-choice"
                                             data-tag-name="{{ $t->nama }}"
                                             onclick="appendExistingTagToModal('{{ addslashes($t->nama) }}')">
-                                        + {{ $t->nama }}
+                                        <i class="bi bi-plus-lg"></i>
+                                        <span>{{ $t->nama }}</span>
                                     </button>
                                 @endforeach
                             @else
                                 <span class="text-muted fs-12">Belum ada kata kunci terdaftar di Daftar Kata Kunci.</span>
                             @endif
+                            <div id="modalTagEmptyNotice" class="w-100 text-center text-muted fs-12 py-3" style="display: none;">
+                                <i class="bi bi-search me-1"></i> Kata kunci yang dicari tidak ditemukan.
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="mb-1">
-                    <label class="form-label-custom form-label-required">Dokumen / Link Sumber Pustaka</label>
+                    <label class="form-label-custom">Dokumen / Link Sumber Pustaka <span class="text-muted fw-normal fs-12">(Opsional)</span></label>
                     <select id="modalEditJudulPustaka" class="form-select fs-13 rounded-3">
-                        <option value="">-- Pilih Sumber Pustaka yang Sudah Terdaftar --</option>
+                        <option value="">-- Tidak ada / Opsional (Pilih jika ada Sumber Pustaka) --</option>
                         @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
                             @foreach($daftarPustaka as $dp)
                                 <option value="{{ $dp->judul_tampil }}">{{ $dp->judul_tampil }} ({{ ucfirst(strtolower($dp->type)) }})</option>
@@ -500,9 +516,13 @@
                     </select>
                 </div>
             </div>
-            <div class="modal-footer border-top">
-                <button type="button" class="btn btn-sm btn-light rounded-3 px-3" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-sm btn-maroon px-3" onclick="saveEditedFaq()">Simpan Perubahan</button>
+            <div class="modal-footer border-top d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-light border rounded-3 px-3 py-2 d-inline-flex align-items-center gap-2" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i><span>Batal</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-maroon px-3 py-2 d-inline-flex align-items-center gap-2" onclick="saveEditedFaq()">
+                    <i class="bi bi-check2-circle"></i><span>Simpan Perubahan</span>
+                </button>
             </div>
         </div>
     </div>
@@ -536,7 +556,7 @@
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -714,7 +734,7 @@
         const currentPustaka = row.getAttribute('data-pustaka-judul') || '';
 
         document.getElementById('editRowId').value = rowId;
-        document.getElementById('modalEditTitle').textContent = `Edit FAQ - ${faqCode} (${verId})`;
+        document.getElementById('modalEditTitle').textContent = `EDIT ${faqCode}`;
         document.getElementById('modalEditPertanyaan').value = row.getAttribute('data-pertanyaan') || '';
         document.getElementById('modalEditJawaban').value = row.getAttribute('data-jawaban') || '';
         document.getElementById('modalEditTags').value = row.getAttribute('data-tags') || '';
@@ -745,10 +765,21 @@
 
     function filterModalTagChoices(query) {
         const q = (query || '').toLowerCase().trim();
+        let visibleCount = 0;
         document.querySelectorAll('.modal-tag-choice').forEach(btn => {
             const name = (btn.getAttribute('data-tag-name') || '').toLowerCase();
-            btn.style.display = (!q || name.includes(q)) ? '' : 'none';
+            const isMatch = (!q || name.includes(q));
+            btn.style.display = isMatch ? 'inline-flex' : 'none';
+            if (isMatch) visibleCount++;
         });
+        const countEl = document.getElementById('modalTagVisibleCount');
+        if (countEl) {
+            countEl.textContent = `${visibleCount} kata kunci`;
+        }
+        const emptyEl = document.getElementById('modalTagEmptyNotice');
+        if (emptyEl) {
+            emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
     }
 
     function appendExistingTagToModal(tagName, forceAddOnly = false) {
@@ -787,28 +818,25 @@
         if (selectedBox) {
             if (rawTags.length > 0) {
                 selectedBox.innerHTML = rawTags.map(t => `
-                    <span class="keyword-pill-blue d-inline-flex align-items-center gap-1">
+                    <span class="modal-tag-selected-chip">
                         <span>${escHtml(t)}</span>
-                        <button type="button" class="btn-close" style="font-size: 0.55rem;" onclick="removeTagFromModal('${escHtml(t).replace(/'/g, "\\'")}')"></button>
+                        <button type="button" class="modal-tag-remove-btn" title="Hapus kata kunci" onclick="removeTagFromModal('${escHtml(t).replace(/'/g, "\\'")}')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
                     </span>
                 `).join('');
             } else {
-                selectedBox.innerHTML = `<span class="text-muted fs-12">Belum ada kata kunci dipilih</span>`;
+                selectedBox.innerHTML = `<span class="text-muted fs-12 d-inline-flex align-items-center gap-2"><i class="bi bi-tags"></i><span>Belum ada kata kunci dipilih — klik kata kunci di bawah untuk menambahkan</span></span>`;
             }
         }
 
         document.querySelectorAll('.modal-tag-choice').forEach(btn => {
             const name = (btn.getAttribute('data-tag-name') || '').trim();
             const isSelected = activeTags.includes(name.toLowerCase());
-            if (isSelected) {
-                btn.classList.remove('btn-white', 'border');
-                btn.classList.add('btn-primary', 'text-white');
-                btn.textContent = '✓ ' + name;
-            } else {
-                btn.classList.add('btn-white', 'border');
-                btn.classList.remove('btn-primary', 'text-white');
-                btn.textContent = '+ ' + name;
-            }
+            btn.classList.toggle('is-selected', isSelected);
+            btn.innerHTML = isSelected
+                ? `<i class="bi bi-check-lg"></i><span>${escHtml(name)}</span>`
+                : `<i class="bi bi-plus-lg"></i><span>${escHtml(name)}</span>`;
         });
     }
 
