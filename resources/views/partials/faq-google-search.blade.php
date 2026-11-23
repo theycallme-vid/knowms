@@ -165,6 +165,36 @@
         box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
     }
 
+    .faq-search-results-list {
+        max-height: 550px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 0.45rem;
+        overscroll-behavior: contain;
+    }
+
+    .faq-search-results-list .faq-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .faq-search-results-list::-webkit-scrollbar {
+        width: 7px;
+    }
+
+    .faq-search-results-list::-webkit-scrollbar-track {
+        background: #F4F1EC;
+        border-radius: 999px;
+    }
+
+    .faq-search-results-list::-webkit-scrollbar-thumb {
+        background: #CBD5E1;
+        border-radius: 999px;
+    }
+
+    .faq-search-results-list::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8;
+    }
+
     @media (max-width: 576px) {
         .faq-search-results-section {
             padding: 1.15rem 1rem;
@@ -266,7 +296,7 @@
         </div>
     </div>
 
-    <div id="faqSearchResultsList" class="accordion" style="--bs-accordion-border-width:0;"></div>
+    <div id="faqSearchResultsList" class="accordion faq-search-results-list" style="--bs-accordion-border-width:0;"></div>
 
     <div id="faqSearchResultsEmpty" class="d-none">
         <div class="text-center text-muted fs-13 py-4">
@@ -312,6 +342,8 @@
     const resultsEmptyEl = document.getElementById('faqSearchResultsEmpty');
     const resultsQueryEl = document.getElementById('faqSearchQueryText');
     const resultsCountEl = document.getElementById('faqSearchResultCount');
+    const exploreCategoriesEl = document.getElementById('faqExploreCategoriesSection');
+    const categoryFaqSectionEl = document.getElementById('faqCategoryListSection');
 
     if (!searchInput || !resultsSectionEl || !resultsListEl) return;
 
@@ -496,6 +528,36 @@
         renderSearchResults(entry.question, entry.faqId);
     }
 
+    function syncSearchResultsScrollHeight() {
+        const renderedItems = Array.from(resultsListEl.querySelectorAll(':scope > .faq-item'));
+        if (renderedItems.length <= 7) {
+            resultsListEl.style.maxHeight = 'none';
+            return;
+        }
+
+        // Hitung tinggi pas untuk maksimal 7 hasil di kotak Hasil Pencarian, sisanya bisa di-scroll di dalamnya
+        const collapsedSamples = renderedItems
+            .slice(0, 7)
+            .filter(item => !item.querySelector('.collapse.show'));
+
+        const fallbackCollapsedHeight = collapsedSamples.length > 0
+            ? collapsedSamples.reduce((sum, item) => sum + item.offsetHeight, 0) / collapsedSamples.length
+            : 76;
+
+        let visibleTargetHeight = 0;
+        for (let i = 0; i < 7; i++) {
+            const item = renderedItems[i];
+            const isExpanded = Boolean(item.querySelector('.collapse.show'));
+            const style = window.getComputedStyle(item);
+            const mb = i < 6 ? (parseFloat(style.marginBottom) || 0) : 0;
+            visibleTargetHeight += (isExpanded ? fallbackCollapsedHeight : item.offsetHeight) + mb;
+        }
+
+        if (visibleTargetHeight > 0) {
+            resultsListEl.style.maxHeight = Math.ceil(visibleTargetHeight + 2) + 'px';
+        }
+    }
+
     function renderSearchResults(rawQuery, expandFaqId = null, shouldScroll = true) {
         const q = (rawQuery || '').trim();
         if (!q) {
@@ -510,7 +572,11 @@
         resultsCountEl.textContent = matches.length + ' pertanyaan';
         resultsListEl.innerHTML = '';
 
+        // Sembunyikan isi daftar kategori di bawah saat Hasil Pencarian tampil (Jelajahi Kategori tetap paten di atas)
+        categoryFaqSectionEl?.classList.add('d-none');
+
         if (matches.length === 0) {
+            resultsListEl.style.maxHeight = 'none';
             resultsEmptyEl.classList.remove('d-none');
         } else {
             resultsEmptyEl.classList.add('d-none');
@@ -554,15 +620,24 @@
         }
 
         resultsSectionEl.classList.remove('d-none');
+        resultsListEl.scrollTop = 0;
+        syncSearchResultsScrollHeight();
+
         if (shouldScroll) {
-            resultsSectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const targetAnchor = exploreCategoriesEl || resultsSectionEl;
+            const rect = resultsSectionEl.getBoundingClientRect();
+            if (rect.top + 260 > window.innerHeight || rect.top < 75) {
+                targetAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
     }
 
     function hideSearchResults() {
         activeSearchQuery = '';
         resultsListEl.innerHTML = '';
+        resultsListEl.style.maxHeight = '';
         resultsSectionEl.classList.add('d-none');
+        categoryFaqSectionEl?.classList.remove('d-none');
     }
 
     function syncClearButton() {

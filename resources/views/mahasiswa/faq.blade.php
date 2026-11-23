@@ -436,10 +436,8 @@
 <!-- ========================================================================= -->
 <main class="mhs-container py-5">
 
-    @include('partials.faq-google-search', ['part' => 'results'])
-
-    <!-- ============================ KATEGORI ============================ -->
-    <section class="mb-5" aria-label="Jelajahi kategori">
+    <!-- ============================ KATEGORI (PATEN DI ATAS) ============================ -->
+    <section id="faqExploreCategoriesSection" class="mb-5" style="scroll-margin-top: 88px;" aria-label="Jelajahi kategori">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <span class="hero-eyebrow text-secondary" style="letter-spacing: 0.08em; font-size: 0.7rem;">
                 JELAJAHI KATEGORI
@@ -462,8 +460,10 @@
         </div>
     </section>
 
-    <!-- ============================ DAFTAR FAQ ============================ -->
-    <section aria-labelledby="faqHeading" class="mt-4">
+    @include('partials.faq-google-search', ['part' => 'results'])
+
+    <!-- ============================ DAFTAR FAQ (ISI KATEGORI) ============================ -->
+    <section id="faqCategoryListSection" aria-labelledby="faqHeading" class="mt-4">
         <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3.5">
             <div>
                 <h2 id="faqHeading" class="display-serif fs-2 mb-1">Mulai dari yang sering ditanyakan</h2>
@@ -1307,6 +1307,9 @@
     let lastTotalPages = 1;
 
     function setCategory(key, btn) {
+        if (typeof window.clearFaqSearch === 'function') {
+            window.clearFaqSearch();
+        }
         activeCat = key;
         currentPage = 1;
         document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
