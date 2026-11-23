@@ -631,7 +631,7 @@
                 <div class="fs-13 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
             </div>
         </div>
-        <a href="#" class="btn-maroon px-4 py-2.5 fs-13">
+        <a href="{{ route('layanan.kontak') }}" class="btn-maroon px-4 py-2.5 fs-13 text-decoration-none">
             <span>Hubungi layanan akademik</span>
             <i class="bi bi-arrow-up-right"></i>
         </a>

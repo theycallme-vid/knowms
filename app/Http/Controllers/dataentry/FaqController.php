@@ -251,10 +251,11 @@ class FaqController extends Controller
             }
 
             if ($latest) {
+                $wasRejected = in_array(strtolower((string) $latest->status), ['ditolak', 'rejected'], true);
                 $latest->update([
-                    'status'     => 'Menunggu Validasi',
-                    'catatan'    => null,
-                    'updated_at' => now(),
+                    'status'             => 'Menunggu Validasi',
+                    'jawaban_sebelumnya' => $latest->jawaban_sebelumnya ?: ($wasRejected ? $latest->jawaban : null),
+                    'updated_at'         => now(),
                 ]);
                 $faq->touch();
             }
@@ -324,10 +325,11 @@ class FaqController extends Controller
             foreach ($faqs as $faq) {
                 $latest = $faq->latest_version;
                 if ($latest && in_array(strtolower((string) $latest->status), ['draf', 'draft', 'ditolak', 'rejected'], true)) {
+                    $wasRejected = in_array(strtolower((string) $latest->status), ['ditolak', 'rejected'], true);
                     $latest->update([
-                        'status'     => 'Menunggu Validasi',
-                        'catatan'    => null,
-                        'updated_at' => now(),
+                        'status'             => 'Menunggu Validasi',
+                        'jawaban_sebelumnya' => $latest->jawaban_sebelumnya ?: ($wasRejected ? $latest->jawaban : null),
+                        'updated_at'         => now(),
                     ]);
                     $faq->touch();
                     $count++;
@@ -857,12 +859,18 @@ class FaqController extends Controller
                     );
             }
 
-            $existingVersionToUpdate = null;
             if ($isExistingMode) {
+                // Mode Tambah Versi Jawaban Baru pada FAQ yang sudah ada: hanya naik versi jika versi sebelumnya sudah valid
                 $faq = Faq::with('versions')->findOrFail($request->existing_faq_id);
                 $faqId = $faq->id;
                 $latestExisting = $faq->latest_version;
                 $latestExistingSt = $latestExisting ? strtolower((string) $latestExisting->status) : 'draf';
+                if (in_array($latestExistingSt, ['menunggu validasi', 'submitted'], true)) {
+                    DB::rollBack();
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', "FAQ {$faq->id} sedang ditinjau validator dan tidak dapat diubah.");
+                }
                 if (!in_array($latestExistingSt, ['diterima', 'terbit', 'approved', 'active'], true)) {
                     DB::rollBack();
                     return redirect()->back()
@@ -922,26 +930,24 @@ class FaqController extends Controller
                     ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
             }
 
-            if ($existingVersionToUpdate) {
-                $existingVersionToUpdate->update([
-                    'tDaftarPustakas_id' => $pustakaId,
-                    'jawaban'            => $request->jawaban,
-                    'status'             => $status,
-                    'catatan'            => $status === 'Menunggu Validasi' ? null : $existingVersionToUpdate->catatan,
-                ]);
-            } else {
-                FaqVersion::create([
-                    'id'                 => $versionId,
+            FaqVersion::updateOrCreate(
+                ['id' => $versionId],
+                [
                     'tDaftarPustakas_id' => $pustakaId,
                     'tFaqs_id'           => $faqId,
                     'id_validator'       => null,
                     'jawaban'            => $request->jawaban,
+                    'jawaban_sebelumnya' => null,
                     'status'             => $status,
                     'catatan'            => null,
-                ]);
-            }
+                ]
+            );
 
             if ($isExistingMode) {
+                FaqVersion::where('tFaqs_id', $faqId)
+                    ->where('id', '!=', $versionId)
+                    ->whereIn('status', ['Draf', 'Ditolak'])
+                    ->delete();
                 $faq->touch();
             }
 
@@ -1002,11 +1008,12 @@ class FaqController extends Controller
                         $dp = $v->daftarPustaka;
                         $isFile = $dp ? !empty($dp->upload) : false;
                         return [
-                            'id'             => $v->id,
-                            'versi_label'    => FaqVersion::formatVersiLabel($v->id),
-                            'status'         => $v->status,
-                            'jawaban'        => $v->jawaban,
-                            'catatan'        => $v->catatan,
+                            'id'                 => $v->id,
+                            'versi_label'        => FaqVersion::formatVersiLabel($v->id),
+                            'status'             => $v->status,
+                            'jawaban'            => $v->jawaban,
+                            'jawaban_sebelumnya' => $v->jawaban_sebelumnya,
+                            'catatan'            => $v->catatan,
                             'validator'      => $v->validator?->nama,
                             'daftar_pustaka' => $dp ? [
                                 'id'       => $dp->id,
@@ -1048,7 +1055,7 @@ class FaqController extends Controller
         $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
         $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
-        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['diterima', 'terbit', 'approved', 'active'], true);
+        $forceNewVersion = in_array($st, ['diterima', 'terbit', 'approved', 'active'], true);
 
         return view('dataentry.buatfaq', [
             'faq'             => $faq,
@@ -1131,7 +1138,6 @@ class FaqController extends Controller
 
             $rawTargetStatus = strtolower((string) $request->input('status', 'draft'));
             $targetStatus = in_array($rawTargetStatus, ['submitted', 'menunggu validasi'], true) ? 'Menunggu Validasi' : 'Draf';
-            $versionAction = $request->input('version_action', 'update_draft');
 
             $tagIds = [];
             if ($request->filled('tags')) {
@@ -1155,48 +1161,38 @@ class FaqController extends Controller
                     ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum mengajukan FAQ ke Validator.');
             }
 
-            // Buat versi baru (FAQ-0001-V2, V3, dst.) hanya jika FAQ sudah Diterima atau Terbit
-            // Jika status Draf atau Ditolak (kondisi Revisi), tetap gunakan nomor versi yang sama
-            $shouldCreateNewVersion = ($versionAction === 'new_version' && in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true))
-                || in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true);
+            // Nomor versi hanya bertambah jika versi sebelumnya sudah valid (Diterima / Terbit).
+            // Jika masih Draf atau Ditolak, tetap gunakan versi yang sama (in-place) serta simpan jawaban_sebelumnya & catatan penolakan untuk pembanding Validator.
+            $savedVersionId = $faq->generateNextVersionId();
+            $existingTarget = $faq->versions->firstWhere('id', $savedVersionId);
+            $sourceVer = $existingTarget ?? $latest;
+            $sourceStatus = $sourceVer ? strtolower((string) $sourceVer->status) : '';
+            $wasRejected = in_array($sourceStatus, ['ditolak', 'rejected'], true);
+            $isRevisingSameVersion = in_array($sourceStatus, ['ditolak', 'rejected', 'draf', 'draft'], true);
+            $preservedCatatan = ($isRevisingSameVersion && $sourceVer && $sourceVer->catatan && !str_starts_with(trim((string) $sourceVer->catatan), '[PUBLISH_SCHEDULE|'))
+                ? $sourceVer->catatan
+                : null;
+            $prevRejectedAnswer = $isRevisingSameVersion
+                ? ($sourceVer?->jawaban_sebelumnya ?: ($wasRejected ? $sourceVer?->jawaban : null))
+                : null;
 
-            if ($shouldCreateNewVersion) {
-                $savedVersionId = $faq->generateNextVersionId();
-
-                FaqVersion::create([
-                    'id'                 => $savedVersionId,
+            FaqVersion::updateOrCreate(
+                ['id' => $savedVersionId],
+                [
                     'tDaftarPustakas_id' => $pustakaId,
                     'tFaqs_id'           => $faq->id,
                     'id_validator'       => null,
                     'jawaban'            => $request->jawaban,
+                    'jawaban_sebelumnya' => $prevRejectedAnswer,
                     'status'             => $targetStatus,
-                    'catatan'            => null,
-                ]);
-            } else {
-                if ($latest) {
-                    $savedVersionId = $latest->id;
-                    $updatePayload = [
-                        'tDaftarPustakas_id' => $pustakaId,
-                        'jawaban'            => $request->jawaban,
-                        'status'             => $targetStatus,
-                    ];
-                    if ($targetStatus === 'Menunggu Validasi') {
-                        $updatePayload['catatan'] = null;
-                    }
-                    $latest->update($updatePayload);
-                } else {
-                    $savedVersionId = $faq->id . '-V1';
-                    FaqVersion::create([
-                        'id'                 => $savedVersionId,
-                        'tDaftarPustakas_id' => $pustakaId,
-                        'tFaqs_id'           => $faq->id,
-                        'id_validator'       => null,
-                        'jawaban'            => $request->jawaban,
-                        'status'             => $targetStatus,
-                        'catatan'            => null,
-                    ]);
-                }
-            }
+                    'catatan'            => $preservedCatatan,
+                ]
+            );
+
+            FaqVersion::where('tFaqs_id', $faq->id)
+                ->where('id', '!=', $savedVersionId)
+                ->whereIn('status', ['Draf', 'Ditolak'])
+                ->delete();
 
             $faq->tags()->sync(array_unique($tagIds));
 

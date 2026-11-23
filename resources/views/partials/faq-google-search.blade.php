@@ -1,5 +1,6 @@
 @php
     $part = $part ?? 'bar';
+    $isGuestUserFaq = session('is_guest') === true || session('nama_fakultas') === 'Guest' || !session('kode_fakultas');
 @endphp
 
 @if($part === 'bar')
@@ -249,21 +250,39 @@
             <div class="px-2 pb-2.5 text-muted fs-13">
                 Tidak ada pertanyaan yang cocok untuk "<strong class="text-dark" id="faqDropdownEmptyQuery"></strong>".
             </div>
-            <div class="cta-card p-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3" style="border-radius: 16px;">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="cta-icon" style="width: 42px; height: 42px; border-radius: 12px;">
-                        <i class="bi bi-chat-square-text fs-5"></i>
+            @if($isGuestUserFaq)
+                <div class="cta-card p-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3" style="border-radius: 16px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="cta-icon" style="width: 42px; height: 42px; border-radius: 12px;">
+                            <i class="bi bi-person-lock fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="display-serif fw-bold text-dark" style="font-size: 1rem;">Layanan Kontak Khusus Mahasiswa</div>
+                            <div class="fs-12 text-muted">Akses panggilan suara dan hotline akademik tersedia untuk mahasiswa aktif terdaftar.</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="display-serif fw-bold text-dark" style="font-size: 1rem;">Belum menemukan jawabanmu?</div>
-                        <div class="fs-12 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
-                    </div>
+                    <a href="{{ route('portal') }}" class="btn-maroon px-3 py-2 fs-12 text-decoration-none">
+                        <span>Masuk Portal Mahasiswa</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
                 </div>
-                <a href="#" class="btn-maroon px-3 py-2 fs-12">
-                    <span>Hubungi layanan akademik</span>
-                    <i class="bi bi-arrow-up-right"></i>
-                </a>
-            </div>
+            @else
+                <div class="cta-card p-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3" style="border-radius: 16px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="cta-icon" style="width: 42px; height: 42px; border-radius: 12px;">
+                            <i class="bi bi-chat-square-text fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="display-serif fw-bold text-dark" style="font-size: 1rem;">Belum menemukan jawabanmu?</div>
+                            <div class="fs-12 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
+                        </div>
+                    </div>
+                    <a href="{{ route('layanan.kontak') }}" class="btn-maroon px-3 py-2 fs-12 text-decoration-none">
+                        <span>Hubungi layanan akademik</span>
+                        <i class="bi bi-arrow-up-right"></i>
+                    </a>
+                </div>
+            @endif
         </div>
         <button type="button" id="faqSearchDropdownFooter" class="faq-search-dropdown-footer d-none">
             <span id="faqSearchDropdownFooterText">Lihat semua hasil pencarian</span>
@@ -306,21 +325,39 @@
                 Coba kata kunci lain, atau jelajahi daftar FAQ Populer &amp; kategori di bawah ini.
             </div>
         </div>
-        <div class="cta-card mt-2 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm">
-            <div class="d-flex align-items-center gap-3">
-                <div class="cta-icon">
-                    <i class="bi bi-chat-square-text fs-4"></i>
+        @if($isGuestUserFaq)
+            <div class="cta-card mt-2 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="cta-icon">
+                        <i class="bi bi-person-lock fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="display-serif fs-4 fw-bold text-dark">Layanan Kontak Khusus Mahasiswa</div>
+                        <div class="fs-13 text-muted">Akses panggilan suara dan hotline akademik tersedia untuk mahasiswa aktif terdaftar.</div>
+                    </div>
                 </div>
-                <div>
-                    <div class="display-serif fs-4 fw-bold text-dark">Belum menemukan jawabanmu?</div>
-                    <div class="fs-13 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
-                </div>
+                <a href="{{ route('portal') }}" class="btn-maroon px-4 py-2.5 fs-13 text-decoration-none">
+                    <span>Masuk Portal Mahasiswa</span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
             </div>
-            <a href="#" class="btn-maroon px-4 py-2.5 fs-13">
-                <span>Hubungi layanan akademik</span>
-                <i class="bi bi-arrow-up-right"></i>
-            </a>
-        </div>
+        @else
+            <div class="cta-card mt-2 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="cta-icon">
+                        <i class="bi bi-chat-square-text fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="display-serif fs-4 fw-bold text-dark">Belum menemukan jawabanmu?</div>
+                        <div class="fs-13 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
+                    </div>
+                </div>
+                <a href="{{ route('layanan.kontak') }}" class="btn-maroon px-4 py-2.5 fs-13 text-decoration-none">
+                    <span>Hubungi layanan akademik</span>
+                    <i class="bi bi-arrow-up-right"></i>
+                </a>
+            </div>
+        @endif
     </div>
 </section>
 @elseif($part === 'script')

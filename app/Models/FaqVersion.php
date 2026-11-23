@@ -19,6 +19,7 @@ class FaqVersion extends Model
         'tFaqs_id',
         'id_validator',
         'jawaban',
+        'jawaban_sebelumnya',
         'status',
         'catatan',
     ];
@@ -82,6 +83,11 @@ class FaqVersion extends Model
         $checked = true;
 
         try {
+            $prevAnsCol = DB::selectOne("SHOW COLUMNS FROM tfaqsversion LIKE 'jawaban_sebelumnya'");
+            if (!$prevAnsCol) {
+                DB::statement("ALTER TABLE tfaqsversion ADD COLUMN jawaban_sebelumnya TEXT NULL AFTER jawaban");
+            }
+
             $col = DB::selectOne("SHOW COLUMNS FROM tfaqsversion LIKE 'status'");
             $typeStr = strtolower((string) ($col->Type ?? ''));
 

@@ -33,6 +33,12 @@ class Setting extends Model
             'keterangan' => 'Durasi hitung mundur pada pop-up (detik) sebelum sesi berakhir dan otomatis kembali ke Portal.',
             'group'      => 'session',
         ],
+        'rec_log_days' => [
+            'value'      => '30',
+            'label'      => 'Rentang Waktu Log Rekomendasi (Hari Terakhir)',
+            'keterangan' => 'Hanya interaksi mahasiswa (View, Like, Dislike) dalam kurun waktu N hari terakhir yang dihitung oleh algoritma rekomendasi FAQ.',
+            'group'      => 'log_window',
+        ],
         'rec_weight_exact' => [
             'value'      => '10',
             'label'      => 'Bobot View Segmen Persis (Fakultas + Angkatan Sama)',
@@ -98,6 +104,12 @@ class Setting extends Model
             'label'      => 'Bonus Topik Sesuai Semester (Semester 1–6)',
             'keterangan' => 'Bonus skor untuk topik yang relevan dengan tingkat semester mahasiswa (Maba / Praktikum / KP & MBKM).',
             'group'      => 'recommendation',
+        ],
+        'alert_call_unit_ids' => [
+            'value'      => '1',
+            'label'      => 'Unit Penerima Alert Call',
+            'keterangan' => 'Daftar ID Unit/Direktorat yang ditugaskan menerima notifikasi panggilan masuk dari mahasiswa (dipisahkan koma jika lebih dari satu).',
+            'group'      => 'call_routing',
         ],
     ];
 
@@ -188,5 +200,46 @@ class Setting extends Model
                 ]
             );
         }
+    }
+
+    /**
+     * Mengambil daftar ID unit/direktorat yang berhak menerima notifikasi panggilan masuk dari tsettings.
+     *
+     * @return array<int>
+     */
+    public static function getAllowedCallUnitIds(): array
+    {
+        self::ensureDefaults();
+        $raw = self::where('key', 'alert_call_unit_ids')->value('value');
+        if ($raw === null || trim((string) $raw) === '') {
+            $raw = self::DEFAULTS['alert_call_unit_ids']['value'] ?? '1';
+        }
+
+        $ids = array_filter(array_map('intval', explode(',', (string) $raw)));
+        return !empty($ids) ? array_values(array_unique($ids)) : [1];
+    }
+
+    /**
+     * Menyimpan daftar ID unit yang dipilih oleh Validator ke tabel tsettings.
+     *
+     * @param array<int>|string $unitIds
+     */
+    public static function setAllowedCallUnitIds($unitIds): void
+    {
+        self::ensureDefaults();
+        if (is_array($unitIds)) {
+            $cleaned = array_filter(array_map('intval', $unitIds));
+            $val = implode(',', array_unique($cleaned));
+        } else {
+            $val = trim((string) $unitIds);
+        }
+
+        self::updateOrCreate(
+            ['key' => 'alert_call_unit_ids'],
+            [
+                'value'      => $val,
+                'keterangan' => 'Daftar ID Unit/Direktorat yang ditugaskan menerima notifikasi panggilan masuk dari mahasiswa.',
+            ]
+        );
     }
 }

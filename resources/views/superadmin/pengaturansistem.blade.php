@@ -37,7 +37,7 @@
                     <i class="bi bi-grid"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
+                <a href="{{ route('superadmin.daftarFAQ') }}" class="nav-link-custom">
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
@@ -151,9 +151,9 @@
                 <div>
                     <div class="date-badge">KONFIGURASI SISTEM KMS</div>
                     <h1 class="page-title mb-1">Pengaturan Sistem</h1>
-                    <p class="text-muted fs-13 mb-0">Atur durasi auto-logout mahasiswa/tamu serta bobot perhitungan algoritma rekomendasi FAQ secara manual.</p>
+                    <p class="text-muted fs-13 mb-0">Atur durasi auto-logout sesi mahasiswa/tamu serta rentang hari perhitungan log rekomendasi FAQ.</p>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     <button type="button" class="btn btn-outline-secondary bg-white rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm text-dark fs-13 fw-semibold" style="border-color: #E2E8F0;" onclick="openResetConfirmModal()">
                         <i class="bi bi-arrow-counterclockwise"></i>
                         <span>Kembalikan ke Default</span>
@@ -192,6 +192,7 @@
 
             <form id="formPengaturanSistem" action="{{ route('superadmin.pengaturanSistem.update') }}" method="POST">
                 @csrf
+                <input type="hidden" name="scope" value="main">
 
                 <!-- BAGIAN 1: PENGATURAN WAKTU IDLE AUTO-LOGOUT MAHASISWA & GUEST -->
                 <div class="card-custom mb-4">
@@ -234,31 +235,35 @@
                     </div>
                 </div>
 
-                <!-- BAGIAN 2: PENGATURAN BOBOT SKOR ALGORITMA REKOMENDASI FAQ -->
+                <!-- BAGIAN 2: PENGATURAN RENTANG HARI LOG REKOMENDASI FAQ & TOMBOL KE HALAMAN POIN -->
                 <div class="card-custom mb-4">
-                    <div class="d-flex align-items-center gap-3 pb-3 mb-3 border-bottom">
-                        <div class="stat-icon" style="background-color: #EFF6FF; color: #2563EB;">
-                            <i class="bi bi-Calculator"></i>
-                            <i class="bi bi-sliders"></i>
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 pb-3 mb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background-color: #EFF6FF; color: #2563EB;">
+                                <i class="bi bi-calendar-range"></i>
+                            </div>
+                            <div>
+                                <h2 class="fw-bold fs-15 text-dark mb-0">2. Rentang Waktu Log Rekomendasi FAQ</h2>
+                                <div class="fs-12 text-muted">Menentukan berapa hari terakhir riwayat interaksi (View, Like, Dislike) yang dihitung dalam rekomendasi agar selalu relevan dengan kondisi terbaru.</div>
+                            </div>
                         </div>
-                        <div>
-                            <h2 class="fw-bold fs-15 text-dark mb-0">2. Bobot Skor Algoritma Rekomendasi FAQ Mahasiswa</h2>
-                            <div class="fs-12 text-muted">Rumus Total Skor = <code>(View Segmen Persis &times; Bobot) + (View Angkatan &times; Bobot) + (View Fakultas &times; Bobot) + (View Global &times; Bobot) + (Like &times; Bobot) + (Dislike &times; Penalti) + Bonus Fakultas + Bonus Semester</code></div>
-                        </div>
+                        <a href="{{ route('superadmin.pengaturanPoin') }}" class="btn btn-outline-secondary bg-white rounded-pill px-3.5 py-2 d-inline-flex align-items-center gap-2 shadow-sm text-dark fs-12 fw-semibold flex-shrink-0" style="border-color: #CBD5E1;">
+                            <i class="bi bi-sliders text-danger" style="color: var(--brand-maroon) !important;"></i>
+                            <span>Pengaturan Poin Algoritma</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
 
                     <div class="row g-3">
                         @foreach($settingsMeta as $key => $meta)
-                            @if(($meta['group'] ?? '') === 'recommendation')
-                                <div class="col-12 col-md-6 col-xl-4">
-                                    <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: #FAF9F6; border: 1px solid #EDE7E1;">
-                                        <div>
-                                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                                                <label for="input_{{ $key }}" class="fw-bold fs-13 text-dark mb-0">{{ $meta['label'] }}</label>
-                                                <span class="badge rounded-pill flex-shrink-0" style="background-color: #F1F5F9; color: #475569; font-size: 0.7rem;">Default: {{ $meta['value'] }}</span>
-                                            </div>
-                                            <div class="fs-12 text-muted mb-3">{{ $meta['keterangan'] }}</div>
+                            @if(($meta['group'] ?? '') === 'log_window')
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 rounded-3 h-100" style="background-color: #FAF9F6; border: 1px solid #EDE7E1;">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label for="input_{{ $key }}" class="fw-bold fs-13 text-dark mb-0">{{ $meta['label'] }}</label>
+                                            <span class="badge rounded-pill" style="background-color: #F1F5F9; color: #475569; font-size: 0.7rem;">Default: {{ $meta['value'] }} hari</span>
                                         </div>
+                                        <div class="fs-12 text-muted mb-2">{{ $meta['keterangan'] }}</div>
                                         <div class="input-group">
                                             <input
                                                 type="number"
@@ -266,14 +271,35 @@
                                                 name="{{ $key }}"
                                                 class="form-control fw-bold text-dark"
                                                 value="{{ old($key, $currentValues[$key] ?? $meta['value']) }}"
+                                                min="1"
                                                 required
                                             >
-                                            <span class="input-group-text bg-white text-muted fs-12">poin</span>
+                                            <span class="input-group-text bg-white text-muted fs-12">hari terakhir</span>
                                         </div>
                                     </div>
                                 </div>
                             @endif
                         @endforeach
+
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: #FFFDF9; border: 1px dashed #CBD5E1;">
+                                <div>
+                                    <div class="fw-bold fs-13 text-dark mb-1">
+                                        <i class="bi bi-calculator me-1" style="color: var(--brand-maroon);"></i>Pengaturan Detail Poin &amp; Bobot Algoritma
+                                    </div>
+                                    <div class="fs-12 text-muted mb-3">
+                                        Pengaturan detail bobot poin (View segmen, Like, Dislike, bonus Fakultas, dan bonus Semester) dipisahkan ke halaman khusus agar halaman utama lebih ringkas.
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="{{ route('superadmin.pengaturanPoin') }}" class="btn btn-sm rounded-pill px-3 py-1.5 text-white fw-semibold fs-12 d-inline-flex align-items-center gap-1.5" style="background-color: var(--brand-maroon);">
+                                        <i class="bi bi-sliders"></i>
+                                        <span>Buka Halaman Pengaturan Poin</span>
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -281,6 +307,7 @@
             <!-- Form Tersembunyi Reset Default -->
             <form id="formResetPengaturanSistem" action="{{ route('superadmin.pengaturanSistem.reset') }}" method="POST" class="d-none">
                 @csrf
+                <input type="hidden" name="scope" value="main">
             </form>
         </div>
     </main>
@@ -306,7 +333,7 @@
                 <div class="p-2.5 rounded-3 fs-12 text-secondary" style="background-color: #FAF8F5; border: 1px solid #EDE7E1;">
                     <div><i class="bi bi-clock me-1 text-dark"></i>Waktu diam sebelum pop-up: <strong class="text-dark" id="previewIdleTimeout">30</strong> detik</div>
                     <div><i class="bi bi-hourglass-bottom me-1 text-dark"></i>Waktu hitung mundur pop-up: <strong class="text-dark" id="previewIdleCountdown">10</strong> detik</div>
-                    <div class="mt-1 text-muted">Perubahan bobot skor akan langsung diterapkan pada urutan rekomendasi FAQ mahasiswa.</div>
+                    <div><i class="bi bi-calendar-range me-1 text-dark"></i>Rentang log rekomendasi: <strong class="text-dark" id="previewRecLogDays">30</strong> hari terakhir</div>
                 </div>
             </div>
             <div class="kms-modal-footer">
@@ -397,10 +424,13 @@
     function openSaveConfirmModal() {
         const timeoutVal = document.getElementById('input_idle_timeout_seconds')?.value || '30';
         const countdownVal = document.getElementById('input_idle_countdown_seconds')?.value || '10';
+        const logDaysVal = document.getElementById('input_rec_log_days')?.value || '30';
         const prevTimeout = document.getElementById('previewIdleTimeout');
         const prevCountdown = document.getElementById('previewIdleCountdown');
+        const prevLogDays = document.getElementById('previewRecLogDays');
         if (prevTimeout) prevTimeout.textContent = timeoutVal;
         if (prevCountdown) prevCountdown.textContent = countdownVal;
+        if (prevLogDays) prevLogDays.textContent = logDaysVal;
 
         const el = document.getElementById('modalConfirmSaveSettings');
         if (el && typeof bootstrap !== 'undefined') {

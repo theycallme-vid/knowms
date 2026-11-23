@@ -74,6 +74,10 @@
                     <i class="bi bi-people"></i>
                     <span>Pengguna &amp; Akses</span>
                 </a>
+                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
+                    <i class="bi bi-bell-fill"></i>
+                    <span>Setting Alert Call</span>
+                </a>
             </nav>
         </div>
 
@@ -274,6 +278,8 @@
                                         $schedTime    = $item->schedule_time ?? '';
                                         $schedLabel   = $item->schedule_label ?? '';
                                         $tagsJson     = json_encode($item->tags_list ?? []);
+                                        $prevVersJson = json_encode($item->previous_versions ?? []);
+                                        $hasRevision  = !empty($item->jawaban_sebelumnya) || !empty($item->catatan_revisi);
                                     @endphp
                                     <tr class="faq-row {{ $isChecked ? 'row-checked' : '' }}"
                                         data-id="{{ $item->id }}"
@@ -294,6 +300,9 @@
                                         data-full-category="{{ $item->kategori }}"
                                         data-full-tags="{{ $tagsJson }}"
                                         data-full-answer="{{ $item->jawaban }}"
+                                        data-prev-answer="{{ $item->jawaban_sebelumnya ?? '' }}"
+                                        data-revision-note="{{ $item->catatan_revisi ?? '' }}"
+                                        data-prev-versions="{{ $prevVersJson }}"
                                         data-full-source="{{ $item->sumber }}"
                                         data-full-source-type="{{ $item->sumber_type ?? 'Publik' }}"
                                         data-full-source-link="{{ $item->sumber_link ?? '' }}"
@@ -335,6 +344,12 @@
                                                             <span>Diterima &middot; Belum Diterbitkan</span>
                                                         </span>
                                                     @endif
+                                                </div>
+                                            @elseif($hasRevision)
+                                                <div class="mt-1.5">
+                                                    <span class="badge rounded-pill" style="background-color:#FEF2F2;color:#B91C1C;border:1px solid #FECACA;font-size:0.68rem;padding:0.25rem 0.65rem;font-weight:600;">
+                                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Hasil Revisi
+                                                    </span>
                                                 </div>
                                             @endif
                                         </td>
@@ -473,8 +488,27 @@
 
                 <!-- Jawaban -->
                 <div class="mb-3">
-                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Jawaban</div>
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;" id="viewModalAnswerLabel">Jawaban</div>
                     <div class="p-3 rounded-3 bg-white border fs-14 text-dark lh-lg" style="border-color: #EDE7E1 !important;" id="viewModalAnswer"></div>
+                </div>
+
+                <!-- Pembanding Revisi Sebelumnya (Jika FAQ ini hasil revisi dari penolakan) -->
+                <div class="mb-3 d-none" id="viewModalRevisionCompareWrap">
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #B91C1C; letter-spacing: 0.05em;">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Pembanding Sebelum Direvisi (Ditolak)
+                    </div>
+                    <div class="p-3 rounded-3" style="background-color: #FEF2F2; border: 1px solid #FECACA;">
+                        <div class="mb-2 d-none" id="viewModalRevisionNoteBox">
+                            <div class="fw-bold fs-12" style="color: #991B1B;">
+                                <i class="bi bi-chat-left-text-fill me-1"></i>Catatan Penolakan Validator Sebelumnya:
+                            </div>
+                            <div class="fs-13 text-dark mt-1" id="viewModalRevisionNoteText"></div>
+                        </div>
+                        <div class="d-none" id="viewModalPrevAnswerBox">
+                            <div class="fw-bold fs-12 mb-1" style="color: #991B1B;">Jawaban Sebelum Direvisi:</div>
+                            <div class="p-2.5 rounded-3 bg-white border fs-13 text-secondary lh-base" style="border-color: #FCA5A5 !important; padding: 0.65rem 0.85rem;" id="viewModalPrevAnswerText"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Kata Kunci -->
@@ -498,6 +532,14 @@
                             <i class="bi bi-eye me-1"></i>Lihat Berkas
                         </a>
                     </div>
+                </div>
+
+                <!-- Pembanding Versi Valid Sebelumnya (Misal Versi 1 yang sudah Diterima/Terbit) -->
+                <div class="mt-3 d-none" id="viewModalPrevVersionsWrap">
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">
+                        <i class="bi bi-clock-history me-1"></i>Pembanding Versi Sebelumnya
+                    </div>
+                    <div class="d-flex flex-column gap-2" id="viewModalPrevVersionsList"></div>
                 </div>
             </div>
             <div class="kms-modal-footer justify-content-between" style="padding: 0.9rem 1.4rem;">
@@ -936,6 +978,8 @@
         const version      = row.getAttribute('data-full-version');
         const question     = row.getAttribute('data-full-question');
         const answer       = row.getAttribute('data-full-answer');
+        const prevAnswer   = row.getAttribute('data-prev-answer') || '';
+        const revisionNote = row.getAttribute('data-revision-note') || '';
         const source       = row.getAttribute('data-full-source');
         const sourceType   = row.getAttribute('data-full-source-type') || 'Publik';
         const sourceLink   = row.getAttribute('data-full-source-link') || '';
@@ -956,12 +1000,82 @@
             tagsList = [];
         }
 
+        let prevVersions = [];
+        try {
+            prevVersions = JSON.parse(row.getAttribute('data-prev-versions') || '[]');
+        } catch (e) {
+            prevVersions = [];
+        }
+
         document.getElementById('viewModalCode').textContent     = code;
         document.getElementById('viewModalVersion').textContent  = version;
         document.getElementById('viewModalQuestion').textContent = question;
         document.getElementById('viewModalDe').textContent       = de;
         document.getElementById('viewModalTime').textContent     = `${date}, ${time}`;
         document.getElementById('viewModalAnswer').innerHTML     = answer;
+
+        const answerLabelEl = document.getElementById('viewModalAnswerLabel');
+        if (answerLabelEl) {
+            answerLabelEl.textContent = (prevAnswer || revisionNote)
+                ? `Jawaban (${version} · Hasil Revisi Terbaru)`
+                : `Jawaban (${version})`;
+        }
+
+        // Tampilkan Pembanding Revisi Sebelumnya (jika sempat ditolak lalu direvisi)
+        const revWrapEl = document.getElementById('viewModalRevisionCompareWrap');
+        const revNoteBoxEl = document.getElementById('viewModalRevisionNoteBox');
+        const revNoteTextEl = document.getElementById('viewModalRevisionNoteText');
+        const prevAnsBoxEl = document.getElementById('viewModalPrevAnswerBox');
+        const prevAnsTextEl = document.getElementById('viewModalPrevAnswerText');
+
+        if (revWrapEl) {
+            if (prevAnswer || revisionNote) {
+                revWrapEl.classList.remove('d-none');
+                if (revNoteBoxEl && revNoteTextEl) {
+                    if (revisionNote) {
+                        revNoteTextEl.textContent = revisionNote;
+                        revNoteBoxEl.classList.remove('d-none');
+                    } else {
+                        revNoteBoxEl.classList.add('d-none');
+                    }
+                }
+                if (prevAnsBoxEl && prevAnsTextEl) {
+                    if (prevAnswer) {
+                        prevAnsTextEl.innerHTML = prevAnswer;
+                        prevAnsBoxEl.classList.remove('d-none');
+                    } else {
+                        prevAnsBoxEl.classList.add('d-none');
+                    }
+                }
+            } else {
+                revWrapEl.classList.add('d-none');
+            }
+        }
+
+        // Tampilkan Pembanding Versi Valid Sebelumnya (misal Versi 1)
+        const prevVersWrapEl = document.getElementById('viewModalPrevVersionsWrap');
+        const prevVersListEl = document.getElementById('viewModalPrevVersionsList');
+        if (prevVersWrapEl && prevVersListEl) {
+            if (Array.isArray(prevVersions) && prevVersions.length > 0) {
+                prevVersWrapEl.classList.remove('d-none');
+                prevVersListEl.innerHTML = prevVersions.map(pv => `
+                    <div class="p-3 rounded-3" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill fw-bold" style="background-color: #85172C; color: #FFFFFF; font-size: 0.72rem; padding: 0.28rem 0.65rem;">${escapeHtmlSimple(pv.versi_label || 'Versi 1')}</span>
+                                <span class="badge rounded-pill" style="background-color: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; font-size: 0.7rem; padding: 0.25rem 0.6rem;">${escapeHtmlSimple(pv.status || 'Terbit')}</span>
+                            </div>
+                            <span class="fs-11 text-muted"><i class="bi bi-clock me-1"></i>${escapeHtmlSimple(pv.updated_at || '-')}</span>
+                        </div>
+                        <div class="p-2.5 rounded-3 bg-white border fs-13 text-dark lh-base" style="border-color: #E2E8F0 !important; padding: 0.65rem 0.85rem;">${pv.jawaban || '-'}</div>
+                        <div class="fs-11 text-muted mt-1.5"><i class="bi bi-journal-bookmark me-1"></i>Sumber: <strong class="text-dark">${escapeHtmlSimple(pv.sumber || 'Tidak ada')}</strong></div>
+                    </div>
+                `).join('');
+            } else {
+                prevVersWrapEl.classList.add('d-none');
+                prevVersListEl.innerHTML = '';
+            }
+        }
 
         // Tampilkan Kata Kunci
         const tagsContainer = document.getElementById('viewModalTagsContainer');

@@ -17,16 +17,26 @@ return new class extends Migration
                 $table->timestamps();
             });
 
-            // Sesuaikan tipe kolom upload menjadi MEDIUMBLOB sesuai ERD
-            DB::statement('ALTER TABLE tdaftarpustaka MODIFY upload MEDIUMBLOB NULL');
+            // Sesuaikan tipe kolom upload menjadi MEDIUMBLOB sesuai ERD jika di MySQL
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement('ALTER TABLE tdaftarpustaka MODIFY upload MEDIUMBLOB NULL');
+            }
         } else {
             if (!Schema::hasColumn('tdaftarpustaka', 'judul')) {
-                DB::statement('ALTER TABLE tdaftarpustaka ADD COLUMN judul VARCHAR(100) NULL AFTER id');
+                if (DB::getDriverName() === 'mysql') {
+                    DB::statement('ALTER TABLE tdaftarpustaka ADD COLUMN judul VARCHAR(100) NULL AFTER id');
+                } else {
+                    Schema::table('tdaftarpustaka', function (Blueprint $table) {
+                        $table->string('judul', 100)->nullable();
+                    });
+                }
                 DB::statement("UPDATE tdaftarpustaka SET judul = link WHERE judul IS NULL OR judul = ''");
             }
-            DB::statement('ALTER TABLE tdaftarpustaka MODIFY link VARCHAR(60) NULL');
-            if (Schema::hasColumn('tdaftarpustaka', 'type')) {
-                DB::statement('ALTER TABLE tdaftarpustaka DROP COLUMN type');
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement('ALTER TABLE tdaftarpustaka MODIFY link VARCHAR(60) NULL');
+                if (Schema::hasColumn('tdaftarpustaka', 'type')) {
+                    DB::statement('ALTER TABLE tdaftarpustaka DROP COLUMN type');
+                }
             }
         }
     }

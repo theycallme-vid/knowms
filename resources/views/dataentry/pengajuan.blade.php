@@ -425,10 +425,10 @@
                             <tbody id="faqTableBody">
                                 @forelse($faqs as $faq)
                                     @php
-                                        $latestVersion = $faq->versions->first();
+                                        $latestVersion = $faq->versions->first(fn ($v) => in_array($v->status, ['Draf', 'Ditolak', 'Menunggu Validasi'], true)) ?? $faq->versions->first();
                                         $status        = $latestVersion?->status ?? 'Draf';
                                         $stLower       = strtolower($status);
-                                        $versionCount  = max(1, $faq->versions->count());
+                                        $versionLabel  = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                         $deName        = $faq->dataEntry?->nama ?? 'Data Entry';
                                         $nextVerId     = $faq->generateNextVersionId();
                                         $canSubmit     = in_array($stLower, ['draf', 'draft', 'ditolak', 'rejected'], true);
@@ -476,7 +476,7 @@
                                         <!-- Kode / Versi -->
                                         <td>
                                             <div class="faq-code">{{ $faq->id }}</div>
-                                            <div class="faq-version">{{ \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id) }}</div>
+                                            <div class="faq-version">{{ $versionLabel }}</div>
                                         </td>
 
                                         <!-- Pertanyaan -->
@@ -919,7 +919,7 @@
 
     // Lihat Detail FAQ
     function viewFaqDetail(faqId) {
-        fetch(`{{ url('/data-entry/faq') }}/${faqId}`, {
+        fetch(`{{ url('/data-entry/faq') }}/${faqId}?source=pengajuan`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => res.json())
@@ -1130,6 +1130,9 @@
         confirmDeleteFaq(info.id, info.pertanyaan);
     }
 </script>
+
+<!-- Notifikasi Panggilan Masuk Layanan Akademik untuk Staf Unit Terpilih -->
+@include('partials.admin-incoming-call-alert')
 </body>
 </html>
 

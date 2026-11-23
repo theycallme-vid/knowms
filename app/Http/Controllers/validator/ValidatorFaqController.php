@@ -126,7 +126,9 @@ class ValidatorFaqController extends Controller
             $totalRejected  = 0;
         }
 
-        return view('validator.daftarFAQ', compact(
+        $viewName = $request->routeIs('superadmin.*') ? 'superadmin.daftarFAQ' : 'validator.daftarFAQ';
+
+        return view($viewName, compact(
             'faqs',
             'kataKunciOptions',
             'totalFaq',
@@ -200,6 +202,33 @@ class ValidatorFaqController extends Controller
                 $dp           = $targetVersion?->daftarPustaka;
                 $isFileSource = $dp ? !empty($dp->upload) : false;
 
+                $rawCatatan = trim((string) ($targetVersion?->catatan ?? ''));
+                $catatanRevisi = ($rawCatatan !== '' && !str_starts_with($rawCatatan, '[PUBLISH_SCHEDULE|'))
+                    ? $rawCatatan
+                    : null;
+
+                $previousVersions = $faq->versions
+                    ->filter(fn ($v) => $v->id !== $targetVersion?->id && in_array($v->status, ['Diterima', 'Terbit'], true))
+                    ->sort(function ($a, $b) {
+                        $numA = preg_match('/-V(\d+)$/i', (string) $a->id, $mA) ? (int) $mA[1] : 0;
+                        $numB = preg_match('/-V(\d+)$/i', (string) $b->id, $mB) ? (int) $mB[1] : 0;
+                        return $numB <=> $numA;
+                    })
+                    ->values()
+                    ->map(function ($v) {
+                        $vDp = $v->daftarPustaka;
+                        $vTs = $v->updated_at ?? $v->created_at;
+                        return [
+                            'id'          => $v->id,
+                            'versi_label' => FaqVersion::formatVersiLabel($v->id),
+                            'status'      => $v->status,
+                            'jawaban'     => $v->jawaban,
+                            'sumber'      => $vDp?->judul_tampil ?? ($vDp?->link ?? 'Tidak ada'),
+                            'updated_at'  => $vTs ? Carbon::parse($vTs)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-',
+                        ];
+                    })
+                    ->all();
+
                 return (object) [
                     'id'                  => $faq->id,
                     'kode'                => $faq->id,
@@ -208,6 +237,9 @@ class ValidatorFaqController extends Controller
                     'kategori'            => $tagNames ?: 'Belum ada kata kunci',
                     'tags_list'           => $tagsArray,
                     'jawaban'             => $targetVersion?->jawaban ?? '-',
+                    'jawaban_sebelumnya'  => $targetVersion?->jawaban_sebelumnya,
+                    'catatan_revisi'      => $catatanRevisi,
+                    'previous_versions'   => $previousVersions,
                     'sumber'              => $dp?->judul_tampil ?? 'Pedoman Akademik Kampus',
                     'sumber_id'           => $dp?->id,
                     'sumber_is_file'      => $isFileSource,
@@ -260,9 +292,11 @@ class ValidatorFaqController extends Controller
             $latest = $faq->latest_version;
             if ($latest && $latest->status === 'Menunggu Validasi') {
                 $latest->update([
-                    'status'       => 'Diterima',
-                    'id_validator' => $validatorId,
-                    'updated_at'   => now(),
+                    'status'             => 'Diterima',
+                    'id_validator'       => $validatorId,
+                    'jawaban_sebelumnya' => null,
+                    'catatan'            => null,
+                    'updated_at'         => now(),
                 ]);
                 $faq->touch();
             }
@@ -290,10 +324,11 @@ class ValidatorFaqController extends Controller
             $latest = $faq->latest_version;
             if ($latest && in_array($latest->status, ['Menunggu Validasi', 'Diterima'], true)) {
                 $latest->update([
-                    'status'       => 'Ditolak',
-                    'id_validator' => $validatorId,
-                    'catatan'      => $catatan ?: 'Perlu revisi oleh Data Entry.',
-                    'updated_at'   => now(),
+                    'status'             => 'Ditolak',
+                    'id_validator'       => $validatorId,
+                    'jawaban_sebelumnya' => $latest->jawaban,
+                    'catatan'            => $catatan ?: 'Perlu revisi oleh Data Entry.',
+                    'updated_at'         => now(),
                 ]);
                 $faq->touch();
             }
@@ -328,9 +363,11 @@ class ValidatorFaqController extends Controller
                 $latest = $faq->latest_version;
                 if ($latest && $latest->status === 'Menunggu Validasi') {
                     $latest->update([
-                        'status'       => 'Diterima',
-                        'id_validator' => $validatorId,
-                        'updated_at'   => now(),
+                        'status'             => 'Diterima',
+                        'id_validator'       => $validatorId,
+                        'jawaban_sebelumnya' => null,
+                        'catatan'            => null,
+                        'updated_at'         => now(),
                     ]);
                     $faq->touch();
                     $approvedCodes[] = $faq->id;
@@ -475,11 +512,12 @@ class ValidatorFaqController extends Controller
                     $dp = $v->daftarPustaka;
                     $isFile = $dp ? !empty($dp->upload) : false;
                     return [
-                        'id'             => $v->id,
-                        'versi_label'    => FaqVersion::formatVersiLabel($v->id),
-                        'status'         => $v->status,
-                        'jawaban'        => $v->jawaban,
-                        'catatan'        => $v->catatan,
+                        'id'                 => $v->id,
+                        'versi_label'        => FaqVersion::formatVersiLabel($v->id),
+                        'status'             => $v->status,
+                        'jawaban'            => $v->jawaban,
+                        'jawaban_sebelumnya' => $v->jawaban_sebelumnya,
+                        'catatan'            => $v->catatan,
                         'validator'      => $v->validator?->nama,
                         'daftar_pustaka' => $dp ? [
                             'id'       => $dp->id,
@@ -514,12 +552,15 @@ class ValidatorFaqController extends Controller
 
             if ($latest) {
                 $updateData = [
-                    'status'       => $request->status,
-                    'id_validator' => $validatorId,
-                    'updated_at'   => now(),
+                    'status'             => $request->status,
+                    'id_validator'       => $validatorId,
+                    'jawaban_sebelumnya' => $request->status === 'Ditolak' ? $latest->jawaban : null,
+                    'updated_at'         => now(),
                 ];
                 if ($request->filled('catatan')) {
                     $updateData['catatan'] = $request->catatan;
+                } elseif (in_array($request->status, ['Diterima', 'Terbit'], true)) {
+                    $updateData['catatan'] = null;
                 }
                 $latest->update($updateData);
                 $faq->touch();
@@ -600,7 +641,7 @@ class ValidatorFaqController extends Controller
         $tags = Tag::orderBy('nama', 'asc')->get();
         $daftarPustaka = DaftarPustaka::orderBy('id', 'desc')->get();
         $allFaqs = Faq::with(['versions', 'tags'])->orderBy('id', 'asc')->get();
-        $forceNewVersion = $request->boolean('new_version') || in_array($st, ['diterima', 'terbit', 'approved', 'active'], true);
+        $forceNewVersion = in_array($st, ['diterima', 'terbit', 'approved', 'active'], true);
 
         return view('validator.buatfaq', [
             'faq'             => $faq,
@@ -673,7 +714,6 @@ class ValidatorFaqController extends Controller
                     ->with('error', 'Peringatan: Kata Kunci wajib dilengkapi sebelum menyimpan FAQ.');
             }
 
-            $existingVersionToUpdate = null;
             if ($isExistingMode) {
                 $faq = Faq::with('versions')->findOrFail($request->existing_faq_id);
                 $faqId = $faq->id;
@@ -711,27 +751,24 @@ class ValidatorFaqController extends Controller
             }
 
             // Langsung berstatus 'Diterima' & divalidasi oleh Validator saat ini (siap diterbitkan di Validasi FAQ)
-            if ($existingVersionToUpdate) {
-                $existingVersionToUpdate->update([
-                    'tDaftarPustakas_id' => $pustakaId,
-                    'id_validator'       => $validatorId,
-                    'jawaban'            => $request->jawaban,
-                    'status'             => 'Diterima',
-                    'catatan'            => null,
-                ]);
-            } else {
-                FaqVersion::create([
-                    'id'                 => $versionId,
+            FaqVersion::updateOrCreate(
+                ['id' => $versionId],
+                [
                     'tDaftarPustakas_id' => $pustakaId,
                     'tFaqs_id'           => $faqId,
                     'id_validator'       => $validatorId,
                     'jawaban'            => $request->jawaban,
+                    'jawaban_sebelumnya' => null,
                     'status'             => 'Diterima',
                     'catatan'            => null,
-                ]);
-            }
+                ]
+            );
 
             if ($isExistingMode) {
+                FaqVersion::where('tFaqs_id', $faqId)
+                    ->where('id', '!=', $versionId)
+                    ->whereIn('status', ['Draf', 'Ditolak'])
+                    ->delete();
                 $faq->touch();
             }
 
@@ -766,8 +803,6 @@ class ValidatorFaqController extends Controller
             DB::beginTransaction();
 
             $faq = Faq::with('versions')->findOrFail($id);
-            $latest = $faq->latest_version;
-            $currentStatus = $latest ? strtolower((string) $latest->status) : 'draf';
             $validatorId = Auth::id() ?? User::where('tRoles_id', 3)->value('id') ?? 1;
 
             $similarityService = new FaqSimilarityService();
@@ -822,33 +857,25 @@ class ValidatorFaqController extends Controller
                 $pustakaId = $pustaka->id;
             }
 
-            // Buat versi baru (FAQ-0001-V2, dst.) hanya jika status sebelumnya sudah Diterima atau Terbit.
-            // Jika statusnya Ditolak (kondisi Revisi) atau Draf, tetap pertahankan nomor versi yang sama.
-            $versionAction = $request->input('version_action', 'update_draft');
-            $shouldCreateNewVersion = ($versionAction === 'new_version' && in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true))
-                || in_array($currentStatus, ['diterima', 'terbit', 'approved', 'active'], true);
-
-            if ($shouldCreateNewVersion || !$latest) {
-                $savedVersionId = $faq->generateNextVersionId();
-                FaqVersion::create([
-                    'id'                 => $savedVersionId,
+            // Nomor versi hanya bertambah jika versi sebelumnya sudah valid (Diterima / Terbit).
+            $savedVersionId = $faq->generateNextVersionId();
+            FaqVersion::updateOrCreate(
+                ['id' => $savedVersionId],
+                [
                     'tDaftarPustakas_id' => $pustakaId,
                     'tFaqs_id'           => $faq->id,
                     'id_validator'       => $validatorId,
                     'jawaban'            => $request->jawaban,
+                    'jawaban_sebelumnya' => null,
                     'status'             => 'Diterima',
                     'catatan'            => null,
-                ]);
-            } else {
-                $savedVersionId = $latest->id;
-                $latest->update([
-                    'tDaftarPustakas_id' => $pustakaId,
-                    'id_validator'       => $validatorId,
-                    'jawaban'            => $request->jawaban,
-                    'status'             => 'Diterima',
-                    'catatan'            => null,
-                ]);
-            }
+                ]
+            );
+
+            FaqVersion::where('tFaqs_id', $faq->id)
+                ->where('id', '!=', $savedVersionId)
+                ->whereIn('status', ['Draf', 'Ditolak'])
+                ->delete();
 
             $faq->tags()->sync(array_unique($tagIds));
 
@@ -1510,5 +1537,42 @@ class ValidatorFaqController extends Controller
 
         return redirect()->route('validator.sumberpustaka')
             ->with('success', "Sumber pustaka '{$nama}' berhasil dihapus.");
+    }
+
+    /**
+     * Halaman Pengaturan Unit Penerima Alert Call Layanan Akademik:
+     * Validator dapat menentukan unit/direktorat mana yang berhak menerima notifikasi panggilan suara/layanan.
+     */
+    public function pengaturanAlertCall()
+    {
+        $direktorats = \App\Models\Direktorat::with(['users' => function ($q) {
+            $q->with('role')->where('is_active', 1);
+        }])->orderBy('nama', 'asc')->get();
+
+        $selectedUnitIds = \App\Models\Setting::getAllowedCallUnitIds();
+
+        return view('validator.pengaturan-alert-call', [
+            'direktorats'     => $direktorats,
+            'selectedUnitIds' => $selectedUnitIds,
+        ]);
+    }
+
+    /**
+     * Simpan Pengaturan Unit Penerima Alert Call oleh Validator ke tabel tsettings
+     */
+    public function updatePengaturanAlertCall(Request $request)
+    {
+        $request->validate([
+            'unit_ids'   => 'required|array|min:1',
+            'unit_ids.*' => 'integer|exists:tdirektorat,id',
+        ], [
+            'unit_ids.required' => 'Pilih minimal satu unit / direktorat untuk menerima alert call.',
+            'unit_ids.min'      => 'Pilih minimal satu unit / direktorat untuk menerima alert call.',
+        ]);
+
+        \App\Models\Setting::setAllowedCallUnitIds($request->input('unit_ids', []));
+
+        return redirect()->route('validator.pengaturanAlertCall')
+            ->with('success', 'Pengaturan unit penerima alert call berhasil disimpan ke tabel pengaturan sistem (tsettings).');
     }
 }

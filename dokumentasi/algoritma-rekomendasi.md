@@ -143,12 +143,15 @@ Tabel `tsnapshots` (`App\Models\Snapshot`) dirancang untuk **rekap statistik lap
 
 ## 4. Tabel `tsettings` & Menu "Pengaturan Sistem" (Super Admin)
 
-Seluruh angka bobot di atas serta waktu *idle auto-logout* mahasiswa **tidak lagi dikunci mati di kode**, melainkan disimpan di tabel **`tsettings`** (`App\Models\Setting`) dan dapat diubah kapan saja oleh **Super Admin** melalui menu sidebar **"Pengaturan Sistem"** (`/superadmin/pengaturan-sistem`):
+Seluruh angka bobot di atas, rentang hari pembacaan log, serta waktu *idle auto-logout* mahasiswa **tidak lagi dikunci mati di kode**, melainkan disimpan di tabel **`tsettings`** (`App\Models\Setting`) dan dipisahkan menjadi 2 halaman di **Super Admin** agar ringkas:
+1. **Halaman Utama Pengaturan Sistem (`/superadmin/pengaturan-sistem`):** mengatur durasi *idle auto-logout* (`idle_timeout_seconds`, `idle_countdown_seconds`) serta rentang hari log rekomendasi (`rec_log_days`), dilengkapi tombol untuk membuka halaman pengaturan poin.
+2. **Halaman Khusus Pengaturan Poin Algoritma (`/superadmin/pengaturan-sistem/poin`):** mengatur 11 bobot poin dan bonus/penalti algoritma rekomendasi.
 
 | Key di `tsettings` | Nilai Default | Fungsi |
 | :--- | :---: | :--- |
 | `idle_timeout_seconds` | `30` detik | Waktu diam mahasiswa/guest sebelum pop-up konfirmasi muncul |
 | `idle_countdown_seconds` | `10` detik | Durasi hitung mundur pada pop-up sebelum otomatis logout ke Portal |
+| `rec_log_days` | `30` hari | Rentang waktu log interaksi terbaru (`waktu_pencarian >= N hari terakhir`) yang dihitung untuk rekomendasi FAQ |
 | `rec_weight_exact` | `10` | Bobot per 1x View dari Fakultas + Angkatan yang sama persis |
 | `rec_weight_angkatan` | `5` | Bobot per 1x View dari Angkatan yang sama |
 | `rec_weight_fakultas` | `4` | Bobot per 1x View dari Fakultas yang sama |
