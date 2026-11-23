@@ -625,6 +625,31 @@ body {
     border-color: #F8D7DA;
 }
 
+.btn-action,
+.btn-action-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.42rem 0.9rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 8px;
+    background-color: var(--brand-maroon-soft);
+    color: var(--brand-maroon);
+    border: 1px solid #F8D4D8;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-action-edit:hover:not(:disabled) {
+    background-color: #F8D7DA;
+    color: var(--brand-maroon-hover);
+    border-color: #F1B0B7;
+}
+
 .btn-action-danger {
     color: #DC2626;
     background-color: #FEF2F2;

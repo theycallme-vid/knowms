@@ -256,7 +256,7 @@
                                         </td>
                                         <td style="text-align: right;">
                                             <div class="d-inline-flex align-items-center gap-2">
-                                                <button type="button" class="btn-table-edit" onclick="openEditTagModal('{{ $tag->id }}', '{{ addslashes($tag->nama) }}')">
+                                                <button type="button" class="btn-action btn-action-edit" onclick="openEditTagModal('{{ $tag->id }}', '{{ addslashes($tag->nama) }}')">
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
                                                 <form action="{{ route('validator.katakunci.destroy', $tag->id) }}" method="POST" id="del-tag-{{ $tag->id }}" class="d-inline">

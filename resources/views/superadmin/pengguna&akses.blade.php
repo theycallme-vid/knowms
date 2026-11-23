@@ -483,10 +483,11 @@
                                         <div class="d-inline-flex align-items-center gap-1">
                                             <!-- Edit Info Button -->
                                             <button type="button" 
-                                                    class="btn-action-icon" 
-                                                    title="Edit Keterangan Pengguna"
+                                                    class="btn-action btn-action-edit" 
+                                                    title="Ubah Keterangan Pengguna"
                                                     onclick="openEditModal(this)">
                                                 <i class="bi bi-pencil"></i>
+                                                <span>Ubah</span>
                                             </button>
 
                                             <!-- Assign / Add Role Button -->

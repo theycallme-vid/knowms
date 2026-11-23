@@ -303,14 +303,14 @@ body {
     color: #FFFFFF;
     border: none;
     border-radius: 8px;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.05rem;
     font-size: 0.8125rem;
     font-weight: 600;
     transition: background-color 0.2s ease, transform 0.1s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     width: auto;
     text-decoration: none;
     white-space: nowrap;
@@ -465,8 +465,8 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.85rem;
+    gap: 0.5rem;
+    padding: 0.42rem 0.9rem;
     font-size: 0.8125rem;
     font-weight: 600;
     border-radius: 8px;
@@ -968,7 +968,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.5rem;
     width: auto;
     transition: all 0.15s ease;
     text-decoration: none;
@@ -1105,30 +1105,34 @@ body {
 .btn-table-edit {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.65rem;
-    font-size: 0.72rem;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.42rem 0.9rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: #334155;
-    background-color: #FFFFFF;
-    border: 1px solid #CBD5E1;
+    color: var(--brand-maroon);
+    background-color: var(--brand-maroon-soft);
+    border: 1px solid #F8D4D8;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
-.btn-table-edit:hover {
-    background-color: #F8FAFC;
-    border-color: #94A3B8;
-    color: #0F172A;
+.btn-table-edit:hover:not(:disabled) {
+    background-color: #F8D7DA;
+    border-color: #F1B0B7;
+    color: var(--brand-maroon-hover);
 }
 
 .btn-table-delete {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.65rem;
-    font-size: 0.72rem;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.42rem 0.9rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: #DC2626;
     background-color: #FFFFFF;
@@ -1136,6 +1140,8 @@ body {
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
 .btn-table-delete:hover {
@@ -1806,4 +1812,178 @@ body {
 .source-option:hover {
     border-color: var(--brand-maroon) !important;
     background-color: #FFF9FA;
+}
+
+/* ── Modal Edit Pratinjau FAQ: Kata Kunci Search & Pill Layout ── */
+.modal-tag-selected-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.625rem 0.85rem;
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    margin-bottom: 0.65rem;
+}
+
+.modal-tag-selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.65rem 0.3rem 0.8rem;
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.modal-tag-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
+    background-color: rgba(29, 78, 216, 0.12);
+    color: #1D4ED8;
+    font-size: 0.7rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.modal-tag-remove-btn:hover {
+    background-color: #DC2626;
+    color: #FFFFFF;
+}
+
+.modal-tag-library-box {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 0.9rem;
+}
+
+.modal-tag-search-wrap {
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.modal-tag-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.95rem;
+    transform: translateY(-50%);
+    color: #64748B;
+    font-size: 0.92rem;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.modal-tag-search-input {
+    width: 100%;
+    height: 44px;
+    padding: 0.55rem 1rem 0.55rem 2.65rem;
+    font-size: 0.85rem;
+    color: #1E293B;
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.modal-tag-search-input::placeholder {
+    color: #94A3B8;
+}
+
+.modal-tag-search-input:focus {
+    outline: none;
+    border-color: var(--brand-maroon);
+    box-shadow: 0 0 0 3px rgba(133, 23, 44, 0.1);
+}
+
+.modal-tag-library-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #64748B;
+}
+
+.modal-tag-choices-scroll {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0.5rem;
+    max-height: 170px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+}
+
+.modal-tag-choices-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-tag-choices-scroll::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 9999px;
+}
+
+.modal-tag-choices-scroll::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 9999px;
+}
+
+.modal-tag-choice-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.36rem 0.82rem;
+    background-color: #FFFFFF;
+    color: #334155;
+    border: 1px solid #CBD5E1;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.25;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.modal-tag-choice-pill i {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.modal-tag-choice-pill:hover {
+    border-color: var(--brand-maroon);
+    color: var(--brand-maroon);
+    background-color: #FFF8F9;
+}
+
+.modal-tag-choice-pill.is-selected {
+    background-color: var(--brand-maroon);
+    color: #FFFFFF;
+    border-color: var(--brand-maroon);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(133, 23, 44, 0.22);
+}
+
+.modal-tag-choice-pill.is-selected:hover {
+    background-color: var(--brand-maroon-hover);
+    color: #FFFFFF;
+    border-color: var(--brand-maroon-hover);
 }

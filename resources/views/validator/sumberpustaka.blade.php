@@ -307,21 +307,21 @@
                                             <div class="d-inline-flex align-items-center gap-2">
                                                 @if($isFile)
                                                     <button type="button"
-                                                            class="btn-table-edit"
+                                                            class="btn-action btn-action-view"
                                                             onclick="openViewPustakaModal('{{ route('validator.pustaka.view', $p->id) }}', '{{ route('validator.pustaka.download', $p->id) }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}')">
                                                         <i class="bi bi-eye"></i> Lihat
                                                     </button>
-                                                    <a href="{{ route('validator.pustaka.download', $p->id) }}" class="btn-table-edit text-decoration-none">
+                                                    <a href="{{ route('validator.pustaka.download', $p->id) }}" class="btn-action btn-action-view text-decoration-none">
                                                         <i class="bi bi-download"></i> Unduh
                                                     </a>
                                                 @elseif(str_starts_with((string) $p->link, 'http://') || str_starts_with((string) $p->link, 'https://'))
-                                                    <a href="{{ $p->link }}" target="_blank" class="btn-table-edit text-decoration-none">
+                                                    <a href="{{ $p->link }}" target="_blank" class="btn-action btn-action-view text-decoration-none">
                                                         <i class="bi bi-eye"></i> Lihat
                                                     </a>
                                                 @endif
 
                                                 <button type="button"
-                                                        class="btn-table-edit"
+                                                        class="btn-action btn-action-edit"
                                                         onclick="openEditPustakaModal('{{ $p->id }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}', {{ $isFile ? 'true' : 'false' }})">
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
