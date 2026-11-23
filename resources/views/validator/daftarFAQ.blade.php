@@ -463,11 +463,9 @@
                         <tbody>
                             @forelse($faqs as $faq)
                                 @php
-                                    $rawLatestVersion = $faq->versions->first();
-                                    $terbitFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
-                                    $latestVersion = $terbitFaqVersion ?? $rawLatestVersion;
+                                    $latestVersion = $faq->versions->first();
                                     $status        = $latestVersion?->status ?? 'Draf';
-                                    $versionCount  = max(1, $faq->versions->count());
+                                    $versiLabel    = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                     $de            = $faq->dataEntry;
                                     $statusClass   = match($status) {
                                         'Diterima'          => 'badge-approved',
@@ -490,13 +488,13 @@
                                         'Ditolak'           => 'bi-x-circle-fill',
                                         default             => 'bi-pencil',
                                     };
-                                    $createdAtJkt  = $faq->created_at ? $faq->created_at->timezone('Asia/Jakarta') : null;
+                                    $createdAtJkt  = ($latestVersion?->updated_at ?? $latestVersion?->created_at ?? $faq->updated_at ?? $faq->created_at)?->timezone('Asia/Jakarta');
                                 @endphp
                                 <tr>
                                     <!-- Kode / Versi -->
                                     <td>
                                         <div class="faq-code">{{ $faq->id }}</div>
-                                        <div class="faq-version">Versi {{ $versionCount }}</div>
+                                        <div class="faq-version">{{ $versiLabel }}</div>
                                     </td>
 
                                     <!-- Pertanyaan + Tags -->
@@ -569,6 +567,7 @@
 
                                     @php
                                         $nextVerId = $faq->generateNextVersionId();
+                                        $stValLower = strtolower((string) $status);
                                     @endphp
                                     <!-- Aksi (Lihat & Ubah) -->
                                     <td class="text-end pe-4">
@@ -576,8 +575,8 @@
                                             <button type="button" class="btn-action btn-action-view" onclick="viewValidatorFaqDetail('{{ $faq->id }}')">
                                                 <i class="bi bi-eye"></i> Lihat
                                             </button>
-                                            <a href="{{ route('validator.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Ubah / Buat Versi Baru ({{ $nextVerId }})">
-                                                <i class="bi bi-pencil"></i> Ubah
+                                            <a href="{{ route('validator.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="{{ in_array($stValLower, ['ditolak', 'rejected'], true) ? 'Revisi FAQ (' . ($latestVersion?->id ?? ($faq->id . '-V1')) . ')' : 'Ubah / Buat Versi Baru (' . $nextVerId . ')' }}">
+                                                <i class="bi bi-pencil"></i> {{ in_array($stValLower, ['ditolak', 'rejected'], true) ? 'Revisi' : 'Ubah' }}
                                             </a>
                                         </div>
                                     </td>
@@ -670,7 +669,7 @@
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">

@@ -413,7 +413,7 @@
                     @else
                         <div class="pagination-bar">
                             <span>
-                                Menampilkan {{ $queueItems->count() }} dari {{ $totalWaiting }} FAQ &middot; 6 FAQ per halaman
+                                Menampilkan {{ $queueItems->count() }} dari {{ $queueItems->total() }} FAQ &middot; 6 FAQ per halaman
                             </span>
                             <div class="d-flex gap-1 align-items-center">
                                 <span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>
@@ -543,7 +543,7 @@
                 @csrf
                 <div class="kms-modal-body">
                     <div class="p-2.5 rounded-3 border bg-light mb-3" style="padding: 0.65rem 0.85rem;">
-                        <div class="fw-bold fs-12 text-dark" id="singleRejectCode">FAQ-0245</div>
+                        <div class="fw-bold fs-12 text-dark" id="singleRejectCode">FAQ-0001</div>
                         <div class="fs-12 text-muted mt-0.5" id="singleRejectQuestion"></div>
                     </div>
                     <div>

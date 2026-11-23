@@ -450,12 +450,10 @@
                         <tbody>
                             @forelse($faqs as $faq)
                                 @php
-                                    $rawLatestVersion = $faq->versions->first();
-                                    $terbitFaqVersion = $faq->versions->first(fn ($v) => strtolower((string) $v->status) === 'terbit');
-                                    $latestVersion = $terbitFaqVersion ?? $rawLatestVersion;
+                                    $latestVersion = $faq->versions->first();
                                     $status        = $latestVersion?->status ?? 'Draf';
                                     $stLower       = strtolower($status);
-                                    $versionCount  = max(1, $faq->versions->count());
+                                    $versiLabel    = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                     $de            = $faq->dataEntry;
                                     $nextVerId     = $faq->generateNextVersionId();
                                     $statusClass   = match($status) {
@@ -479,20 +477,20 @@
                                         'Ditolak'           => 'bi-x-circle-fill',
                                         default             => 'bi-pencil',
                                     };
-                                    $createdAtJkt  = $faq->created_at ? $faq->created_at->timezone('Asia/Jakarta') : null;
+                                    $createdAtJkt  = ($latestVersion?->updated_at ?? $latestVersion?->created_at ?? $faq->updated_at ?? $faq->created_at)?->timezone('Asia/Jakarta');
                                 @endphp
                                 <tr>
                                     <!-- Kode / Versi -->
                                     <td>
                                         <div class="faq-code">{{ $faq->id }}</div>
-                                        <div class="faq-version">Versi {{ $versionCount }}</div>
+                                        <div class="faq-version">{{ $versiLabel }}</div>
                                     </td>
 
                                     <!-- Pertanyaan + Tags -->
                                     <td>
                                         <div class="d-flex align-items-center gap-1.5">
                                             <div class="faq-question">{{ Str::limit($faq->pertanyaan, 85) }}</div>
-                                            @if($stLower === 'rejected' && $latestVersion && $latestVersion->catatan)
+                                            @if(in_array($stLower, ['ditolak', 'rejected'], true) && $latestVersion && $latestVersion->catatan)
                                                 <span class="revisi-note-icon ms-1"
                                                       data-bs-toggle="tooltip"
                                                       data-bs-placement="right"
@@ -574,16 +572,20 @@
                                                 <i class="bi bi-eye"></i> Lihat
                                             </button>
 
-                                            @if(in_array($stLower, ['menunggu validasi', 'diterima', 'submitted', 'approved'], true))
+                                            @if(in_array($stLower, ['menunggu validasi', 'submitted'], true))
                                                 <button type="button"
                                                         class="btn-action btn-action-edit action-icon-disabled"
                                                         style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
-                                                        title="{{ in_array($stLower, ['diterima', 'approved'], true) ? 'Terkunci — Tidak dapat diubah saat status Diterima sebelum Terbit' : 'Terkunci — Tidak dapat diubah saat status Menunggu Validasi' }}"
+                                                        title="Terkunci — Tidak dapat diubah saat status Menunggu Validasi"
                                                         disabled>
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
+                                            @elseif(in_array($stLower, ['ditolak', 'rejected'], true))
+                                                <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Revisi FAQ ({{ $latestVersion?->id ?? ($faq->id . '-V1') }})">
+                                                    <i class="bi bi-pencil"></i> Revisi
+                                                </a>
                                             @else
-                                                <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Ubah / Buat Versi Baru ({{ $nextVerId }})">
+                                                <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Tambah Versi Jawaban Baru ({{ $nextVerId }})">
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </a>
                                             @endif
@@ -678,7 +680,7 @@
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">

@@ -21,6 +21,172 @@
     <!-- Validator & Data Entry CSS (Referensi Antrean Validasi) -->
     <link rel="stylesheet" href="{{ asset('css/validator/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
+
+    <style>
+        div.swal2-popup.kms-pengajuan-view-modal {
+            width: 880px !important;
+            max-width: 95vw !important;
+            height: auto !important;
+            max-height: 88vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            padding: 1.35rem 1.5rem 1.25rem 1.5rem !important;
+            position: relative !important;
+            border-radius: 18px !important;
+        }
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-title:empty,
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-actions {
+            display: none !important;
+        }
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-close {
+            position: absolute !important;
+            top: 0.9rem !important;
+            right: 1rem !important;
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            background-color: #F8FAFC !important;
+            color: #64748B !important;
+            font-size: 1.3rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 15 !important;
+        }
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-html-container {
+            flex: 0 1 auto !important;
+            max-height: calc(88vh - 2.6rem) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            margin: 0 !important;
+            padding: 0.1rem 0.45rem 0.1rem 0.1rem !important;
+        }
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-html-container::-webkit-scrollbar {
+            width: 7px;
+        }
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-html-container::-webkit-scrollbar-track {
+            background: #F4F1EC;
+            border-radius: 999px;
+        }
+        div.swal2-popup.kms-pengajuan-view-modal .swal2-html-container::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 999px;
+        }
+        .kms-ver-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+        .kms-ver-item {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .kms-ver-item.is-latest {
+            border-color: #E5B8C0;
+        }
+        .kms-ver-trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.7rem 1rem;
+            background-color: #FFFFFF;
+            border: 0;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        .kms-ver-trigger:hover {
+            background-color: #FAF8F5;
+        }
+        .kms-ver-trigger:not(.collapsed) {
+            background-color: #FDF9F9;
+            border-bottom: 1px solid #F1EDE7;
+        }
+        .kms-ver-left {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.55rem;
+            min-width: 0;
+        }
+        .kms-ver-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #334155;
+            color: #FFFFFF;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.78rem;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .kms-ver-item.is-latest .kms-ver-badge {
+            background-color: #85172C;
+        }
+        .kms-ver-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.77rem;
+            font-weight: 500;
+            color: #475569;
+        }
+        .kms-ver-current-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background-color: #ECFDF5;
+            color: #059669;
+            border: 1px solid #A7F3D0;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.65rem;
+            border-radius: 999px;
+        }
+        .kms-ver-chevron {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background-color: #F4F1EC;
+            color: #64748B;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, background-color 0.15s ease, color 0.15s ease;
+        }
+        .kms-ver-trigger:not(.collapsed) .kms-ver-chevron {
+            transform: rotate(180deg);
+            background-color: #FCECEF;
+            color: #85172C;
+        }
+        .kms-ver-body {
+            padding: 0.85rem 1rem 0.95rem 1rem;
+            background-color: #FFFFFF;
+        }
+        .kms-ver-sublabel {
+            font-size: 0.69rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #85172C;
+            margin-bottom: 0.35rem;
+        }
+        .kms-ver-answer {
+            background-color: #FAF9F6;
+            border: 1px solid #EDE7E1;
+            border-radius: 10px;
+            padding: 0.75rem 0.9rem;
+            font-size: 0.84rem;
+            line-height: 1.6;
+            color: #1E293B;
+        }
+    </style>
 </head>
 <body>
 
@@ -310,13 +476,13 @@
                                         <!-- Kode / Versi -->
                                         <td>
                                             <div class="faq-code">{{ $faq->id }}</div>
-                                            <div class="faq-version">Versi {{ $versionCount }}</div>
+                                            <div class="faq-version">{{ \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id) }}</div>
                                         </td>
 
                                         <!-- Pertanyaan -->
                                         <td>
                                             <div class="faq-question">{{ $faq->pertanyaan }}</div>
-                                            @if($stLower === 'rejected' && $latestVersion && $latestVersion->catatan)
+                                            @if(in_array($stLower, ['ditolak', 'rejected'], true) && $latestVersion && $latestVersion->catatan)
                                                 <div class="mt-1">
                                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-normal">
                                                         <i class="bi bi-exclamation-circle me-1"></i>Catatan Revisi: {{ \Illuminate\Support\Str::limit($latestVersion->catatan, 65) }}
@@ -365,8 +531,13 @@
                                                         <i class="bi bi-pencil"></i>
                                                         <span>Ubah</span>
                                                     </button>
+                                                @elseif(in_array($stLower, ['ditolak', 'rejected'], true))
+                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Revisi FAQ ({{ $latestVersion?->id ?? ($faq->id . '-V1') }})">
+                                                        <i class="bi bi-pencil"></i>
+                                                        <span>Revisi</span>
+                                                    </a>
                                                 @else
-                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none">
+                                                    <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Ubah Draf FAQ ({{ $latestVersion?->id ?? ($faq->id . '-V1') }})">
                                                         <i class="bi bi-pencil"></i>
                                                         <span>Ubah</span>
                                                     </a>
@@ -481,7 +652,7 @@
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -800,31 +971,52 @@
 
                 let versionsHistoryHtml = '';
                 if (d.versions && d.versions.length > 0) {
+                    const getVerNum = (ver) => {
+                        const m = String(ver?.id || ver?.versi_label || '').match(/(\d+)\s*$/);
+                        return m ? parseInt(m[1], 10) : 1;
+                    };
+                    const sortedVersions = [...d.versions].sort((a, b) => getVerNum(b) - getVerNum(a));
+
                     versionsHistoryHtml = `
                         <div style="margin-top: 0.25rem;">
                             <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.5rem;">Riwayat Versi Jawaban</div>
-                            <div class="rounded-3 overflow-auto" style="border: 1px solid #EDE7E1; max-height: 210px;">
-                                <table class="table table-sm mb-0 align-middle" style="font-size: 0.83rem;">
-                                    <thead style="background-color: #FBF9F7; border-bottom: 1px solid #EDE7E1; position: sticky; top: 0; z-index: 1;">
-                                        <tr>
-                                            <th class="text-secondary fw-semibold" style="width: 115px; font-size: 0.74rem; padding: 0.7rem 1rem;">Versi</th>
-                                            <th class="text-secondary fw-semibold" style="font-size: 0.74rem; padding: 0.7rem 1rem;">Jawaban Versi Tersebut</th>
-                                            <th class="text-secondary fw-semibold" style="width: 155px; font-size: 0.74rem; padding: 0.7rem 1rem;">Diperbarui</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${d.versions.map(v => {
-                                            const versiLabel = v.versi_label || formatVersiCode(v.id);
-                                            return `
-                                                <tr style="border-bottom: 1px solid #F3EFEA;">
-                                                    <td class="fw-bold text-nowrap" style="color: #85172C; padding: 0.8rem 1rem;">${versiLabel}</td>
-                                                    <td class="text-dark" style="line-height: 1.55; word-break: break-word; padding: 0.8rem 1rem;">${v.jawaban || '-'}</td>
-                                                    <td class="text-secondary text-nowrap" style="font-size: 0.77rem; padding: 0.8rem 1rem;">${v.updated_at || '-'}</td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
+                            <div class="kms-ver-list" id="kmsPengajuanVersionsAccordion">
+                                ${sortedVersions.map((v, idx) => {
+                                    const versiLabel = v.versi_label || formatVersiCode(v.id);
+                                    const isCurrent = (latest && latest.id && v.id === latest.id) || (!latest?.id && idx === 0);
+                                    const collapseId = `kmsPengajuanVerCollapse_${idx}`;
+                                    return `
+                                        <div class="kms-ver-item ${isCurrent ? 'is-latest' : ''}">
+                                            <button type="button"
+                                                    class="kms-ver-trigger collapsed"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#${collapseId}"
+                                                    aria-expanded="false"
+                                                    aria-controls="${collapseId}">
+                                                <div class="kms-ver-left">
+                                                    <span class="kms-ver-badge">${versiLabel}</span>
+                                                    <span class="kms-ver-time">
+                                                        <i class="bi bi-clock"></i>
+                                                        <span>${v.updated_at || '-'}</span>
+                                                    </span>
+                                                    ${isCurrent ? `<span class="kms-ver-current-pill"><i class="bi bi-check-circle-fill"></i><span>Versi Saat Ini</span></span>` : ''}
+                                                </div>
+                                                <span class="kms-ver-chevron" aria-hidden="true">
+                                                    <i class="bi bi-chevron-down"></i>
+                                                </span>
+                                            </button>
+                                            <div id="${collapseId}" class="collapse" data-bs-parent="#kmsPengajuanVersionsAccordion">
+                                                <div class="kms-ver-body">
+                                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                                        <div class="kms-ver-sublabel mb-0">Jawaban</div>
+                                                        ${v.status ? `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.7rem;padding:0.25rem 0.65rem;">Status: ${v.status}</span>` : ''}
+                                                    </div>
+                                                    <div class="kms-ver-answer">${v.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     `;
@@ -836,6 +1028,7 @@
                 };
 
                 const canModalAction = ['draf', 'draft', 'ditolak', 'rejected'].includes(rawSt);
+                const editUrl = `{{ url('/data-entry/faq') }}/${encodeURIComponent(d.id)}/edit`;
                 const modalFooterActionsHtml = canModalAction
                     ? `
                         <div class="d-flex justify-content-end align-items-center gap-2 pt-3 mt-3" style="border-top: 1px solid #EDE7E1;">
@@ -843,6 +1036,10 @@
                                 <i class="bi bi-send-check"></i>
                                 <span>Ajukan</span>
                             </button>
+                            <a href="${editUrl}" class="btn-action btn-action-edit text-decoration-none">
+                                <i class="bi bi-pencil"></i>
+                                <span>Revisi</span>
+                            </a>
                             <button type="button" class="btn-action-pill btn-pill-rejected" onclick="handleModalHapusFaq()">
                                 <i class="bi bi-trash3"></i>
                                 <span>Hapus</span>
@@ -855,6 +1052,10 @@
                                 <i class="bi bi-send-check"></i>
                                 <span>Ajukan</span>
                             </button>
+                            <button type="button" class="btn-action btn-action-edit action-icon-disabled" style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border: 1px solid #CBD5E1;" title="Terkunci — Sedang Menunggu Validasi" disabled>
+                                <i class="bi bi-pencil"></i>
+                                <span>Revisi</span>
+                            </button>
                             <button type="button" class="btn-action-pill" style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border: 1px solid #CBD5E1;" title="Tidak dapat dihapus — Sedang Menunggu Validasi" disabled>
                                 <i class="bi bi-trash3"></i>
                                 <span>Hapus</span>
@@ -866,7 +1067,7 @@
                     title: '',
                     html: `
                         <div class="text-start" style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1E293B;">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-bottom: 1px solid #EDE7E1; padding: 0 3rem 0.95rem 0; margin-bottom: 1.15rem;">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-bottom: 1px solid #EDE7E1; padding: 0 2.75rem 0.85rem 0; margin-bottom: 1rem;">
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="badge rounded-pill fw-bold" style="background-color: #85172C; color: #FFFFFF; font-size: 0.78rem; padding: 0.42rem 0.9rem;">${d.id}</span>
                                     ${statusBadge}
@@ -880,16 +1081,16 @@
 
                             ${catatanHtml}
 
-                            <div style="margin-bottom: 1.1rem;">
-                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Pertanyaan</div>
-                                <div class="rounded-3 fw-semibold text-dark" style="background-color: #FFFDFB; border: 1px solid #EDE7E1; font-size: 0.94rem; line-height: 1.55; padding: 0.85rem 1.05rem;">
+                            <div style="margin-bottom: 0.95rem;">
+                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.4rem;">Pertanyaan</div>
+                                <div class="rounded-3 fw-semibold text-dark" style="background-color: #FFFDFB; border: 1px solid #EDE7E1; font-size: 0.93rem; line-height: 1.55; padding: 0.8rem 1rem;">
                                     ${d.pertanyaan || '-'}
                                 </div>
                             </div>
 
-                            <div style="margin-bottom: 1.1rem;">
-                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Jawaban (${formatVersiCode(latest.id || (d.id + '-V1'))})</div>
-                                <div class="rounded-3 bg-white text-dark" style="border: 1px solid #EDE7E1; font-size: 0.89rem; max-height: 165px; overflow-y: auto; line-height: 1.65; padding: 0.9rem 1.05rem;">
+                            <div style="margin-bottom: 0.95rem;">
+                                <div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.4rem;">Jawaban (${formatVersiCode(latest.id || (d.id + '-V1'))})</div>
+                                <div class="rounded-3 bg-white text-dark" style="border: 1px solid #EDE7E1; font-size: 0.88rem; max-height: 165px; overflow-y: auto; line-height: 1.62; padding: 0.85rem 1rem;">
                                     ${latest.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}
                                 </div>
                             </div>
@@ -903,11 +1104,11 @@
                             ${modalFooterActionsHtml}
                         </div>
                     `,
-                    width: '820px',
+                    width: '880px',
                     showCloseButton: true,
                     showConfirmButton: false,
                     customClass: {
-                        popup: 'rounded-4 shadow-lg border-0 kms-view-modal'
+                        popup: 'rounded-4 shadow-lg border-0 kms-pengajuan-view-modal'
                     }
                 });
             }

@@ -173,7 +173,7 @@
                 $defaultMode = (!$isEditing && isset($selectedExistingFaq) && $selectedExistingFaq) ? 'existing' : 'new';
 
                 if ($isEditing) {
-                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['ditolak', 'diterima', 'terbit', 'rejected', 'approved', 'active']);
+                    $shouldCreateNewVerByDefault = ($forceNewVersion ?? false) || in_array($faqStatus, ['diterima', 'terbit', 'approved', 'active'], true);
                     $displayFaqId = $faq->id;
                     $displayVersionId = $shouldCreateNewVerByDefault
                         ? ($nextVersionId ?? $faq->generateNextVersionId())
@@ -206,7 +206,7 @@
                     <div>
                         <div class="fw-bold fs-12 text-uppercase mb-1">Catatan Revisi dari Validator</div>
                         <div class="fs-13 text-dark">{{ $latestVer->catatan }}</div>
-                        <div class="fs-11 text-danger mt-1">FAQ ini akan diajukan ulang sebagai versi jawaban baru: <strong>{{ $nextVersionId ?? $faq->generateNextVersionId() }}</strong>.</div>
+                        <div class="fs-11 text-danger mt-1">FAQ ini dalam kondisi <strong>Revisi</strong> dan tetap menggunakan versi: <strong>{{ $displayVersionId }} (Versi {{ $displayVerNum }})</strong>.</div>
                     </div>
                 </div>
             @endif
@@ -276,16 +276,22 @@
                                                 $nextVNum = (int) preg_replace('/.*-V/i', '', $nextVId) ?: 2;
                                                 $fTags = $fItem->tags->pluck('nama')->implode(',');
                                                 $fLatestSt = strtolower((string) ($fItem->latest_version?->status ?? 'draf'));
-                                                $isWaitingVal = in_array($fLatestSt, ['menunggu validasi', 'submitted'], true);
+                                                $canAddNewVer = in_array($fLatestSt, ['diterima', 'terbit', 'approved', 'active'], true);
+                                                $optionSuffix = match(true) {
+                                                    in_array($fLatestSt, ['menunggu validasi', 'submitted'], true) => '(Sedang Menunggu Validasi)',
+                                                    in_array($fLatestSt, ['ditolak', 'rejected'], true)            => '(Status Ditolak — Silakan Revisi)',
+                                                    in_array($fLatestSt, ['draf', 'draft'], true)                  => '(Status Draf — Belum Diterima/Terbit)',
+                                                    default                                                        => '(Versi ' . $nextVNum . ')',
+                                                };
                                             @endphp
                                             <option value="{{ $fItem->id }}"
                                                     data-pertanyaan="{{ e($fItem->pertanyaan) }}"
                                                     data-next-version-id="{{ $nextVId }}"
                                                     data-next-version-num="{{ $nextVNum }}"
                                                     data-tags="{{ e($fTags) }}"
-                                                    {{ $isWaitingVal ? 'disabled' : '' }}
-                                                    {{ (isset($selectedExistingFaq) && $selectedExistingFaq && $selectedExistingFaq->id === $fItem->id && !$isWaitingVal) ? 'selected' : '' }}>
-                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} {{ $isWaitingVal ? '(Sedang Menunggu Validasi)' : '(Versi ' . $nextVNum . ')' }}
+                                                    {{ !$canAddNewVer ? 'disabled' : '' }}
+                                                    {{ (isset($selectedExistingFaq) && $selectedExistingFaq && $selectedExistingFaq->id === $fItem->id && $canAddNewVer) ? 'selected' : '' }}>
+                                                {{ $fItem->id }} — {{ \Illuminate\Support\Str::limit($fItem->pertanyaan, 75) }} {{ $optionSuffix }}
                                             </option>
                                         @endforeach
                                     @endif
@@ -535,7 +541,7 @@
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
-                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong></div>
+                        <div>Kolom A: <strong>Pertanyaan</strong> &middot; Kolom B: <strong>Jawaban</strong> &middot; Kolom C: <strong>Kata Kunci</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
