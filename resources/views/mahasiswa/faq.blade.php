@@ -1613,5 +1613,14 @@
 
 @include('partials.faq-google-search', ['part' => 'script'])
 
+<!-- Tombol Navigasi Melayang: Hubungi Admin Akademik -->
+<a href="{{ route('layanan.kontak') }}"
+   class="fab-contact-admin"
+   aria-label="Hubungi Admin Akademik (Telepon)"
+   title="Hubungi Admin Akademik">
+    <i class="bi bi-telephone-fill fs-5" aria-hidden="true"></i>
+    <span class="fab-contact-label">Hubungi Admin</span>
+</a>
+
 </body>
 </html>

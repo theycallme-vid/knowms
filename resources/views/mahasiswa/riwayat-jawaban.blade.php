@@ -546,6 +546,15 @@
     </div>
 </footer>
 
+<!-- Tombol Navigasi Melayang: Hubungi Admin Akademik -->
+<a href="{{ route('layanan.kontak') }}"
+   class="fab-contact-admin"
+   aria-label="Hubungi Admin Akademik (Telepon)"
+   title="Hubungi Admin Akademik">
+    <i class="bi bi-telephone-fill fs-5" aria-hidden="true"></i>
+    <span class="fab-contact-label">Hubungi Admin</span>
+</a>
+
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

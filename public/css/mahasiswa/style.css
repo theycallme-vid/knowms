@@ -567,3 +567,72 @@ body {
         width: 100%;
     }
 }
+
+/* ========================================================================= */
+/* FLOATING ACTION BUTTON: HUBUNGI ADMIN AKADEMIK                            */
+/* ========================================================================= */
+.fab-contact-admin {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1040;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(133, 23, 44, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #FFFFFF;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(133, 23, 44, 0.25);
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fab-contact-admin:hover,
+.fab-contact-admin:focus-visible {
+    background: rgba(133, 23, 44, 0.96);
+    color: #FFFFFF;
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 12px 28px rgba(133, 23, 44, 0.35);
+    outline: none;
+}
+
+.fab-contact-admin:focus-visible {
+    box-shadow: 0 0 0 3px rgba(133, 23, 44, 0.35), 0 12px 28px rgba(133, 23, 44, 0.35);
+}
+
+.fab-contact-label {
+    position: absolute;
+    right: calc(100% + 10px);
+    background: rgba(23, 26, 31, 0.88);
+    color: #FFFFFF;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.fab-contact-admin:hover .fab-contact-label,
+.fab-contact-admin:focus-visible .fab-contact-label {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+@media (max-width: 576px) {
+    .fab-contact-admin {
+        right: 16px;
+        bottom: 16px;
+        width: 50px;
+        height: 50px;
+    }
+}
