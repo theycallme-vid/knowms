@@ -21,67 +21,19 @@
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
 </head>
 <body>
+@php
+    $valAuthUser = auth()->user();
+    if ($valAuthUser) {
+        $valAuthUser->loadMissing(['role', 'direktorat']);
+    }
+    $isUnitVal    = $valAuthUser ? $valAuthUser->isValidatorUnit() : false;
+    $valPrefix    = $isUnitVal ? 'validator.unit.' : 'validator.';
+    $valUrlPrefix = $isUnitVal ? url('/validator-unit') : url('/validator');
+@endphp
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom active">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
-                    <i class="bi bi-bell-fill"></i>
-                    <span>Setting Alert Call</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'katakunci'])
 
     <!-- Mobile Sidebar Backdrop -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -142,7 +94,7 @@
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route($valPrefix . 'pengaturanAkun') }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
@@ -187,13 +139,13 @@
                                 Sumber file: <strong>{{ $previewKeywordsFile }}</strong> &middot; Centang kata kunci yang ingin disimpan ke tabel <code>ttag</code>.
                             </div>
                         </div>
-                        <form action="{{ route('validator.katakunci.cancelImport') }}" method="POST">
+                        <form action="{{ route($valPrefix . 'katakunci.cancelImport') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3 fs-12">Batalkan Pratinjau</button>
                         </form>
                     </div>
 
-                    <form action="{{ route('validator.katakunci.saveImport') }}" method="POST">
+                    <form action="{{ route($valPrefix . 'katakunci.saveImport') }}" method="POST">
                         @csrf
                         <div class="d-flex flex-wrap gap-2 p-3 bg-white border rounded-3 mb-3">
                             @foreach($previewKeywords as $idx => $kw)
@@ -233,7 +185,7 @@
                                 <th>NAMA KATA KUNCI</th>
                                 <th style="width: 200px;">DIGUNAKAN PADA FAQ</th>
                                 <th style="width: 180px;">DIBUAT PADA</th>
-                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 180px; text-align: right;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody id="tagTableBody">
@@ -263,7 +215,7 @@
                                                 <button type="button" class="btn-action btn-action-edit" onclick="openEditTagModal('{{ $tag->id }}', '{{ addslashes($tag->nama) }}')">
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
-                                                <form action="{{ route('validator.katakunci.destroy', $tag->id) }}" method="POST" id="del-tag-{{ $tag->id }}" class="d-inline">
+                                                <form action="{{ route($valPrefix . 'katakunci.destroy', $tag->id) }}" method="POST" id="del-tag-{{ $tag->id }}" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="button" class="btn-table-delete" onclick="confirmDeleteTag('{{ $tag->id }}', '{{ addslashes($tag->nama) }}')">
@@ -287,7 +239,7 @@
 <div class="modal fade" id="addKeywordModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <form action="{{ route('validator.katakunci.store') }}" method="POST">
+            <form action="{{ route($valPrefix . 'katakunci.store') }}" method="POST">
                 @csrf
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold fs-16">Tambah Kata Kunci</h5>
@@ -336,7 +288,7 @@
 <div class="modal fade" id="uploadKeywordModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <form action="{{ route('validator.katakunci.upload') }}" method="POST" enctype="multipart/form-data" id="uploadKwForm">
+            <form action="{{ route($valPrefix . 'katakunci.upload') }}" method="POST" enctype="multipart/form-data" id="uploadKwForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold fs-16">Unggah File Kata Kunci (Excel / CSV / PDF)</h5>
@@ -356,7 +308,7 @@
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Format Kolom:</span>
-                            <a href="{{ route('validator.template.katakunci') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                            <a href="{{ route($valPrefix . 'template.katakunci') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
@@ -458,7 +410,7 @@
 
     function openEditTagModal(id, nama) {
         const form = document.getElementById('editKeywordForm');
-        form.action = `{{ url('/validator/kata-kunci') }}/${id}/update`;
+        form.action = `{{ $valUrlPrefix }}/kata-kunci/${id}/update`;
         document.getElementById('editKeywordNama').value = nama;
         new bootstrap.Modal(document.getElementById('editKeywordModal')).show();
     }

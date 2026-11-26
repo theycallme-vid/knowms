@@ -49,10 +49,20 @@ class UserSeeder extends Seeder
                 'tDirektorat_id' => $dirAkademik,
                 'is_active'      => 1,
             ],
+            // Staf Validator Unit contoh (Fakultas Teknik)
+            [
+                'nama'           => 'Validator Fakultas Teknik',
+                'email'          => 'validatorft@gmail.com',
+                'npk'            => 'VAL-2024-002',
+                'password'       => Hash::make('validator123'),
+                'tRoles_id'      => 3,
+                'tDirektorat_id' => $dirTeknik,
+                'is_active'      => 1,
+            ],
             // Staf Data Entry tambahan untuk uji coba antrean validasi FAQ
             [
-                'nama'           => 'Nadia Putri',
-                'email'          => 'nadia.putri@campus.ac.id',
+                'nama'           => 'Data Entry Fakultas Teknik',
+                'email'          => 'dataentryft@gmail.com',
                 'npk'            => 'DTE-2024-012',
                 'password'       => Hash::make('data123'),
                 'tRoles_id'      => 2,
@@ -60,7 +70,7 @@ class UserSeeder extends Seeder
                 'is_active'      => 1,
             ],
             [
-                'nama'           => 'Aditya Pratama',
+                'nama'           => 'Data Entry Fakultas Bisnis',
                 'email'          => 'aditya.pratama@campus.ac.id',
                 'npk'            => 'DTE-2024-015',
                 'password'       => Hash::make('data123'),

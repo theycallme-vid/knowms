@@ -20,16 +20,18 @@ return Application::configure(basePath: dirname(__DIR__))
             $user = $request->user();
             return match ($user?->getRoleName()) {
                 'Super Admin' => route('admin.dashboard'),
-                'Validator'   => route('validator.dashboard'),
-                'Data Entry'  => route('dataentry.dashboard'),
+                'Validator'   => $user->isValidatorUnit()
+                    ? route('validator.unit.daftarFAQ')
+                    : route('validator.daftarFAQ'),
+                'Data Entry'  => route('dataentry.daftarFAQ'),
                 default       => route('login'),
             };
         });
 
-        // Daftarkan RoleMiddleware dengan alias 'role'
-        // Penggunaan di route: middleware('role:Admin') atau middleware('role:Validator,Data Entry')
+        // Daftarkan RoleMiddleware dan ValidatorScopeMiddleware
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role'            => \App\Http\Middleware\RoleMiddleware::class,
+            'validator.scope' => \App\Http\Middleware\ValidatorScopeMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\superadmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Direktorat;
 use App\Models\Faq;
 use App\Models\FaqVersion;
 use App\Models\LogMahasiswa;
@@ -31,7 +32,7 @@ class PenggunaAksesController extends Controller
         $nowJkt = Carbon::now('Asia/Jakarta');
 
         try {
-            $allFaqs = Faq::with(['dataEntry.role', 'versions.validator.role', 'tags'])
+            $allFaqs = Faq::with(['dataEntry.role', 'direktorat', 'versions.validator.role', 'tags'])
                 ->orderByDesc('created_at')
                 ->get();
 
@@ -54,7 +55,7 @@ class PenggunaAksesController extends Controller
                         $terbitCount++;
                     } elseif ($st === 'diterima') {
                         $disetujuiCount++;
-                    } elseif ($st === 'menunggu validasi') {
+                    } elseif (FaqVersion::isWaitingValidation($st)) {
                         $menungguCount++;
                         if ($latestVer->updated_at && $latestVer->updated_at->timezone('Asia/Jakarta')->diffInDays($nowJkt) >= 3) {
                             $overdueWaitingCount++;
@@ -77,15 +78,24 @@ class PenggunaAksesController extends Controller
 
             $totalRolesCount = Role::count() ?: 3;
 
-            // Tren sesi/pencarian mahasiswa 7 hari terakhir
+            $trendStart = $nowJkt->copy()->subDays(6)->startOfDay();
+            $sessionByDate = Session::where('created_at', '>=', $trendStart)
+                ->selectRaw('DATE(created_at) as d, COUNT(*) as total')
+                ->groupBy('d')
+                ->pluck('total', 'd');
+            $faqVerByDate = FaqVersion::where('updated_at', '>=', $trendStart)
+                ->selectRaw('DATE(updated_at) as d, COUNT(*) as total')
+                ->groupBy('d')
+                ->pluck('total', 'd');
+
             $trendLabels = [];
             $trendCounts = [];
             for ($i = 6; $i >= 0; $i--) {
                 $day = $nowJkt->copy()->subDays($i);
+                $dateKey = $day->toDateString();
                 $trendLabels[] = $day->translatedFormat('d M');
-                $daySessionCount = Session::whereDate('created_at', $day->toDateString())->count();
-                // Jika tabel tsession kosong/sedikit, kombinasikan dengan aktivitas FAQ agar grafik tetap informatif
-                $dayFaqCount = FaqVersion::whereDate('updated_at', $day->toDateString())->count();
+                $daySessionCount = (int) ($sessionByDate[$dateKey] ?? 0);
+                $dayFaqCount = (int) ($faqVerByDate[$dateKey] ?? 0);
                 $trendCounts[] = max($daySessionCount + ($dayFaqCount * 5), ($i === 0 ? max($totalFaq * 3, 12) : max($totalFaq * 2, 8)));
             }
             $weeklySearches = array_sum($trendCounts);
@@ -95,7 +105,6 @@ class PenggunaAksesController extends Controller
                 $topTags = ['KRS', 'Pembayaran kuliah', 'Cuti akademik'];
             }
 
-            // Ringkasan Views, Like (Membantu), dan Dislike (Tidak Membantu) untuk Dashboard Super Admin
             $interactionSummary = LogMahasiswa::getFaqInteractionSummary();
             $totalViewsCount    = 0;
             $totalLikesCount    = 0;
@@ -123,8 +132,7 @@ class PenggunaAksesController extends Controller
                 ->take(5)
                 ->values();
 
-            // Aktivitas terbaru gabungan dari versi FAQ dan perubahan user
-            $recentVersions = FaqVersion::with(['faq.dataEntry.role', 'validator.role'])
+            $recentVersions = FaqVersion::with(['faq.dataEntry.role', 'faq.direktorat', 'validator.role'])
                 ->orderByDesc('updated_at')
                 ->take(8)
                 ->get();
@@ -145,17 +153,17 @@ class PenggunaAksesController extends Controller
                     $actionLabel = 'Menerima FAQ';
                     $statusLabel = 'Diterima';
                     $badgeClass = 'badge-status-selesai';
-                } elseif ($st === 'menunggu validasi') {
+                } elseif (FaqVersion::isWaitingValidation($st)) {
                     $actorName = $ver->faq?->dataEntry?->nama ?? 'Data Entry';
                     $actorRole = $ver->faq?->dataEntry?->getRoleName() ?: 'Data Entry';
-                    $actionLabel = 'Mengajukan FAQ';
-                    $statusLabel = 'Menunggu Validasi';
+                    $actionLabel = $st === 'menunggu validasi unit' ? 'Mengajukan FAQ ke Unit' : 'Mengajukan FAQ ke Admik';
+                    $statusLabel = $ver->status;
                     $badgeClass = 'badge-status-validasi';
                 } elseif ($st === 'ditolak') {
                     $actorName = $ver->validator?->nama ?? 'Validator';
                     $actorRole = $ver->validator?->getRoleName() ?: 'Validator';
                     $actionLabel = 'Menolak / Minta Revisi';
-                    $statusLabel = 'Ditolak';
+                    $statusLabel = $ver->getRejectionBadgeLabel($ver->faq?->direktorat?->nama);
                     $badgeClass = 'badge-status-revisi';
                 } else {
                     $actorName = $ver->faq?->dataEntry?->nama ?? 'Data Entry';
@@ -170,7 +178,7 @@ class PenggunaAksesController extends Controller
                     'pengguna'    => $actorName,
                     'role'        => $actorRole,
                     'aktivitas'   => $actionLabel,
-                    'detail'      => ($ver->tfaqs_id ? $ver->tfaqs_id . ' — ' : '') . ($ver->faq?->pertanyaan ?? 'Pembaruan konten FAQ'),
+                    'detail'      => ($ver->tFaqs_id ? $ver->tFaqs_id . ' — ' : '') . ($ver->faq?->pertanyaan ?? 'Pembaruan konten FAQ'),
                     'status'      => $statusLabel,
                     'badge_class' => $badgeClass,
                 ];
@@ -295,6 +303,7 @@ class PenggunaAksesController extends Controller
                     );
                 }
             }
+            Setting::clearCache();
 
             $msg = $scope === 'poin'
                 ? 'Pengaturan poin & bobot algoritma rekomendasi berhasil disimpan.'
@@ -334,6 +343,7 @@ class PenggunaAksesController extends Controller
                     );
                 }
             }
+            Setting::clearCache();
 
             return redirect()->route($redirectRoute)
                 ->with('success', 'Pengaturan berhasil dikembalikan ke nilai bawaan (default).');
@@ -342,54 +352,306 @@ class PenggunaAksesController extends Controller
                 ->with('error', 'Gagal mereset pengaturan sistem: ' . $e->getMessage());
         }
     }
-    /**
-     * Menampilkan daftar pengguna dan hak akses.
-     */
-    public function index()
+
+    /* =========================================================================
+     * KELOLA UNIT / DIREKTORAT (tdirektorat) — Super Admin & Validator Admik
+     * ========================================================================= */
+
+    private function assertCanManageUnits(): User
     {
-        try {
-            $users = User::with('role')->orderBy('id', 'desc')->get();
-            $roles = Role::all();
-        } catch (Throwable $e) {
-            Log::warning('Database belum terhubung atau tabel belum siap: ' . $e->getMessage());
-            // Fallback dataset jika database offline/belum di-migrate
-            $users = collect($this->getFallbackUsers());
-            $roles = collect($this->getFallbackRoles());
+        $caller = Auth::user();
+        if (!$caller) {
+            abort(403, 'Silakan login terlebih dahulu.');
+        }
+        $caller->loadMissing(['role', 'direktorat']);
+
+        if (!$caller->isAdmin() && !$caller->isValidatorAdmik()) {
+            abort(403, 'Akses ditolak: Hanya Super Admin atau Validator Direktorat Akademik yang dapat mengelola Unit.');
         }
 
-        return view('superadmin.pengguna&akses', compact('users', 'roles'));
+        return $caller;
+    }
+
+    public function unitIndex()
+    {
+        $caller = $this->assertCanManageUnits();
+        $isSuperAdmin = $caller->isAdmin();
+
+        $direktorats = Direktorat::withCount([
+            'users as validators_count'   => fn ($q) => $q->where('tRoles_id', 3),
+            'users as data_entries_count' => fn ($q) => $q->where('tRoles_id', 2),
+            'faqs as faqs_count',
+        ])
+            ->orderByDesc('is_pusat')
+            ->orderBy('nama', 'asc')
+            ->get();
+
+        $unitBaseUrl   = $isSuperAdmin ? url('/superadmin/kelola-unit') : url('/validator/kelola-unit');
+        $unitStoreUrl  = $isSuperAdmin ? route('superadmin.kelolaUnit.store') : route('validator.kelolaUnit.store');
+
+        return view('validator.kelola-unit', compact(
+            'direktorats',
+            'isSuperAdmin',
+            'unitBaseUrl',
+            'unitStoreUrl'
+        ));
+    }
+
+    public function unitStore(Request $request)
+    {
+        $this->assertCanManageUnits();
+
+        $validated = $request->validate([
+            'nama'      => ['required', 'string', 'max:100', 'unique:tdirektorat,nama'],
+            'is_active' => ['nullable', 'boolean'],
+        ], [
+            'nama.required' => 'Nama Unit / Direktorat wajib diisi.',
+            'nama.max'      => 'Nama Unit / Direktorat maksimal 100 karakter.',
+            'nama.unique'   => 'Nama Unit / Direktorat sudah terdaftar di sistem.',
+        ]);
+
+        try {
+            $dir = Direktorat::create([
+                'nama'      => trim($validated['nama']),
+                'is_pusat'  => false,
+                'is_active' => $request->has('is_active') ? (bool) $request->input('is_active') : true,
+            ]);
+
+            return redirect()->back()
+                ->with('success', "Unit \"{$dir->nama}\" berhasil ditambahkan dan ruang kerja unit langsung siap digunakan.");
+        } catch (Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menambahkan unit: ' . $e->getMessage());
+        }
+    }
+
+    public function unitUpdate(Request $request, $id)
+    {
+        $this->assertCanManageUnits();
+
+        $dir = Direktorat::findOrFail($id);
+
+        $validated = $request->validate([
+            'nama'      => ['required', 'string', 'max:100', 'unique:tdirektorat,nama,' . $dir->id],
+            'is_active' => ['nullable', 'boolean'],
+        ], [
+            'nama.required' => 'Nama Unit / Direktorat wajib diisi.',
+            'nama.unique'   => 'Nama Unit / Direktorat sudah digunakan oleh unit lain.',
+        ]);
+
+        try {
+            $newActive = $request->has('is_active') ? (bool) $request->input('is_active') : false;
+            if ($dir->is_pusat && !$newActive) {
+                return redirect()->back()
+                    ->with('error', 'Proteksi Sistem: Direktorat Akademik (Pusat) tidak dapat dinonaktifkan.');
+            }
+
+            $dir->update([
+                'nama'      => trim($validated['nama']),
+                'is_active' => $dir->is_pusat ? true : $newActive,
+            ]);
+
+            return redirect()->back()
+                ->with('success', "Data unit \"{$dir->nama}\" berhasil diperbarui.");
+        } catch (Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal memperbarui unit: ' . $e->getMessage());
+        }
+    }
+
+    public function unitToggleStatus($id)
+    {
+        $this->assertCanManageUnits();
+
+        try {
+            $dir = Direktorat::findOrFail($id);
+
+            if ($dir->is_pusat) {
+                return redirect()->back()
+                    ->with('error', 'Proteksi Sistem: Direktorat Akademik (Pusat) tidak dapat dinonaktifkan.');
+            }
+
+            $dir->update(['is_active' => !$dir->is_active]);
+            $label = $dir->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+            return redirect()->back()
+                ->with('success', "Unit \"{$dir->nama}\" berhasil {$label}.");
+        } catch (Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengubah status unit: ' . $e->getMessage());
+        }
+    }
+
+    /* =========================================================================
+     * DELEGASI PENGGUNA & HAK AKSES (Super Admin, Validator Admik, Validator Unit)
+     * ========================================================================= */
+
+    private function resolveCallerScope(): array
+    {
+        $caller = Auth::user();
+        if (!$caller || !$caller->is_active) {
+            abort(403, 'Silakan login terlebih dahulu.');
+        }
+
+        $caller->loadMissing(['role', 'direktorat']);
+        $isSuperAdmin     = $caller->isAdmin();
+        $isValidatorAdmik = $caller->isValidatorAdmik();
+        $isValidatorUnit  = $caller->isValidatorUnit();
+
+        if (!$isSuperAdmin && !$isValidatorAdmik && !$isValidatorUnit) {
+            abort(403, 'Anda tidak memiliki akses ke manajemen Pengguna & Akses.');
+        }
+
+        return [$caller, $isSuperAdmin, $isValidatorAdmik, $isValidatorUnit];
+    }
+
+    private function assertCanManageTargetUser(User $caller, User $target): void
+    {
+        if ($caller->isAdmin()) {
+            return;
+        }
+
+        if ($caller->isValidatorAdmik()) {
+            if ((int) $target->tRoles_id === 1) {
+                abort(403, 'Akses ditolak: Validator tidak diizinkan mengubah atau menonaktifkan akun Super Admin.');
+            }
+            return;
+        }
+
+        if ($caller->isValidatorUnit()) {
+            $ownDirId = $caller->getEffectiveDirektoratId();
+            if ((int) $target->tRoles_id !== 2 || (int) $target->tDirektorat_id !== $ownDirId) {
+                abort(403, 'Akses ditolak: Validator Unit hanya dapat mengelola akun Data Entry pada unitnya sendiri.');
+            }
+            return;
+        }
+
+        abort(403, 'Akses ditolak.');
     }
 
     /**
-     * Menyimpan pengguna baru ke tabel tusers.
+     * Menampilkan daftar pengguna dan hak akses sesuai wewenang pemanggil.
+     */
+    public function index()
+    {
+        [$caller, $isSuperAdmin, $isValidatorAdmik, $isValidatorUnit] = $this->resolveCallerScope();
+
+        try {
+            if ($isValidatorUnit) {
+                $ownDirId = $caller->getEffectiveDirektoratId();
+                $users = User::with(['role', 'direktorat'])
+                    ->where('tRoles_id', 2)
+                    ->where('tDirektorat_id', $ownDirId)
+                    ->orderBy('id', 'desc')
+                    ->get();
+                $roles = Role::where('id', 2)->get();
+                $direktorats = Direktorat::where('id', $ownDirId)->get();
+            } elseif ($isValidatorAdmik) {
+                $users = User::with(['role', 'direktorat'])->orderBy('id', 'desc')->get();
+                $roles = Role::whereIn('id', [2, 3])->orderBy('id')->get();
+                $direktorats = Direktorat::orderByDesc('is_pusat')->orderBy('nama')->get();
+            } else {
+                $users = User::with(['role', 'direktorat'])->orderBy('id', 'desc')->get();
+                $roles = Role::orderBy('id')->get();
+                $direktorats = Direktorat::orderByDesc('is_pusat')->orderBy('nama')->get();
+            }
+        } catch (Throwable $e) {
+            Log::warning('Database belum terhubung atau tabel belum siap: ' . $e->getMessage());
+            $users = collect($this->getFallbackUsers());
+            $roles = collect($this->getFallbackRoles());
+            $direktorats = collect();
+        }
+
+        $penggunaBaseUrl = $isSuperAdmin
+            ? url('/superadmin/pengguna-akses')
+            : ($isValidatorUnit ? url('/validator-unit/pengguna-akses') : url('/validator/pengguna-akses'));
+
+        $penggunaStoreUrl = $isSuperAdmin
+            ? route('superadmin.pengguna.store')
+            : ($isValidatorUnit ? route('validator.unit.pengguna.store') : route('validator.pengguna.store'));
+
+        $viewName = $isSuperAdmin
+            ? 'superadmin.pengguna&akses'
+            : ($isValidatorUnit ? 'validator-unit.pengguna&akses' : 'validator.pengguna&akses');
+
+        return view($viewName, compact(
+            'users',
+            'roles',
+            'direktorats',
+            'isSuperAdmin',
+            'isValidatorAdmik',
+            'isValidatorUnit',
+            'penggunaBaseUrl',
+            'penggunaStoreUrl'
+        ));
+    }
+
+    /**
+     * Menyimpan pengguna baru ke tabel tusers dengan validasi & penguncian role/unit di server.
      */
     public function store(Request $request)
     {
-        $request->validate([
+        [$caller, $isSuperAdmin, $isValidatorAdmik, $isValidatorUnit] = $this->resolveCallerScope();
+
+        // Guard ketat di server sebelum validasi form agar eskalasi hak akses ditolak 403
+        if ($isValidatorUnit) {
+            if ($request->filled('tRoles_id') && (int) $request->input('tRoles_id') !== 2) {
+                abort(403, 'Validator Unit hanya diizinkan membuat akun Data Entry.');
+            }
+            if ($request->filled('tDirektorat_id') && (int) $request->input('tDirektorat_id') !== $caller->getEffectiveDirektoratId()) {
+                abort(403, 'Validator Unit hanya diizinkan membuat akun pada unitnya sendiri.');
+            }
+        } elseif ($isValidatorAdmik) {
+            if ((int) $request->input('tRoles_id') === 1) {
+                abort(403, 'Validator Admik tidak diizinkan membuat akun Super Admin.');
+            }
+        }
+
+        $rules = [
             'nama'      => 'required|string|max:100',
             'email'     => 'required|email|max:50|unique:tusers,email',
             'npk'       => 'nullable|string|max:15|unique:tusers,npk',
             'password'  => 'required|string|min:8',
-            'tRoles_id' => 'required|integer',
             'is_active' => 'nullable|boolean',
-        ], [
-            'password.required' => 'Kata sandi awal wajib diisi.',
-            'password.min'      => 'Kata sandi awal minimal harus 8 karakter.',
-            'email.required'    => 'Email wajib diisi.',
-            'email.email'       => 'Format email tidak valid.',
-            'email.unique'      => 'Email sudah terdaftar di sistem.',
-            'nama.required'     => 'Nama lengkap wajib diisi.',
-            'tRoles_id.required'=> 'Pemberian role wajib dipilih.',
+        ];
+
+        if (!$isValidatorUnit) {
+            $rules['tRoles_id']      = $isValidatorAdmik ? 'required|integer|in:2,3' : 'required|integer|exists:troles,id';
+            $rules['tDirektorat_id'] = $isValidatorAdmik ? 'required|integer|exists:tdirektorat,id' : 'nullable|integer|exists:tdirektorat,id';
+        }
+
+        $request->validate($rules, [
+            'password.required'       => 'Kata sandi awal wajib diisi.',
+            'password.min'            => 'Kata sandi awal minimal harus 8 karakter.',
+            'email.required'          => 'Email wajib diisi.',
+            'email.email'             => 'Format email tidak valid.',
+            'email.unique'            => 'Email sudah terdaftar di sistem.',
+            'nama.required'           => 'Nama lengkap wajib diisi.',
+            'tRoles_id.required'      => 'Pemberian role wajib dipilih.',
+            'tDirektorat_id.required' => 'Unit / Direktorat wajib dipilih.',
         ]);
 
         try {
+            if ($isValidatorUnit) {
+                $finalRoleId = 2;
+                $finalDirId  = $caller->getEffectiveDirektoratId();
+            } else {
+                $finalRoleId = (int) $request->input('tRoles_id');
+                $finalDirId  = $request->filled('tDirektorat_id')
+                    ? (int) $request->input('tDirektorat_id')
+                    : Direktorat::pusatId();
+            }
+
             User::create([
-                'nama'      => $request->nama,
-                'email'     => $request->email,
-                'npk'       => $request->npk ?: null,
-                'password'  => Hash::make($request->password),
-                'tRoles_id' => $request->tRoles_id,
-                'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
+                'superId'            => $caller->id,
+                'nama'               => trim($request->nama),
+                'email'              => strtolower(trim($request->email)),
+                'npk'                => $request->npk ?: null,
+                'password'           => Hash::make($request->password),
+                'password_encrypted' => \Illuminate\Support\Facades\Crypt::encryptString($request->password),
+                'tRoles_id'          => $finalRoleId,
+                'tDirektorat_id'     => $finalDirId,
+                'is_active'          => $request->has('is_active') ? (bool) $request->is_active : true,
             ]);
 
             return redirect()->back()->with('success', 'Pengguna baru berhasil ditambahkan.');
@@ -399,35 +661,79 @@ class PenggunaAksesController extends Controller
     }
 
     /**
-     * Memperbarui keterangan pengguna (nama, email, npk, status, password opsional).
+     * Memperbarui keterangan pengguna (nama, email, npk, unit/direktorat, status, password opsional).
      */
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'nama'      => 'required|string|max:100',
-            'email'     => 'required|email|max:50|unique:tusers,email,' . $id,
-            'npk'       => 'nullable|string|max:15|unique:tusers,npk,' . $id,
-            'password'  => 'nullable|string|min:8',
-            'is_active' => 'nullable|boolean',
-        ], [
-            'password.min'      => 'Kata sandi baru minimal harus 8 karakter.',
-            'email.required'    => 'Email wajib diisi.',
-            'email.unique'      => 'Email sudah terdaftar oleh staf lain.',
-            'nama.required'     => 'Nama lengkap wajib diisi.',
+        [$caller, $isSuperAdmin, $isValidatorAdmik, $isValidatorUnit] = $this->resolveCallerScope();
+        $user = User::findOrFail($id);
+        $this->assertCanManageTargetUser($caller, $user);
+
+        if ($isValidatorUnit && $request->filled('tDirektorat_id') && (int) $request->input('tDirektorat_id') !== $caller->getEffectiveDirektoratId()) {
+            abort(403, 'Validator Unit tidak diizinkan memindahkan staf ke unit lain.');
+        }
+
+        if ($isValidatorAdmik && (int) $request->input('tRoles_id') === 1) {
+            abort(403, 'Validator Admik tidak diizinkan memberikan role Super Admin.');
+        }
+
+        $rules = [
+            'nama'           => 'required|string|max:100',
+            'email'          => 'required|email|max:50|unique:tusers,email,' . $user->id,
+            'npk'            => 'nullable|string|max:15|unique:tusers,npk,' . $user->id,
+            'password'       => 'nullable|string|min:8',
+            'tDirektorat_id' => 'nullable|integer|exists:tdirektorat,id',
+            'is_active'      => 'nullable|boolean',
+        ];
+        if (!$isValidatorUnit && $request->filled('tRoles_id')) {
+            $rules['tRoles_id'] = $isValidatorAdmik ? 'required|integer|in:2,3' : 'required|integer|exists:troles,id';
+        }
+
+        $request->validate($rules, [
+            'password.min'   => 'Kata sandi baru minimal harus 8 karakter.',
+            'email.required' => 'Email wajib diisi.',
+            'email.unique'   => 'Email sudah terdaftar oleh staf lain.',
+            'nama.required'  => 'Nama lengkap wajib diisi.',
         ]);
 
         try {
-            $user = User::findOrFail($id);
+            $newActive = $request->has('is_active') ? (bool) $request->is_active : false;
+            if ($user->id === $caller->id && !$newActive) {
+                return redirect()->back()->with('error', 'Proteksi Sistem: Anda tidak dapat menonaktifkan akun Anda sendiri.');
+            }
 
             $data = [
-                'nama'      => $request->nama,
-                'email'     => $request->email,
+                'nama'      => trim($request->nama),
+                'email'     => strtolower(trim($request->email)),
                 'npk'       => $request->npk ?: null,
-                'is_active' => $request->has('is_active') ? (bool)$request->is_active : false,
+                'is_active' => $newActive,
             ];
+
+            if ($isValidatorUnit) {
+                $data['tRoles_id']      = 2;
+                $data['tDirektorat_id'] = $caller->getEffectiveDirektoratId();
+            } else {
+                if ($request->filled('tRoles_id')) {
+                    $newRoleId = (int) $request->input('tRoles_id');
+                    if ($user->id === $caller->id && $user->tRoles_id == 1 && $newRoleId !== 1) {
+                        return redirect()->back()->with('error', 'Proteksi Sistem: Anda tidak diizinkan mendegradasi peran Super Admin pada akun Anda sendiri.');
+                    }
+                    if ($user->tRoles_id == 1 && $newRoleId !== 1) {
+                        $adminCount = User::where('tRoles_id', 1)->where('is_active', true)->count();
+                        if ($adminCount <= 1) {
+                            return redirect()->back()->with('error', 'Proteksi Sistem: Sistem harus memiliki setidaknya satu Super Admin aktif.');
+                        }
+                    }
+                    $data['tRoles_id'] = $newRoleId;
+                }
+                if ($request->filled('tDirektorat_id')) {
+                    $data['tDirektorat_id'] = (int) $request->input('tDirektorat_id');
+                }
+            }
 
             if ($request->filled('password')) {
                 $data['password'] = Hash::make($request->password);
+                $data['password_encrypted'] = \Illuminate\Support\Facades\Crypt::encryptString($request->password);
             }
 
             $user->update($data);
@@ -443,20 +749,29 @@ class PenggunaAksesController extends Controller
      */
     public function updateRole(Request $request, $id)
     {
+        [$caller, $isSuperAdmin, $isValidatorAdmik, $isValidatorUnit] = $this->resolveCallerScope();
+        if ($isValidatorUnit) {
+            abort(403, 'Validator Unit tidak memiliki wewenang mengubah role pengguna.');
+        }
+
+        $user = User::findOrFail($id);
+        $this->assertCanManageTargetUser($caller, $user);
+
+        if ($isValidatorAdmik && (int) $request->input('tRoles_id') === 1) {
+            abort(403, 'Validator Admik tidak diizinkan memberikan role Super Admin.');
+        }
+
         $request->validate([
-            'tRoles_id' => 'required|integer|exists:troles,id',
+            'tRoles_id'      => $isValidatorAdmik ? 'required|integer|in:2,3' : 'required|integer|exists:troles,id',
+            'tDirektorat_id' => 'nullable|integer|exists:tdirektorat,id',
         ]);
 
         try {
-            $user = User::findOrFail($id);
-
-            // Syarat ketat 1: Jangan biarkan superadmin sendiri kehilangan role superadmin tanpa konfirmasi
-            $currentUserId = Auth::id() ?? 1;
+            $currentUserId = $caller->id;
             if ($user->id == $currentUserId && $user->tRoles_id == 1 && $request->tRoles_id != 1) {
                 return redirect()->back()->with('error', 'Proteksi Sistem: Anda tidak diizinkan mendegradasi peran Super Admin pada akun Anda sendiri.');
             }
 
-            // Syarat ketat 2: Cek kuorum Super Admin
             if ($user->tRoles_id == 1 && $request->tRoles_id != 1) {
                 $adminCount = User::where('tRoles_id', 1)->where('is_active', true)->count();
                 if ($adminCount <= 1) {
@@ -464,9 +779,12 @@ class PenggunaAksesController extends Controller
                 }
             }
 
-            $user->update([
-                'tRoles_id' => $request->tRoles_id,
-            ]);
+            $payload = ['tRoles_id' => (int) $request->tRoles_id];
+            if ($request->filled('tDirektorat_id')) {
+                $payload['tDirektorat_id'] = (int) $request->tDirektorat_id;
+            }
+
+            $user->update($payload);
 
             return redirect()->back()->with('success', 'Peran untuk "' . $user->nama . '" berhasil diperbarui.');
         } catch (Throwable $e) {
@@ -479,6 +797,10 @@ class PenggunaAksesController extends Controller
      */
     public function removeRole(Request $request, $id)
     {
+        [$caller] = $this->resolveCallerScope();
+        $user = User::findOrFail($id);
+        $this->assertCanManageTargetUser($caller, $user);
+
         $request->validate([
             'konfirmasi_teks' => 'required|string',
         ]);
@@ -488,15 +810,12 @@ class PenggunaAksesController extends Controller
         }
 
         try {
-            $user = User::findOrFail($id);
-            $currentUserId = Auth::id() ?? 1;
+            $currentUserId = $caller->id;
 
-            // Syarat Ketat 1: Akun diri sendiri dilarang dicabut
             if ($user->id == $currentUserId) {
                 return redirect()->back()->with('error', 'Akses Ditolak: Anda tidak dapat mencabut hak akses pada akun yang sedang Anda gunakan.');
             }
 
-            // Syarat Ketat 2: Kuorum Super Admin aktif
             if ($user->tRoles_id == 1) {
                 $activeSuperAdmins = User::where('tRoles_id', 1)->where('is_active', true)->count();
                 if ($activeSuperAdmins <= 1) {
@@ -504,7 +823,6 @@ class PenggunaAksesController extends Controller
                 }
             }
 
-            // Nonaktifkan user dan kosongkan wewenang / nonaktifkan akses
             $user->update([
                 'is_active' => false,
             ]);
@@ -520,9 +838,12 @@ class PenggunaAksesController extends Controller
      */
     public function toggleStatus($id)
     {
+        [$caller] = $this->resolveCallerScope();
+        $user = User::findOrFail($id);
+        $this->assertCanManageTargetUser($caller, $user);
+
         try {
-            $user = User::findOrFail($id);
-            $currentUserId = Auth::id() ?? 1;
+            $currentUserId = $caller->id;
 
             if ($user->id == $currentUserId && $user->is_active) {
                 return redirect()->back()->with('error', 'Proteksi Sistem: Anda tidak dapat menonaktifkan akun Anda sendiri.');
@@ -538,8 +859,34 @@ class PenggunaAksesController extends Controller
     }
 
     /**
-     * Fallback mock data jika database belum terkoneksi.
+     * Menghapus akun pengguna (dengan proteksi anti-lockout & kuorum Super Admin).
      */
+    public function destroy($id)
+    {
+        [$caller] = $this->resolveCallerScope();
+        $user = User::findOrFail($id);
+        $this->assertCanManageTargetUser($caller, $user);
+
+        if ($user->id == $caller->id) {
+            return redirect()->back()->with('error', 'Proteksi Sistem: Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        if ($user->tRoles_id == 1) {
+            $activeSuperAdmins = User::where('tRoles_id', 1)->where('is_active', true)->count();
+            if ($activeSuperAdmins <= 1) {
+                return redirect()->back()->with('error', 'Proteksi Kuorum: Tidak dapat menghapus satu-satunya Super Admin aktif.');
+            }
+        }
+
+        try {
+            $nama = $user->nama;
+            $user->delete();
+            return redirect()->back()->with('success', 'Akun "' . $nama . '" berhasil dihapus.');
+        } catch (Throwable $e) {
+            return redirect()->back()->with('error', 'Akun "' . $user->nama . '" tidak dapat dihapus karena masih memiliki riwayat FAQ/validasi. Silakan nonaktifkan akun sebagai gantinya.');
+        }
+    }
+
     private function getFallbackRoles()
     {
         return [
@@ -562,7 +909,9 @@ class PenggunaAksesController extends Controller
                 'email' => 'adminkms@gmail.com',
                 'npk' => 'ADM-2024-001',
                 'tRoles_id' => 1,
+                'tDirektorat_id' => 1,
                 'role' => $roleAdmin,
+                'direktorat' => (object)['id' => 1, 'nama' => 'Direktorat Akademik', 'is_pusat' => true],
                 'is_active' => true,
                 'created_at' => now()->subMonths(6),
                 'updated_at' => now()->subDays(2),
@@ -573,7 +922,9 @@ class PenggunaAksesController extends Controller
                 'email' => 'siti.rahma@campus.ac.id',
                 'npk' => 'DTE-2024-012',
                 'tRoles_id' => 2,
+                'tDirektorat_id' => 1,
                 'role' => $roleDataEntry,
+                'direktorat' => (object)['id' => 1, 'nama' => 'Direktorat Akademik', 'is_pusat' => true],
                 'is_active' => true,
                 'created_at' => now()->subMonths(4),
                 'updated_at' => now()->subDays(5),
@@ -584,32 +935,12 @@ class PenggunaAksesController extends Controller
                 'email' => 'hendra.wijaya@campus.ac.id',
                 'npk' => 'VAL-2024-003',
                 'tRoles_id' => 3,
+                'tDirektorat_id' => 1,
                 'role' => $roleValidator,
+                'direktorat' => (object)['id' => 1, 'nama' => 'Direktorat Akademik', 'is_pusat' => true],
                 'is_active' => true,
                 'created_at' => now()->subMonths(5),
                 'updated_at' => now()->subDay(),
-            ],
-            (object)[
-                'id' => 4,
-                'nama' => 'Anisa Maharani',
-                'email' => 'anisa.m@campus.ac.id',
-                'npk' => 'DTE-2024-018',
-                'tRoles_id' => 2,
-                'role' => $roleDataEntry,
-                'is_active' => true,
-                'created_at' => now()->subMonths(3),
-                'updated_at' => now()->subDays(7),
-            ],
-            (object)[
-                'id' => 5,
-                'nama' => 'Budi Santoso',
-                'email' => 'budi.santoso@campus.ac.id',
-                'npk' => 'VAL-2024-008',
-                'tRoles_id' => 3,
-                'role' => $roleValidator,
-                'is_active' => false,
-                'created_at' => now()->subMonths(2),
-                'updated_at' => now()->subDays(10),
             ],
         ];
     }

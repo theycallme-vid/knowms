@@ -62,7 +62,7 @@ class LayananAkademikController extends Controller
         $audioRoomId = 'kms-audio-' . Str::uuid()->toString();
 
         // Data Hotline WhatsApp Resmi
-        $whatsappNumber = env('WHATSAPP_HOTLINE', config('app.whatsapp_hotline', self::DEFAULT_WHATSAPP));
+        $whatsappNumber = (string) (config('app.whatsapp_hotline') ?: self::DEFAULT_WHATSAPP);
         $formattedWaNumber = '+62 ' . substr($whatsappNumber, 2, 3) . '-' . substr($whatsappNumber, 5, 4) . '-' . substr($whatsappNumber, 9);
         $whatsappDefaultText = "Halo Admin Layanan Akademik KMS, saya mahasiswa ingin berkonsultasi mengenai pertanyaan/informasi akademik yang belum saya temukan di FAQ.";
         $waUrl = "https://wa.me/{$whatsappNumber}?text=" . urlencode($whatsappDefaultText);
@@ -228,8 +228,17 @@ class LayananAkademikController extends Controller
         $roomUrl = route('layanan.videocall.room', ['roomId' => $cleanRoomId]);
 
         // Pengaturan Hotline WhatsApp
-        $whatsappNumber = env('WHATSAPP_HOTLINE', config('app.whatsapp_hotline', self::DEFAULT_WHATSAPP));
+        $whatsappNumber = (string) (config('app.whatsapp_hotline') ?: self::DEFAULT_WHATSAPP);
         $whatsappMessage = "Halo Petugas Layanan Akademik KMS, saya sedang berada di ruang video call konsultasi akademik dengan Room ID: {$cleanRoomId}. Mohon berkenan untuk bergabung melalui tautan: {$roomUrl}";
+
+        $backUrl = $isStaff
+            ? match ($user->getRoleName()) {
+                'Super Admin' => route('superadmin.dashboard'),
+                'Validator'   => $user->isValidatorUnit() ? route('validator.unit.daftarFAQ') : route('validator.daftarFAQ'),
+                'Data Entry'  => route('dataentry.daftarFAQ'),
+                default       => route('portal'),
+            }
+            : route('mahasiswa.faq');
 
         return view('layanan.video-call', [
             'roomId'          => $cleanRoomId,
@@ -241,7 +250,7 @@ class LayananAkademikController extends Controller
             'roomUrl'         => $roomUrl,
             'whatsappNumber'  => $whatsappNumber,
             'whatsappMessage' => $whatsappMessage,
-            'backUrl'         => $isStaff ? route('superadmin.dashboard') : route('mahasiswa.faq'),
+            'backUrl'         => $backUrl,
         ]);
     }
 
@@ -318,6 +327,13 @@ class LayananAkademikController extends Controller
      */
     public function endCall(Request $request, string $roomId)
     {
+        if (!Auth::check() && !session('tsession_id')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
         $cleanRoomId = preg_replace('/[^a-zA-Z0-9\-_]/', '', $roomId);
         
         VideoCall::where('room_id', $cleanRoomId)->update([

@@ -3,15 +3,23 @@
     if ($aktivKataKunci === '') {
         $aktivKataKunci = 'Semua';
     }
-    $hasActiveFilter = (
+    $showUnitDropdown = !empty($showUnitFilter) && isset($direktorats) && count($direktorats) > 0;
+    $hideStDropdown   = !empty($hideStatusFilter);
+    $activeUnitReq    = (string) request('unit_id', 'all');
+    $hasActiveFilter  = (
         request()->filled('search') ||
         $aktivKataKunci !== 'Semua' ||
-        (request()->filled('status') && request('status') !== 'Semua') ||
+        ($showUnitDropdown && $activeUnitReq !== '' && $activeUnitReq !== 'all' && $activeUnitReq !== 'Semua') ||
+        (!$hideStDropdown && request()->filled('status') && request('status') !== 'Semua') ||
         (request()->filled('sort') && request('sort') !== 'terbaru')
     );
+    $resetHref = !empty($scopeInput) ? ($actionRoute . '?scope=' . urlencode($scopeInput)) : $actionRoute;
 @endphp
 
 <form method="GET" action="{{ $actionRoute }}" id="filterForm">
+    @if(!empty($scopeInput))
+        <input type="hidden" name="scope" value="{{ $scopeInput }}">
+    @endif
     <div class="filter-bar">
         <div class="filter-left-group">
             <!-- Search (Auto-submit saat mengetik) -->
@@ -24,6 +32,18 @@
                        placeholder="Cari kode atau pertanyaan FAQ..."
                        autocomplete="off">
             </div>
+
+            <!-- Filter Unit / Direktorat Terdaftar -->
+            @if($showUnitDropdown)
+                <select name="unit_id" class="filter-select" onchange="submitFaqFilterForm()">
+                    <option value="all" {{ in_array($activeUnitReq, ['', 'all', 'Semua'], true) ? 'selected' : '' }}>Semua Unit Terdaftar</option>
+                    @foreach($direktorats as $dirOpt)
+                        <option value="{{ $dirOpt->id }}" {{ (string) $dirOpt->id === $activeUnitReq ? 'selected' : '' }}>
+                            {{ $dirOpt->nama }}
+                        </option>
+                    @endforeach
+                </select>
+            @endif
 
             <!-- Filter Kata Kunci (Bisa dicari & di-scroll) -->
             <div class="keyword-dropdown-wrap" id="kataKunciDropdownWrap">
@@ -83,15 +103,19 @@
                 </div>
             </div>
 
-            <!-- Filter Status (Urutan: Semua Status, Menunggu Validasi, Diterima, Ditolak, Terbit) -->
-            <select name="status" class="filter-select" onchange="submitFaqFilterForm()">
-                @php $stReq = request('status', 'Semua'); @endphp
-                <option value="Semua"             {{ $stReq === 'Semua' ? 'selected' : '' }}>Semua Status</option>
-                <option value="Menunggu Validasi" {{ in_array($stReq, ['Menunggu Validasi', 'Submitted'], true) ? 'selected' : '' }}>Menunggu Validasi</option>
-                <option value="Diterima"          {{ in_array($stReq, ['Diterima', 'Approved'], true)           ? 'selected' : '' }}>Diterima</option>
-                <option value="Ditolak"           {{ in_array($stReq, ['Ditolak', 'Rejected'], true)            ? 'selected' : '' }}>Ditolak</option>
-                <option value="Terbit"            {{ in_array($stReq, ['Terbit', 'Active'], true)               ? 'selected' : '' }}>Terbit</option>
-            </select>
+            <!-- Filter Status -->
+            @if(!$hideStDropdown)
+                <select name="status" class="filter-select" onchange="submitFaqFilterForm()">
+                    @php $stReq = request('status', 'Semua'); @endphp
+                    <option value="Semua"                    {{ $stReq === 'Semua' ? 'selected' : '' }}>Semua Status</option>
+                    <option value="Menunggu Validasi"        {{ in_array($stReq, ['Menunggu Validasi', 'Submitted'], true) ? 'selected' : '' }}>Menunggu Validasi (Semua)</option>
+                    <option value="Menunggu Validasi Unit"   {{ $stReq === 'Menunggu Validasi Unit' ? 'selected' : '' }}>Menunggu Validasi Unit</option>
+                    <option value="Menunggu Validasi Admik"  {{ $stReq === 'Menunggu Validasi Admik' ? 'selected' : '' }}>Menunggu Validasi Admik</option>
+                    <option value="Diterima"                 {{ in_array($stReq, ['Diterima', 'Approved'], true) ? 'selected' : '' }}>Diterima</option>
+                    <option value="Ditolak"                  {{ in_array($stReq, ['Ditolak', 'Rejected'], true) ? 'selected' : '' }}>Ditolak</option>
+                    <option value="Terbit"                   {{ in_array($stReq, ['Terbit', 'Active'], true) ? 'selected' : '' }}>Terbit</option>
+                </select>
+            @endif
 
             <!-- Sort -->
             <select name="sort" class="filter-select" onchange="submitFaqFilterForm()">
@@ -101,7 +125,7 @@
             </select>
 
             @if($hasActiveFilter)
-                <a href="{{ $actionRoute }}" class="btn-filter-reset">
+                <a href="{{ $resetHref }}" class="btn-filter-reset">
                     <i class="bi bi-x-lg"></i> Reset
                 </a>
             @endif

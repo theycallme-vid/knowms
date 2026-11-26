@@ -18,136 +18,57 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Super Admin CSS -->
+    <!-- Super Admin & Validator Shared CSS -->
+    <link rel="stylesheet" href="{{ asset('css/validator/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/superadmin/style.css') }}">
 </head>
 <body>
 
 @php
-    // Inisialisasi data pengguna dan peran dari database (atau fallback jika belum dimigrate)
+    $authUser = auth()->user();
+    if ($authUser) {
+        $authUser->loadMissing(['role', 'direktorat']);
+    }
+    $currentUserRole  = $authUser ? $authUser->getRoleName() : 'Super Admin';
+    $isSuperAdmin     = $isSuperAdmin ?? ($authUser ? $authUser->isAdmin() : true);
+    $isValidatorAdmik = $isValidatorAdmik ?? ($authUser ? $authUser->isValidatorAdmik() : false);
+    $isValidatorUnit  = $isValidatorUnit ?? ($authUser ? $authUser->isValidatorUnit() : false);
+    $callerUnitName   = $authUser ? $authUser->getUnitName() : 'Direktorat Akademik';
+    $callerDirId      = $authUser ? $authUser->getEffectiveDirektoratId() : 1;
+
     $allRoles = isset($roles) && count($roles) > 0 ? $roles : [
-        (object)['id' => 1, 'nama' => 'Super Admin'],
         (object)['id' => 2, 'nama' => 'Data Entry'],
         (object)['id' => 3, 'nama' => 'Validator'],
     ];
+    $allDirektorats = isset($direktorats) ? $direktorats : collect();
 
-    $userList = isset($users) && count($users) > 0 ? $users : [
-        (object)[
-            'id' => 1,
-            'nama' => 'Dimas Pratama (Admin KMS)',
-            'email' => 'adminkms@gmail.com',
-            'npk' => 'ADM-2024-001',
-            'tRoles_id' => 1,
-            'role' => (object)['id' => 1, 'nama' => 'Super Admin'],
-            'is_active' => true,
-            'created_at' => now()->subMonths(6),
-            'updated_at' => now()->subDays(2),
-        ],
-        (object)[
-            'id' => 2,
-            'nama' => 'Siti Rahmawati',
-            'email' => 'siti.rahma@campus.ac.id',
-            'npk' => 'DTE-2024-012',
-            'tRoles_id' => 2,
-            'role' => (object)['id' => 2, 'nama' => 'Data Entry'],
-            'is_active' => true,
-            'created_at' => now()->subMonths(4),
-            'updated_at' => now()->subDays(5),
-        ],
-        (object)[
-            'id' => 3,
-            'nama' => 'Dr. Hendra Wijaya',
-            'email' => 'hendra.wijaya@campus.ac.id',
-            'npk' => 'VAL-2024-003',
-            'tRoles_id' => 3,
-            'role' => (object)['id' => 3, 'nama' => 'Validator'],
-            'is_active' => true,
-            'created_at' => now()->subMonths(5),
-            'updated_at' => now()->subDay(),
-        ],
-        (object)[
-            'id' => 4,
-            'nama' => 'Anisa Maharani',
-            'email' => 'anisa.m@campus.ac.id',
-            'npk' => 'DTE-2024-018',
-            'tRoles_id' => 2,
-            'role' => (object)['id' => 2, 'nama' => 'Data Entry'],
-            'is_active' => true,
-            'created_at' => now()->subMonths(3),
-            'updated_at' => now()->subDays(7),
-        ],
-        (object)[
-            'id' => 5,
-            'nama' => 'Budi Santoso',
-            'email' => 'budi.santoso@campus.ac.id',
-            'npk' => 'VAL-2024-008',
-            'tRoles_id' => 3,
-            'role' => (object)['id' => 3, 'nama' => 'Validator'],
-            'is_active' => false,
-            'created_at' => now()->subMonths(2),
-            'updated_at' => now()->subDays(10),
-        ],
-    ];
+    $userList = isset($users) ? $users : collect();
 
-    $totalUsers = count($userList);
+    $totalUsers      = count($userList);
     $countSuperAdmin = collect($userList)->where('tRoles_id', 1)->count();
-    $countDataEntry = collect($userList)->where('tRoles_id', 2)->count();
-    $countValidator = collect($userList)->where('tRoles_id', 3)->count();
-    $countNonaktif = collect($userList)->where('is_active', false)->count();
+    $countDataEntry  = collect($userList)->where('tRoles_id', 2)->count();
+    $countValidator  = collect($userList)->where('tRoles_id', 3)->count();
+    $countNonaktif   = collect($userList)->where('is_active', false)->count();
 
-    // Akun yang sedang aktif login (default ID 1 untuk demonstrasi guard)
-    $currentAdminId = auth()->id() ?? 1;
+    $currentAdminId   = auth()->id() ?? 1;
+    $penggunaBaseUrl  = $penggunaBaseUrl ?? ($isSuperAdmin ? url('/superadmin/pengguna-akses') : ($isValidatorUnit ? url('/validator-unit/pengguna-akses') : url('/validator/pengguna-akses')));
+    $penggunaStoreUrl = $penggunaStoreUrl ?? ($isSuperAdmin ? route('superadmin.pengguna.store') : ($isValidatorUnit ? route('validator.unit.pengguna.store') : route('validator.pengguna.store')));
 @endphp
 
 <div class="d-flex">
-    @php
-                $authUser = auth()->user();
-                if ($authUser && !$authUser->relationLoaded('role')) {
-                    $authUser->load('role');
-                }
-                $currentUserRole = $authUser ? $authUser->getRoleName() : 'Super Admin';
-            @endphp
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
+    @if($currentUserRole === 'Validator')
+        @include('partials.validator-sidebar', ['activeMenu' => 'pengguna-akses'])
+    @else
+        <aside class="sidebar" id="sidebar">
             <div>
-                <span class="role-pill">Ruang {{ $currentUserRole ?: 'Super Admin' }}</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                @if($currentUserRole === 'Validator')
-                    <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                        <i class="bi bi-journal-text"></i>
-                        <span>Daftar FAQ</span>
-                    </a>
-                    <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                        <i class="bi bi-list-check"></i>
-                        <span>Validasi FAQ</span>
-                    </a>
-                    <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
-                        <i class="bi bi-plus-lg"></i>
-                        <span>Buat FAQ</span>
-                    </a>
-                    <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                        <i class="bi bi-tags"></i>
-                        <span>Daftar Kata Kunci</span>
-                    </a>
-                    <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                        <i class="bi bi-book"></i>
-                        <span>Sumber Pustaka</span>
-                    </a>
-                    <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom active">
-                        <i class="bi bi-people"></i>
-                        <span>Pengguna &amp; Akses</span>
-                    </a>
-                @else
+                <div class="sidebar-brand">
+                    <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
+                </div>
+                <div>
+                    <span class="role-pill">Ruang Super Admin</span>
+                </div>
+                <nav class="nav flex-column">
                     <a href="{{ route('superadmin.dashboard') }}" class="nav-link-custom">
                         <i class="bi bi-grid"></i>
                         <span>Dashboard</span>
@@ -155,6 +76,10 @@
                     <a href="{{ route('superadmin.daftarFAQ') }}" class="nav-link-custom">
                         <i class="bi bi-journal-text"></i>
                         <span>Daftar FAQ</span>
+                    </a>
+                    <a href="{{ route('superadmin.kelolaUnit') }}" class="nav-link-custom">
+                        <i class="bi bi-building-gear"></i>
+                        <span>Kelola Unit</span>
                     </a>
                     <a href="{{ route('superadmin.pengguna-akses') }}" class="nav-link-custom active">
                         <i class="bi bi-people"></i>
@@ -176,46 +101,42 @@
                         <i class="bi bi-clock-history"></i>
                         <span>Riwayat Aktivitas</span>
                     </a>
-                @endif
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ $currentUserRole === 'Validator' ? route('validator.pengaturanAkun') : route('superadmin.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+                </nav>
+            </div>
+            <div>
+                <hr class="sidebar-divider">
+                <a href="{{ route('superadmin.pengaturanAkun') }}" class="nav-link-custom">
+                    <i class="bi bi-gear"></i>
+                    <span>Pengaturan Akun</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Keluar</span>
+                </a>
+            </div>
+        </aside>
+    @endif
 
     <!-- Overlay for mobile sidebar -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
 
     <!-- Main Wrapper -->
     <main class="flex-grow-1 min-vw-0">
-        <!-- Top Navbar (Tanpa Pencarian) -->
+        <!-- Top Navbar -->
         @php
-            $tbUser = auth()->user();
-            if ($tbUser && !$tbUser->relationLoaded('role')) {
-                $tbUser->load('role');
-            }
-            $tbRole = $tbUser?->getRoleName() ?: 'Super Admin';
-            $tbName = $tbUser?->nama ?? 'Pengguna KMS';
-            $tbEmail = $tbUser?->email ?? '';
+            $tbRole = $authUser?->getRoleName() ?: 'Super Admin';
+            $tbName = $authUser?->nama ?? 'Pengguna KMS';
+            $tbEmail = $authUser?->email ?? '';
             $tbInitials = collect(preg_split('/\s+/', trim($tbName)))
                 ->filter()
                 ->take(2)
                 ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
                 ->implode('') ?: 'KM';
+            $accountRoute = $isValidatorUnit
+                ? route('validator.unit.pengaturanAkun')
+                : ($tbRole === 'Validator' ? route('validator.pengaturanAkun') : route('superadmin.pengaturanAkun'));
         @endphp
         <header class="top-navbar d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <!-- Left: Mobile Toggle & Breadcrumb -->
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-3" onclick="toggleSidebar()" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-5"></i>
@@ -224,13 +145,12 @@
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
                     <span class="crumb-sep">/</span>
-                    <span>{{ $tbRole }}</span>
+                    <span>{{ $tbRole }}{{ $isValidatorUnit ? ' · ' . $callerUnitName : '' }}</span>
                     <span class="crumb-sep">/</span>
-                    <span class="crumb-current">Pengguna &amp; Akses</span>
+                    <span class="crumb-current">{{ $isValidatorUnit ? 'Pengguna & Akses Unit' : 'Pengguna & Akses' }}</span>
                 </div>
             </div>
 
-            <!-- Right: Notification & Profile -->
             <div class="d-flex align-items-center gap-2 ms-auto">
                 <button type="button" class="top-icon-btn" aria-label="Notifikasi">
                     <i class="bi bi-bell fs-5"></i>
@@ -241,7 +161,7 @@
                         <div class="avatar-circle">{{ $tbInitials }}</div>
                         <div class="d-none d-sm-block text-start lh-sm">
                             <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
-                            <div class="fs-11 text-muted">{{ $tbRole }}</div>
+                            <div class="fs-11 text-muted">{{ $tbRole }} &middot; {{ $callerUnitName }}</div>
                         </div>
                         <i class="bi bi-chevron-down text-muted fs-11 ms-1 d-none d-sm-inline"></i>
                     </button>
@@ -253,7 +173,7 @@
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ $tbRole === 'Validator' ? route('validator.pengaturanAkun') : route('superadmin.pengaturanAkun') }}">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ $accountRoute }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
@@ -306,9 +226,25 @@
             <!-- Page Header Area -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
-                    <div class="date-badge">{{ $currentUserRole === 'Validator' ? 'RUANG PENELAAH · VALIDATOR' : 'KAMIS, 22 OKTOBER 2026' }}</div>
-                    <h1 class="page-title mb-1">Pengguna &amp; Akses</h1>
-                    <p class="text-muted fs-13 mb-0">Kelola akun staf kampus, penugasan peran (role), dan kontrol wewenang dengan proteksi keamanan ketat.</p>
+                    <div class="date-badge">
+                        @if($isValidatorUnit)
+                            RUANG VALIDATOR UNIT &middot; {{ strtoupper($callerUnitName) }}
+                        @elseif($isValidatorAdmik)
+                            RUANG PENELAAH PUSAT &middot; DIREKTORAT AKADEMIK
+                        @else
+                            MANAJEMEN PENGGUNA &amp; AKSES SISTEM
+                        @endif
+                    </div>
+                    <h1 class="page-title mb-1">{{ $isValidatorUnit ? 'Pengguna & Akses Unit' : 'Pengguna & Akses' }}</h1>
+                    <p class="text-muted fs-13 mb-0">
+                        @if($isValidatorUnit)
+                            Kelola akun staf Data Entry khusus untuk unit <strong>{{ $callerUnitName }}</strong>.
+                        @elseif($isValidatorAdmik)
+                            Kelola akun Validator Unit serta Data Entry di seluruh unit &amp; direktorat terdaftar.
+                        @else
+                            Kelola akun staf kampus, penugasan peran (role), dan penempatan unit/direktorat dengan proteksi keamanan ketat.
+                        @endif
+                    </p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <button type="button" class="btn btn-maroon rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm fs-13" data-bs-toggle="modal" data-bs-target="#modalTambahPengguna">
@@ -318,50 +254,49 @@
                 </div>
             </div>
 
-
             <!-- Table Container Card -->
             <div class="card-custom">
                 <!-- Toolbar: Filter Pills & Search -->
-                <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
-                    <!-- Pilihan Dropdown Pengguna/Role -->
-                    <div class="d-flex align-items-center gap-2">
-                        <label for="roleSelectFilter" class="fs-12 fw-semibold text-muted text-nowrap d-none d-sm-inline">
-                            <i class="bi bi-funnel me-1"></i>Pilih Pengguna:
-                        </label>
-                        <div class="position-relative" style="min-width: 260px;">
-                            <select id="roleSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-semibold text-dark shadow-sm border-secondary-subtle" onchange="filterByRole(this.value)">
-                                <option value="all" selected>Semua Pengguna ({{ $totalUsers }})</option>
-                                @foreach($allRoles as $r)
-                                    <option value="{{ $r->nama }}">
-                                        {{ $r->nama }} ({{ collect($userList)->where('tRoles_id', $r->id)->count() }})
-                                    </option>
-                                @endforeach
-                                <option value="nonaktif">Pengguna Nonaktif ({{ $countNonaktif }})</option>
+                <div class="d-flex flex-wrap flex-xl-nowrap align-items-center justify-content-between gap-2 mb-3 pb-3 border-bottom">
+                    <div class="d-flex flex-wrap flex-md-nowrap align-items-center gap-2">
+                        @if(!$isValidatorUnit)
+                            <select id="roleSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-semibold text-dark shadow-sm border-secondary-subtle" style="min-width: 195px;" onchange="filterByRole(this.value)">
+                                <option value="all" selected>Semua Role ({{ $totalUsers }})</option>
+                                @if($isSuperAdmin)
+                                    <option value="Super Admin">Super Admin ({{ $countSuperAdmin }})</option>
+                                @endif
+                                <option value="Validator">Validator ({{ $countValidator }})</option>
+                                <option value="Data Entry">Data Entry ({{ $countDataEntry }})</option>
                             </select>
-                        </div>
+
+                            <select id="statusSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-medium text-dark shadow-sm border-secondary-subtle" style="min-width: 155px;" onchange="filterTableRows()">
+                                <option value="all">Semua Status</option>
+                                <option value="aktif">Hanya Aktif</option>
+                                <option value="nonaktif">Hanya Nonaktif</option>
+                            </select>
+
+                            <select id="unitSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-medium text-dark shadow-sm border-secondary-subtle" style="min-width: 215px;" onchange="filterTableRows()">
+                                <option value="all" selected>Semua Unit / Direktorat</option>
+                                @foreach($allDirektorats as $dOpt)
+                                    <option value="{{ $dOpt->id }}">{{ $dOpt->nama }}</option>
+                                @endforeach
+                            </select>
+                        @else
+                            <span class="badge rounded-pill px-3 py-2 fs-12 fw-semibold" style="background-color:#FCEEEF;color:#85172C;border:1px solid #F3C5CE;">
+                                <i class="bi bi-building me-1"></i>Unit Terkunci: {{ $callerUnitName }} (Hanya Data Entry)
+                            </span>
+                            <select id="statusSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-medium text-dark shadow-sm border-secondary-subtle" style="min-width: 155px;" onchange="filterTableRows()">
+                                <option value="all">Semua Status</option>
+                                <option value="aktif">Hanya Aktif</option>
+                                <option value="nonaktif">Hanya Nonaktif</option>
+                            </select>
+                        @endif
                     </div>
 
-                    <!-- Search & Secondary Filters -->
-                    <div class="d-flex align-items-center gap-2 w-100 w-lg-auto justify-content-end">
-                        <div class="search-container" style="max-width: 260px;">
-                            <i class="bi bi-search"></i>
-                            <input type="text" id="tableFilterInput" class="search-input" placeholder="Saring tabel pengguna...">
-                        </div>
-                        <select id="statusSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-12 border-secondary-subtle" style="width: 140px;" onchange="filterTableRows()">
-                            <option value="all">Semua Status</option>
-                            <option value="aktif">Hanya Aktif</option>
-                            <option value="nonaktif">Hanya Nonaktif</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Table Header Info -->
-                <div class="d-flex align-items-center justify-content-between mb-3 px-1">
-                    <div class="fs-13 text-muted">
-                        Menampilkan <strong id="visibleCount" class="text-dark">{{ count($userList) }}</strong> dari <strong>{{ count($userList) }}</strong> pengguna terdaftar
-                    </div>
-                    <div class="fs-12 text-muted">
-                        <span class="badge-status-dot bg-success me-1"></span> Database: Tabel <code>tusers</code> & <code>troles</code>
+                    <!-- Search -->
+                    <div class="search-container ms-xl-auto" style="min-width: 220px; max-width: 350px; width: 100%;">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="tableFilterInput" class="search-input" placeholder="Cari Nama Pengguna">
                     </div>
                 </div>
 
@@ -371,72 +306,62 @@
                         <thead>
                             <tr>
                                 <th style="width: 5%;">NO</th>
-                                <th style="width: 27%;">INFORMASI PENGGUNA</th>
-                                <th style="width: 13%;">NPK</th>
-                                <th style="width: 18%;">PERAN / ROLE</th>
-                                <th style="width: 12%;">STATUS AKUN</th>
-                                <th style="width: 13%;">DIPERBARUI</th>
-                                <th style="width: 12%; text-align: right;">AKSI & AKSES</th>
+                                <th style="width: 32%;">PENGGUNA</th>
+                                <th style="width: 24%;">UNIT / FAKULTAS</th>
+                                <th style="width: 15%;">PERAN</th>
+                                <th style="width: 11%;">STATUS</th>
+                                <th style="width: 13%; text-align: right;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($userList as $index => $u)
                                 @php
                                     $roleName = $u->role->nama ?? ($u->tRoles_id == 1 ? 'Super Admin' : ($u->tRoles_id == 2 ? 'Data Entry' : ($u->tRoles_id == 3 ? 'Validator' : 'Tanpa Role')));
+                                    $unitName = $u->direktorat?->nama ?? 'Direktorat Akademik';
+                                    $unitId   = (int) ($u->tDirektorat_id ?: 1);
+                                    $unitIsPusat = $u->direktorat ? (bool) $u->direktorat->is_pusat : ($unitId === 1);
                                     $initials = strtoupper(substr($u->nama, 0, 2));
                                     $isCurrentAdmin = ($u->id == $currentAdminId);
-
-                                    // Avatar color styling by role
-                                    $avatarBg = match($u->tRoles_id) {
-                                        1 => 'background-color: #FCEEEF; color: #85172C;',
-                                        2 => 'background-color: #CCFBF1; color: #0F766E;',
-                                        3 => 'background-color: #DBEAFE; color: #1D4ED8;',
-                                        default => 'background-color: #F1F5F9; color: #64748B;'
-                                    };
+                                    $createdAtJkt = isset($u->created_at) ? \Carbon\Carbon::parse($u->created_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : '-';
+                                    $updatedAtJkt = isset($u->updated_at) ? \Carbon\Carbon::parse($u->updated_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y, H.i') . ' WIB' : $createdAtJkt;
+                                    $viewablePass = method_exists($u, 'getViewablePassword') ? $u->getViewablePassword() : '';
                                 @endphp
-                                <tr class="user-row" 
+                                <tr class="user-row"
                                     data-id="{{ $u->id }}"
                                     data-nama="{{ $u->nama }}"
                                     data-email="{{ $u->email }}"
+                                    data-password="{{ $viewablePass }}"
                                     data-npk="{{ $u->npk ?? '' }}"
                                     data-role-id="{{ $u->tRoles_id }}"
                                     data-role-name="{{ $roleName }}"
+                                    data-unit-id="{{ $unitId }}"
+                                    data-unit-name="{{ $unitName }}"
                                     data-is-active="{{ $u->is_active ? '1' : '0' }}"
-                                    data-is-current="{{ $isCurrentAdmin ? '1' : '0' }}">
-                                    
-                                    <!-- Index -->
-                                    <td class="text-muted fw-semibold fs-12">{{ $index + 1 }}</td>
+                                    data-is-current="{{ $isCurrentAdmin ? '1' : '0' }}"
+                                    data-created-at="{{ $createdAtJkt }}"
+                                    data-updated-at="{{ $updatedAtJkt }}">
 
-                                    <!-- User Info -->
+                                    <td class="text-muted fw-semibold fs-12 row-number-cell">{{ $index + 1 }}</td>
+
                                     <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-user-table" style="{{ $avatarBg }}">
-                                                {{ $initials }}
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold fs-13 text-dark d-flex align-items-center gap-2">
-                                                    <span>{{ $u->nama }}</span>
-                                                    @if($isCurrentAdmin)
-                                                        <span class="badge" style="background-color: #85172C; font-size: 0.65rem;">Akun Anda</span>
-                                                    @endif
-                                                </div>
-                                                <div class="fs-12 text-muted">{{ $u->email }}</div>
-                                            </div>
+                                        <div class="fw-bold fs-13 text-dark d-flex align-items-center gap-2">
+                                            <span>{{ $u->nama }}</span>
+                                            @if($isCurrentAdmin)
+                                                <span class="badge" style="background-color: #85172C; font-size: 0.65rem;">Akun Anda</span>
+                                            @endif
                                         </div>
                                     </td>
 
-                                    <!-- NPK -->
+                                    <!-- Unit / Fakultas -->
                                     <td>
-                                        @if(!empty($u->npk))
-                                            <span class="badge bg-light text-dark border font-monospace fs-11 px-2 py-1">
-                                                {{ $u->npk }}
-                                            </span>
-                                        @else
-                                            <span class="text-muted fs-12">-</span>
-                                        @endif
+                                        <span class="badge rounded-pill fw-semibold d-inline-flex align-items-center gap-1"
+                                              style="{{ $unitIsPusat ? 'background-color:#FFF7ED;color:#9A3412;border:1px solid #FED7AA;' : 'background-color:#F8FAFC;color:#334155;border:1px solid #CBD5E1;' }} font-size: 0.72rem; padding: 0.32rem 0.75rem;">
+                                            <i class="bi {{ $unitIsPusat ? 'bi-bank2' : 'bi-building' }}"></i>
+                                            <span>{{ $unitName }}</span>
+                                        </span>
                                     </td>
 
-                                    <!-- Role Pill -->
+                                    <!-- Peran -->
                                     <td>
                                         @if($u->tRoles_id == 1)
                                             <span class="badge-role badge-role-superadmin">
@@ -457,91 +382,50 @@
                                         @endif
                                     </td>
 
-                                    <!-- Status -->
+                                    <!-- Status (Font putih) -->
                                     <td>
                                         @if($u->is_active)
-                                            <span class="badge-role badge-active">
-                                                <span class="badge-status-dot bg-success"></span> Aktif
+                                            <span class="badge-role" style="background-color: #059669; color: #FFFFFF;">
+                                                <span class="badge-status-dot bg-white"></span> Aktif
                                             </span>
                                         @else
-                                            <span class="badge-role badge-inactive">
-                                                <span class="badge-status-dot bg-secondary"></span> Nonaktif
+                                            <span class="badge-role" style="background-color: #64748B; color: #FFFFFF;">
+                                                <span class="badge-status-dot bg-white"></span> Nonaktif
                                             </span>
                                         @endif
                                     </td>
 
-                                    <!-- Date -->
-                                    <td class="text-muted fs-12">
-                                        <div>{{ isset($u->updated_at) ? \Carbon\Carbon::parse($u->updated_at)->isoFormat('D MMM Y') : '-' }}</div>
-                                        <div class="fs-11 text-secondary">
-                                            {{ isset($u->updated_at) ? \Carbon\Carbon::parse($u->updated_at)->format('H:i') . ' WIB' : '' }}
-                                        </div>
-                                    </td>
-
-                                    <!-- Actions -->
+                                    <!-- Aksi: Lihat & Ubah -->
                                     <td class="text-end">
-                                        <div class="d-inline-flex align-items-center gap-1">
-                                            <!-- Edit Info Button -->
-                                            <button type="button" 
-                                                    class="btn-action btn-action-edit" 
-                                                    title="Ubah Keterangan Pengguna"
+                                        <div class="d-inline-flex align-items-center gap-2">
+                                            <button type="button"
+                                                    class="btn-action"
+                                                    style="background-color: #FFFFFF; color: #334155; border: 1px solid #CBD5E1;"
+                                                    title="Lihat Detail Pengguna"
+                                                    onclick="openViewUserModal(this)">
+                                                <i class="bi bi-eye"></i>
+                                                <span>Lihat</span>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn-action btn-action-edit"
+                                                    title="Ubah Pengguna & Peran"
                                                     onclick="openEditModal(this)">
                                                 <i class="bi bi-pencil"></i>
                                                 <span>Ubah</span>
                                             </button>
-
-                                            <!-- Assign / Add Role Button -->
-                                            <button type="button" 
-                                                    class="btn-action-icon" 
-                                                    title="Ubah / Tambah Peran (Role)"
-                                                    onclick="openRoleModal(this)">
-                                                <i class="bi bi-shield-plus"></i>
-                                            </button>
-
-                                            <!-- Remove Role Button (Strict Guarded) -->
-                                            <button type="button" 
-                                                    class="btn-action-icon btn-action-danger" 
-                                                    title="Cabut Role (Syarat Ketat)"
-                                                    onclick="openRemoveRoleModal(this)">
-                                                <i class="bi bi-shield-x"></i>
-                                            </button>
-
-                                            <!-- Dropdown Options -->
-                                            <div class="dropdown d-inline-block">
-                                                <button class="btn-action-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Opsi Lainnya">
-                                                    <i class="bi bi-three-dots-vertical"></i>
-                                                </button>
-                                                <ul class="dropdown-menu dropdown-menu-end border shadow-sm rounded-3 fs-13 py-1">
-                                                    <li>
-                                                        <form action="{{ route('superadmin.pengguna.toggleStatus', $u->id) }}" method="POST">
-                                                            @csrf
-                                                            <button type="submit" class="dropdown-item py-2 d-flex align-items-center gap-2 {{ $isCurrentAdmin ? 'disabled text-muted' : '' }}">
-                                                                <i class="bi bi-power {{ $u->is_active ? 'text-warning' : 'text-success' }}"></i>
-                                                                <span>{{ $u->is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}</span>
-                                                            </button>
-                                                        </form>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="copyEmail('{{ $u->email }}')">
-                                                            <i class="bi bi-clipboard text-muted"></i>
-                                                            <span>Salin Email Staf</span>
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-5">
+                                    <td colspan="6" class="text-center py-5">
                                         <div class="stat-icon mx-auto mb-2" style="background-color: #F8FAFC; color: #94A3B8;">
                                             <i class="bi bi-people fs-4"></i>
                                         </div>
                                         <div class="fw-bold fs-14 text-dark">Belum ada pengguna terdaftar</div>
-                                        <div class="text-muted fs-12 mb-3">Tambahkan pengguna baru untuk memberikan akses ke sistem KMS kampus.</div>
+                                        <div class="text-muted fs-12 mb-3">Tambahkan akun baru untuk memberikan akses ke sistem KMS.</div>
                                         <button type="button" class="btn btn-maroon btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalTambahPengguna">
-                                            + Tambah Pengguna Pertama
+                                            + Tambah Pengguna
                                         </button>
                                     </td>
                                 </tr>
@@ -554,7 +438,15 @@
                 <div id="noDataFiltered" class="text-center py-5 d-none">
                     <i class="bi bi-search fs-2 text-muted mb-2 d-block"></i>
                     <div class="fw-bold fs-14 text-dark">Tidak ada data pengguna yang cocok</div>
-                    <div class="text-muted fs-12">Coba sesuaikan kata kunci pencarian atau ganti filter peran.</div>
+                    <div class="text-muted fs-12">Coba sesuaikan kata kunci pencarian, unit, atau filter peran.</div>
+                </div>
+
+                <!-- Bottom Info & Pagination (10 item/halaman) -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-3 border-top" id="userPaginationBar">
+                    <div class="fs-13 text-muted" id="paginationInfoText">
+                        Menampilkan 0 dari 0 pengguna
+                    </div>
+                    <div class="d-flex gap-1 align-items-center" id="paginationControls"></div>
                 </div>
             </div>
 
@@ -566,7 +458,7 @@
 <!-- MODAL 1: TAMBAH PENGGUNA BARU                                            -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="modalTambahPengguna" tabindex="-1" aria-labelledby="modalTambahPenggunaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content modal-content-custom">
             <div class="modal-header modal-header-custom">
                 <div class="d-flex align-items-center gap-2">
@@ -574,26 +466,26 @@
                         <i class="bi bi-person-plus-fill fs-6"></i>
                     </div>
                     <div>
-                        <h2 class="modal-title fw-bold fs-15 text-dark mb-0" id="modalTambahPenggunaLabel">Tambah Pengguna Baru</h2>
+                        <h2 class="modal-title fw-bold fs-15 text-dark mb-0" id="modalTambahPenggunaLabel">
+                            {{ $isValidatorUnit ? 'Tambah Data Entry Unit' : 'Tambah Pengguna Baru' }}
+                        </h2>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form action="{{ route('superadmin.pengguna.store') }}" method="POST">
+            <form action="{{ $penggunaStoreUrl }}" method="POST">
                 @csrf
                 <div class="modal-body p-4">
-                    <!-- Nama Lengkap -->
                     <div class="mb-3">
                         <label for="create_nama" class="form-label-custom">Nama Lengkap <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-custom" id="create_nama" name="nama" required maxlength="100" placeholder="Contoh: Sarah Anindya, S.Kom">
                         <div class="form-text fs-11 text-muted">Sesuai nama identitas staf kampus.</div>
                     </div>
 
-                    <!-- Email & NPK -->
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-7">
-                            <label for="create_email" class="form-label-custom">Email<span class="text-danger">*</span></label>
+                            <label for="create_email" class="form-label-custom">Email <span class="text-danger">*</span></label>
                             <input type="email" class="form-control form-control-custom" id="create_email" name="email" required maxlength="50" placeholder="nama@staff.ubaya.ac.id">
                         </div>
                         <div class="col-12 col-md-5">
@@ -602,16 +494,15 @@
                         </div>
                     </div>
 
-                    <!-- Password -->
                     <div class="mb-3">
                         <label for="create_password" class="form-label-custom">Kata Sandi Awal <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="password" 
-                                   class="form-control form-control-custom" 
-                                   id="create_password" 
-                                   name="password" 
-                                   required 
-                                   minlength="8" 
+                            <input type="password"
+                                   class="form-control form-control-custom"
+                                   id="create_password"
+                                   name="password"
+                                   required
+                                   minlength="8"
                                    placeholder="Minimal 8 karakter"
                                    autocomplete="new-password">
                             <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('create_password', this)" title="Lihat kata sandi">
@@ -628,35 +519,53 @@
                         </div>
                     </div>
 
-                    <!-- Role Selection -->
-                    <div class="mb-3">
-                        <label for="create_role" class="form-label-custom">Pemberian Role <span class="text-danger">*</span></label>
-                        <select class="form-select form-select-custom" id="create_role" name="tRoles_id" required>
-                            <option value="" disabled selected>-- Pilih Role --</option>
-                            @foreach($allRoles as $r)
-                                <option value="{{ $r->id }}">
-                                    {{ $r->nama }} 
-                                    @if($r->id == 1) (Akses Penuh Seluruh Sistem)
-                                    @elseif($r->id == 2) (Input & Kelola Draf FAQ)
-                                    @elseif($r->id == 3) (Verifikasi, Revisi & Penerbitan)
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if($isValidatorUnit)
+                        <div class="p-3 rounded-3 border bg-light mb-3">
+                            <div class="fs-12 fw-semibold text-dark mb-1">Penugasan Otomatis Unit Anda:</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge-role badge-role-dataentry"><i class="bi bi-pencil-fill"></i> Role: Data Entry</span>
+                                <span class="badge rounded-pill bg-white text-dark border px-2.5 py-1 fs-12"><i class="bi bi-building me-1"></i>Unit: {{ $callerUnitName }}</span>
+                            </div>
+                        </div>
+                    @else
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-6">
+                                <label for="create_role" class="form-label-custom">Pemberian Role <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-custom" id="create_role" name="tRoles_id" required>
+                                    <option value="" disabled selected>-- Pilih Role --</option>
+                                    @foreach($allRoles as $r)
+                                        <option value="{{ $r->id }}">{{ $r->nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="create_direktorat" class="form-label-custom">Unit / Direktorat <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-custom" id="create_direktorat" name="tDirektorat_id" required>
+                                    @foreach($allDirektorats as $d)
+                                        @if($d->is_active || $d->is_pusat)
+                                            <option value="{{ $d->id }}">
+                                                {{ $d->nama }}{{ $d->is_pusat ? ' (Pusat)' : '' }}
+                                            </option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="fs-11 text-muted mb-2">
+                            <i class="bi bi-lightbulb me-1 text-warning"></i>Pilih <strong>Direktorat Akademik (Pusat)</strong> untuk staf Admik, atau pilih unit/fakultas tujuan untuk <strong>Validator Unit</strong> maupun <strong>Data Entry Unit</strong>.
+                        </div>
+                    @endif
 
-                    <!-- Status Switch -->
                     <div class="form-check form-switch mt-3 pt-2 border-top">
                         <input class="form-check-input" type="checkbox" role="switch" id="create_is_active" name="is_active" value="1" checked>
                         <label class="form-check-label fs-13 text-dark fw-medium" for="create_is_active">
                             Langsung Aktifkan Akun Pengguna
                         </label>
-                        <div class="fs-11 text-muted">Pengguna dapat langsung masuk ke sistem setelah disimpan.</div>
+                        <div class="fs-11 text-muted">Pengguna dapat langsung masuk ke ruang kerja unitnya setelah disimpan.</div>
                     </div>
                 </div>
 
-                <div class="modal-footer modal-footer-custom d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fs-13" data-bs-dismiss="modal">Batal</button>
+                <div class="modal-footer modal-footer-custom d-flex justify-content-end">
                     <button type="submit" class="btn btn-maroon rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2">
                         <i class="bi bi-check2-circle"></i>
                         <span>Simpan Pengguna</span>
@@ -671,7 +580,7 @@
 <!-- MODAL 2: UPDATE KETERANGAN PENGGUNA                                      -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="modalEditPengguna" tabindex="-1" aria-labelledby="modalEditPenggunaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content modal-content-custom">
             <div class="modal-header modal-header-custom">
                 <div class="d-flex align-items-center gap-2">
@@ -680,7 +589,7 @@
                     </div>
                     <div>
                         <h2 class="modal-title fw-bold fs-15 text-dark mb-0" id="modalEditPenggunaLabel">Update Keterangan Pengguna</h2>
-                        <div class="fs-12 text-muted">Perbarui profil dan status staf</div>
+                        <div class="fs-12 text-muted">Perbarui profil, unit penempatan, dan status staf</div>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -691,13 +600,11 @@
                 <div class="modal-body p-4">
                     <input type="hidden" id="edit_id" name="id">
 
-                    <!-- Nama Lengkap -->
                     <div class="mb-3">
                         <label for="edit_nama" class="form-label-custom">Nama Lengkap <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-custom" id="edit_nama" name="nama" required maxlength="100">
                     </div>
 
-                    <!-- Email & NPK -->
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-7">
                             <label for="edit_email" class="form-label-custom">Alamat Email Kampus <span class="text-danger">*</span></label>
@@ -709,25 +616,46 @@
                         </div>
                     </div>
 
-                    <!-- Password Baru (Opsional) -->
+                    @if(!$isValidatorUnit)
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-6">
+                                <label for="edit_role" class="form-label-custom">Peran / Role <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-custom" id="edit_role" name="tRoles_id" required>
+                                    @foreach($allRoles as $r)
+                                        <option value="{{ $r->id }}">{{ $r->nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="edit_direktorat" class="form-label-custom">Unit / Direktorat Penempatan <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-custom" id="edit_direktorat" name="tDirektorat_id" required>
+                                    @foreach($allDirektorats as $d)
+                                        <option value="{{ $d->id }}">
+                                            {{ $d->nama }}{{ $d->is_pusat ? ' (Pusat)' : '' }}{{ !$d->is_active ? ' — Nonaktif' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="mb-3">
                         <label for="edit_password" class="form-label-custom">Ganti Kata Sandi (Opsional)</label>
                         <div class="input-group">
-                            <input type="password" 
-                                   class="form-control form-control-custom" 
-                                   id="edit_password" 
-                                   name="password" 
-                                   minlength="8" 
+                            <input type="password"
+                                   class="form-control form-control-custom"
+                                   id="edit_password"
+                                   name="password"
+                                   minlength="8"
                                    placeholder="Minimal 8 karakter jika ingin mengganti"
                                    autocomplete="new-password">
                             <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('edit_password', this)" title="Lihat kata sandi">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
-                        <div class="form-text fs-11 text-muted">Biarkan kosong jika tidak ingin mengubah sandi. Jika diisi, minimal 8 karakter.</div>
+                        <div class="form-text fs-11 text-muted">Biarkan kosong jika tidak ingin mengubah sandi.</div>
                     </div>
 
-                    <!-- Status Aktif / Nonaktif -->
                     <div class="form-check form-switch mt-3 pt-2 border-top">
                         <input class="form-check-input" type="checkbox" role="switch" id="edit_is_active" name="is_active" value="1">
                         <label class="form-check-label fs-13 text-dark fw-medium" for="edit_is_active">
@@ -750,8 +678,123 @@
 </div>
 
 <!-- ========================================================================= -->
+<!-- MODAL 2B: LIHAT DETAIL PENGGUNA                                           -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="modalLihatPengguna" tabindex="-1" aria-labelledby="modalLihatPenggunaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 640px;">
+        <div class="modal-content modal-content-custom" style="border-radius: 18px; overflow: hidden;">
+            <div class="modal-header modal-header-custom" style="background: linear-gradient(135deg, #FFFDFB 0%, #FDF2F4 100%); border-bottom: 1px solid #F3E2E5; padding: 1.15rem 1.5rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="width: 40px; height: 40px; background-color: #FCEEEF; color: #85172C; border-radius: 12px;">
+                        <i class="bi bi-person-vcard fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="modal-title fw-bold fs-15 text-dark mb-0" id="modalLihatPenggunaLabel">Detail Informasi Pengguna</h2>
+                        <div class="fs-12 text-muted">Rincian profil, kredensial, unit penempatan, dan status akun</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; overflow: hidden;">
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-person text-dark"></i><span>Nama Lengkap</span>
+                        </div>
+                        <div class="col-12 col-sm-8 fs-14 fw-bold text-dark" id="view_user_nama">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-envelope text-dark"></i><span>Email</span>
+                        </div>
+                        <div class="col-12 col-sm-8 fs-13 fw-semibold text-dark" id="view_user_email">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-key text-dark"></i><span>Password</span>
+                        </div>
+                        <div class="col-12 col-sm-8">
+                            <div class="input-group input-group-sm">
+                                <input type="password" class="form-control bg-white text-dark font-monospace border-secondary-subtle" id="view_user_password" value="••••••••" readonly>
+                                <button class="btn btn-outline-secondary bg-white text-dark" type="button" onclick="toggleViewUserPassword(this)" title="Tampilkan / Sembunyikan">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-card-text text-dark"></i><span>NPK / ID Staf</span>
+                        </div>
+                        <div class="col-12 col-sm-8 fs-13 fw-semibold font-monospace text-dark" id="view_user_npk">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-building text-dark"></i><span>Unit / Fakultas</span>
+                        </div>
+                        <div class="col-12 col-sm-8 fs-13 fw-semibold text-dark" id="view_user_unit">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-shield-check text-dark"></i><span>Peran</span>
+                        </div>
+                        <div class="col-12 col-sm-8" id="view_user_role">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-activity text-dark"></i><span>Status</span>
+                        </div>
+                        <div class="col-12 col-sm-8" id="view_user_status">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem; border-bottom: 1px solid #E2E8F0;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-calendar-plus text-dark"></i><span>Dibuat</span>
+                        </div>
+                        <div class="col-12 col-sm-8 fs-13 fw-medium text-dark" id="view_user_created">-</div>
+                    </div>
+
+                    <div class="row g-0 align-items-center" style="padding: 0.8rem 1.25rem;">
+                        <div class="col-12 col-sm-4 fs-12 fw-semibold text-dark d-flex align-items-center gap-2 mb-1 mb-sm-0">
+                            <i class="bi bi-clock-history text-dark"></i><span>Diperbarui</span>
+                        </div>
+                        <div class="col-12 col-sm-8 fs-13 fw-medium text-dark" id="view_user_updated">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer modal-footer-custom d-flex flex-wrap justify-content-end gap-2">
+                <form id="formViewToggleStatus" action="" method="POST" class="m-0">
+                    @csrf
+                    <button type="submit" id="btnViewToggleStatus" class="btn rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2" style="background-color: #475569; color: #FFFFFF; border: none;">
+                        <i class="bi bi-power"></i>
+                        <span id="btnViewToggleStatusText">Nonaktifkan Akun</span>
+                    </button>
+                </form>
+
+                <form id="formViewDeleteUser" action="" method="POST" class="m-0" onsubmit="return confirmDeleteUser(event)">
+                    @csrf
+                    <button type="submit" id="btnViewDeleteUser" class="btn btn-danger rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-trash"></i>
+                        <span>Hapus Akun</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
 <!-- MODAL 3: PENUGASAN / ADD / UBAH ROLE                                      -->
 <!-- ========================================================================= -->
+@if(!$isValidatorUnit)
 <div class="modal fade" id="modalUbahRole" tabindex="-1" aria-labelledby="modalUbahRoleLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-custom">
@@ -761,8 +804,8 @@
                         <i class="bi bi-shield-lock-fill fs-6"></i>
                     </div>
                     <div>
-                        <h2 class="modal-title fw-bold fs-15 text-dark mb-0" id="modalUbahRoleLabel">Penugasan Peran (Add / Ubah Role)</h2>
-                        <div class="fs-12 text-muted">Sesuaikan hak akses staf pada basis data <code>tRoles_id</code></div>
+                        <h2 class="modal-title fw-bold fs-15 text-dark mb-0" id="modalUbahRoleLabel">Penugasan Peran &amp; Unit</h2>
+                        <div class="fs-12 text-muted">Sesuaikan kombinasi <code>Role + Direktorat</code></div>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -771,19 +814,15 @@
             <form id="formUbahRole" action="" method="POST">
                 @csrf
                 <div class="modal-body p-4">
-                    <!-- Ringkasan Staf -->
                     <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 mb-3 border">
-                        <div class="avatar-user-table bg-white text-dark border fw-bold" id="role_preview_avatar">
-                            DP
-                        </div>
+                        <div class="avatar-user-table bg-white text-dark border fw-bold" id="role_preview_avatar">DP</div>
                         <div>
-                            <div class="fw-bold fs-13 text-dark" id="role_preview_nama">Dimas Pratama</div>
-                            <div class="fs-11 text-muted" id="role_preview_email">adminkms@gmail.com</div>
-                            <div class="fs-11 text-secondary mt-1">Peran saat ini: <strong id="role_preview_current" class="text-dark">Super Admin</strong></div>
+                            <div class="fw-bold fs-13 text-dark" id="role_preview_nama">-</div>
+                            <div class="fs-11 text-muted" id="role_preview_email">-</div>
+                            <div class="fs-11 text-secondary mt-1">Saat ini: <strong id="role_preview_current" class="text-dark">-</strong></div>
                         </div>
                     </div>
 
-                    <!-- Role Option Cards -->
                     <div class="mb-3">
                         <label class="form-label-custom mb-2">Pilih Peran Baru:</label>
                         <div class="d-flex flex-column gap-2">
@@ -803,11 +842,11 @@
                                         </div>
                                         <div class="fs-11 text-muted">
                                             @if($r->id == 1)
-                                                Mengelola seluruh akun pengguna, master role, audit log, konfigurasi kategori, dan semua modul KMS.
+                                                Mengelola seluruh akun pengguna, unit, konfigurasi sistem, dan monitoring semua modul KMS.
                                             @elseif($r->id == 2)
-                                                Membuat draf konten FAQ, mengunggah materi pertanyaan & jawaban, dan mengajukan draf ke Validator.
+                                                Menyusun draf FAQ unitnya, mengunggah materi, dan mengajukan validasi.
                                             @elseif($r->id == 3)
-                                                Meninjau draf FAQ, memberikan catatan revisi, dan menyetujui penerbitan FAQ ke publik portal kampus.
+                                                Validator Pusat (Direktorat Akademik) memvalidasi tahap akhir &amp; publish; Validator Unit memvalidasi tahap 1 unitnya.
                                             @endif
                                         </div>
                                     </div>
@@ -816,10 +855,18 @@
                         </div>
                     </div>
 
-                    <!-- Warning for self protection -->
-                    <div class="alert alert-warning border-0 d-none d-flex align-items-center gap-2 fs-12 mb-0" id="roleSelfWarning">
+                    <div class="mb-2">
+                        <label for="role_direktorat_select" class="form-label-custom">Unit / Direktorat:</label>
+                        <select class="form-select form-select-custom" id="role_direktorat_select" name="tDirektorat_id">
+                            @foreach($allDirektorats as $d)
+                                <option value="{{ $d->id }}">{{ $d->nama }}{{ $d->is_pusat ? ' (Pusat)' : '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="alert alert-warning border-0 d-none d-flex align-items-center gap-2 fs-12 mt-3 mb-0" id="roleSelfWarning">
                         <i class="bi bi-shield-slash-fill fs-5 text-warning"></i>
-                        <div><strong>Perhatian:</strong> Anda sedang mengubah peran pada akun login Anda sendiri. Pastikan ada akun Super Admin lain yang aktif.</div>
+                        <div><strong>Perhatian:</strong> Anda sedang mengubah peran pada akun login Anda sendiri.</div>
                     </div>
                 </div>
 
@@ -834,6 +881,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <!-- ========================================================================= -->
 <!-- MODAL 4: CABUT ROLE DENGAN SYARAT KETAT (STRICT REMOVE ROLE)              -->
@@ -841,7 +889,6 @@
 <div class="modal fade" id="modalCabutRole" tabindex="-1" aria-labelledby="modalCabutRoleLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-custom">
-            <!-- Modal Header Hazard -->
             <div class="modal-header modal-header-custom bg-danger bg-opacity-10">
                 <div class="d-flex align-items-center gap-2">
                     <div class="stat-icon" style="width: 36px; height: 36px; background-color: #FEF2F2; color: #DC2626;">
@@ -858,35 +905,31 @@
             <form id="formCabutRole" action="" method="POST">
                 @csrf
                 <div class="modal-body p-4">
-                    <!-- Strict Lockout Guard Block (If Target is Current Admin) -->
                     <div id="removeRoleSelfBlocked" class="alert alert-danger border-0 d-none">
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-slash-circle-fill fs-5 mt-1 text-danger"></i>
                             <div>
                                 <div class="fw-bold fs-13 text-danger">Tindakan Ditolak (Anti-Lockout)</div>
                                 <div class="fs-12 text-dark mt-1">
-                                    Anda tidak diizinkan mencabut hak akses pada akun Super Admin Anda sendiri yang sedang digunakan untuk masuk. Tindakan ini dicegah demi keamanan sistem.
+                                    Anda tidak diizinkan mencabut hak akses pada akun Anda sendiri yang sedang digunakan untuk masuk.
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Quorum Guard Block (If Last Super Admin) -->
                     <div id="removeRoleQuorumBlocked" class="alert alert-danger border-0 d-none">
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-shield-lock-fill fs-5 mt-1 text-danger"></i>
                             <div>
                                 <div class="fw-bold fs-13 text-danger">Proteksi Kuorum Super Admin</div>
                                 <div class="fs-12 text-dark mt-1">
-                                    Pengguna ini adalah satu-satunya Super Admin yang aktif. Sistem mewajibkan setidaknya satu Super Admin aktif untuk operasional kampus.
+                                    Pengguna ini adalah satu-satunya Super Admin yang aktif.
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Normal Confirmation Body -->
                     <div id="removeRoleAllowedSection">
-                        <!-- User target card -->
                         <div class="p-3 bg-light rounded-3 mb-3 border">
                             <div class="fs-11 text-muted text-uppercase fw-semibold mb-1">Target Pengguna:</div>
                             <div class="fw-bold fs-14 text-dark" id="remove_target_nama">-</div>
@@ -896,21 +939,20 @@
                             </div>
                         </div>
 
-                        <!-- Strict Verification Box -->
                         <div class="strict-verification-box mb-3">
                             <div class="d-flex align-items-center gap-2 text-danger fw-bold fs-13 mb-2">
                                 <i class="bi bi-exclamation-triangle-fill"></i>
                                 <span>Syarat Ketat Verifikasi:</span>
                             </div>
                             <p class="fs-12 text-dark mb-2">
-                                Mencabut role akan melucuti seluruh kewenangan operasional staf dan secara otomatis <strong>menonaktifkan akun</strong> tersebut demi mencegah akses tanpa izin.
+                                Mencabut role akan secara otomatis <strong>menonaktifkan akun</strong> tersebut demi mencegah akses tanpa izin.
                             </p>
                             <label for="confirmStrictInput" class="form-label-custom fs-12">
                                 Ketik kata <strong class="text-danger">CABUT PERAN</strong> di bawah ini untuk membuka tombol konfirmasi:
                             </label>
-                            <input type="text" 
-                                   class="form-control form-control-custom font-monospace text-uppercase" 
-                                   id="confirmStrictInput" 
+                            <input type="text"
+                                   class="form-control form-control-custom font-monospace text-uppercase"
+                                   id="confirmStrictInput"
                                    name="konfirmasi_teks"
                                    placeholder="Ketik 'CABUT PERAN'"
                                    autocomplete="off"
@@ -921,9 +963,9 @@
 
                 <div class="modal-footer modal-footer-custom d-flex justify-content-between">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fs-13" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" 
-                            id="btnExecuteRemoveRole" 
-                            class="btn btn-danger rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2" 
+                    <button type="submit"
+                            id="btnExecuteRemoveRole"
+                            class="btn btn-danger rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2"
                             disabled>
                         <i class="bi bi-shield-x"></i>
                         <span>Cabut Hak Akses Staf</span>
@@ -937,18 +979,7 @@
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- ══════════════════════════════════════════════════════════════════
-     MODAL KONFIRMASI KELUAR (LOGOUT)
-══════════════════════════════════════════════════════════════════ -->
-@php
-    $lmUser = auth()->user();
-    $lmName = $lmUser?->nama ?? 'Pengguna KMS';
-    $lmInitials = collect(preg_split('/\s+/', trim($lmName)))
-        ->filter()
-        ->take(2)
-        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
-        ->implode('') ?: 'KM';
-@endphp
+<!-- Modal Logout -->
 <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
     @csrf
 </form>
@@ -968,10 +999,10 @@
             <div class="kms-modal-body">
                 Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem KMS?
                 <div class="logout-user-card">
-                    <div class="avatar-circle">{{ $lmInitials }}</div>
+                    <div class="avatar-circle">{{ $tbInitials }}</div>
                     <div class="lh-sm">
-                        <div class="fw-bold fs-13 text-dark">{{ $lmName }}</div>
-                        <div class="fs-11 text-muted">{{ $lmUser?->email }}</div>
+                        <div class="fw-bold fs-13 text-dark">{{ $tbName }}</div>
+                        <div class="fs-11 text-muted">{{ $tbEmail }}</div>
                     </div>
                 </div>
             </div>
@@ -986,7 +1017,12 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    const currentActiveSuperAdmins = {{ $countSuperAdmin }};
+    const currentLoggedInUserId    = {{ $currentAdminId }};
+    const penggunaBaseUrl          = @json($penggunaBaseUrl);
+
     function openLogoutModal() {
         const el = document.getElementById('modalLogoutConfirm');
         if (window.bootstrap && el) {
@@ -996,10 +1032,6 @@
         }
     }
 
-    function confirmLogout() {
-        openLogoutModal();
-    }
-
     function submitLogout(btn) {
         if (btn) {
             btn.disabled = true;
@@ -1007,28 +1039,12 @@
         }
         document.getElementById('logout-form').submit();
     }
-</script>
 
-<!-- SweetAlert2 for modern confirmation pop-up -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<!-- Interactive Scripts: Strict Verification, Search & Filters -->
-<script>
-    // Jumlah Super Admin aktif saat ini untuk validasi kuorum di sisi client
-    const currentActiveSuperAdmins = {{ $countSuperAdmin }};
-    const currentLoggedInUserId = {{ $currentAdminId }};
-
-    // Toggle Sidebar Mobile
     function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebarBackdrop');
-        sidebar.classList.toggle('show');
-        backdrop.classList.toggle('d-none');
+        document.getElementById('sidebar')?.classList.toggle('show');
+        document.getElementById('sidebarBackdrop')?.classList.toggle('d-none');
     }
 
-
-
-    // Toggle Password Visibility
     function togglePasswordVisibility(inputId, btn) {
         const input = document.getElementById(inputId);
         const icon = btn.querySelector('i');
@@ -1041,13 +1057,14 @@
         }
     }
 
-    // Open Edit Modal with Pre-filled Data
     function openEditModal(button) {
         const row = button.closest('tr');
         const id = row.getAttribute('data-id');
         const nama = row.getAttribute('data-nama');
         const email = row.getAttribute('data-email');
         const npk = row.getAttribute('data-npk');
+        const roleId = row.getAttribute('data-role-id');
+        const unitId = row.getAttribute('data-unit-id');
         const isActive = row.getAttribute('data-is-active') === '1';
 
         document.getElementById('edit_id').value = id;
@@ -1057,65 +1074,182 @@
         document.getElementById('edit_is_active').checked = isActive;
         document.getElementById('edit_password').value = '';
 
-        // Form action
-        const form = document.getElementById('formEditPengguna');
-        form.action = `/superadmin/pengguna-akses/update/${id}`;
+        const editRoleSelect = document.getElementById('edit_role');
+        if (editRoleSelect && roleId) {
+            editRoleSelect.value = roleId;
+        }
 
-        const modal = new bootstrap.Modal(document.getElementById('modalEditPengguna'));
-        modal.show();
+        const editDirSelect = document.getElementById('edit_direktorat');
+        if (editDirSelect && unitId) {
+            editDirSelect.value = unitId;
+        }
+
+        const form = document.getElementById('formEditPengguna');
+        form.action = `${penggunaBaseUrl}/update/${encodeURIComponent(id)}`;
+
+        new bootstrap.Modal(document.getElementById('modalEditPengguna')).show();
     }
 
-    // Open Role Assignment Modal
+    let currentViewUserPlainPassword = '';
+
+    function openViewUserModal(button) {
+        const row = button.closest('tr');
+        const id = parseInt(row.getAttribute('data-id'), 10);
+        const nama = row.getAttribute('data-nama') || '-';
+        const email = row.getAttribute('data-email') || '-';
+        currentViewUserPlainPassword = row.getAttribute('data-password') || '';
+        const npk = row.getAttribute('data-npk') || '-';
+        const roleId = parseInt(row.getAttribute('data-role-id'), 10);
+        const roleName = row.getAttribute('data-role-name') || '-';
+        const unitName = row.getAttribute('data-unit-name') || '-';
+        const isActive = row.getAttribute('data-is-active') === '1';
+        const isCurrent = row.getAttribute('data-is-current') === '1';
+        const createdAt = row.getAttribute('data-created-at') || '-';
+        const updatedAt = row.getAttribute('data-updated-at') || '-';
+
+        document.getElementById('view_user_nama').innerText = nama;
+        document.getElementById('view_user_email').innerText = email;
+        document.getElementById('view_user_npk').innerText = npk || '-';
+        document.getElementById('view_user_unit').innerText = unitName;
+        document.getElementById('view_user_created').innerText = createdAt;
+        document.getElementById('view_user_updated').innerText = updatedAt;
+
+        const passEl = document.getElementById('view_user_password');
+        if (passEl) {
+            passEl.type = 'password';
+            passEl.value = currentViewUserPlainPassword ? '••••••••' : '••••••••';
+            const eyeIcon = passEl.nextElementSibling?.querySelector('i');
+            if (eyeIcon) {
+                eyeIcon.classList.remove('bi-eye-slash');
+                eyeIcon.classList.add('bi-eye');
+            }
+        }
+
+        document.getElementById('view_user_role').innerHTML =
+            `<span class="badge-role ${roleId === 1 ? 'badge-role-superadmin' : (roleId === 2 ? 'badge-role-dataentry' : 'badge-role-validator')}">${roleName}</span>`;
+
+        document.getElementById('view_user_status').innerHTML = isActive
+            ? '<span class="badge-role" style="background-color:#059669;color:#FFFFFF;"><span class="badge-status-dot bg-white"></span> Aktif</span>'
+            : '<span class="badge-role" style="background-color:#64748B;color:#FFFFFF;"><span class="badge-status-dot bg-white"></span> Nonaktif</span>';
+
+        const toggleForm = document.getElementById('formViewToggleStatus');
+        const toggleBtn = document.getElementById('btnViewToggleStatus');
+        const toggleText = document.getElementById('btnViewToggleStatusText');
+        toggleForm.action = `${penggunaBaseUrl}/toggle-status/${encodeURIComponent(id)}`;
+        if (isActive) {
+            toggleBtn.style.backgroundColor = '#475569';
+            toggleBtn.style.color = '#FFFFFF';
+            toggleBtn.style.border = 'none';
+            toggleText.innerText = 'Nonaktifkan Akun';
+        } else {
+            toggleBtn.style.backgroundColor = '#059669';
+            toggleBtn.style.color = '#FFFFFF';
+            toggleBtn.style.border = 'none';
+            toggleText.innerText = 'Aktifkan Akun';
+        }
+
+        const deleteForm = document.getElementById('formViewDeleteUser');
+        const deleteBtn = document.getElementById('btnViewDeleteUser');
+        deleteForm.action = `${penggunaBaseUrl}/delete/${encodeURIComponent(id)}`;
+        deleteForm.setAttribute('data-target-name', nama);
+
+        const isLastSuperAdmin = (roleId === 1 && currentActiveSuperAdmins <= 1);
+        toggleBtn.disabled = (isCurrent && isActive);
+        deleteBtn.disabled = (isCurrent || isLastSuperAdmin);
+
+        new bootstrap.Modal(document.getElementById('modalLihatPengguna')).show();
+    }
+
+    function toggleViewUserPassword(btn) {
+        const input = document.getElementById('view_user_password');
+        const icon = btn.querySelector('i');
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            input.value = currentViewUserPlainPassword || 'Belum tersimpan (ubah sandi untuk melihat)';
+            icon?.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = 'password';
+            input.value = '••••••••';
+            icon?.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+
+    function confirmDeleteUser(event) {
+        const form = event.target;
+        const nama = form.getAttribute('data-target-name') || 'pengguna ini';
+        if (typeof Swal !== 'undefined') {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Hapus Akun?',
+                text: `Apakah Anda yakin ingin menghapus akun "${nama}" secara permanen?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#DC2626',
+                cancelButtonColor: '#64748B',
+                confirmButtonText: 'Ya, Hapus Akun',
+                cancelButtonText: 'Batal'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    form.submit();
+                }
+            });
+            return false;
+        }
+        return confirm(`Hapus akun "${nama}" secara permanen?`);
+    }
+
     function openRoleModal(button) {
+        const modalEl = document.getElementById('modalUbahRole');
+        if (!modalEl) return;
         const row = button.closest('tr');
         const id = row.getAttribute('data-id');
         const nama = row.getAttribute('data-nama');
         const email = row.getAttribute('data-email');
         const roleId = row.getAttribute('data-role-id');
         const roleName = row.getAttribute('data-role-name');
+        const unitId = row.getAttribute('data-unit-id');
+        const unitName = row.getAttribute('data-unit-name');
         const isCurrent = row.getAttribute('data-is-current') === '1';
 
         document.getElementById('role_preview_nama').innerText = nama;
         document.getElementById('role_preview_email').innerText = email;
-        document.getElementById('role_preview_current').innerText = roleName;
+        document.getElementById('role_preview_current').innerText = `${roleName} · ${unitName}`;
         document.getElementById('role_preview_avatar').innerText = nama.substring(0, 2).toUpperCase();
 
-        // Check the radio button
         const radio = document.getElementById(`role_radio_${roleId}`);
         if (radio) radio.checked = true;
 
-        // Show/hide self warning
-        const selfWarning = document.getElementById('roleSelfWarning');
-        if (isCurrent) {
-            selfWarning.classList.remove('d-none');
-        } else {
-            selfWarning.classList.add('d-none');
+        const dirSel = document.getElementById('role_direktorat_select');
+        if (dirSel && unitId) {
+            dirSel.value = unitId;
         }
 
-        // Form action
-        const form = document.getElementById('formUbahRole');
-        form.action = `/superadmin/pengguna-akses/role/${id}`;
+        const selfWarning = document.getElementById('roleSelfWarning');
+        if (selfWarning) {
+            selfWarning.classList.toggle('d-none', !isCurrent);
+        }
 
-        const modal = new bootstrap.Modal(document.getElementById('modalUbahRole'));
-        modal.show();
+        const form = document.getElementById('formUbahRole');
+        form.action = `${penggunaBaseUrl}/role/${encodeURIComponent(id)}`;
+
+        new bootstrap.Modal(modalEl).show();
     }
 
-    // Open Strict Remove Role Modal
     function openRemoveRoleModal(button) {
         const row = button.closest('tr');
-        const id = parseInt(row.getAttribute('data-id'));
+        const id = parseInt(row.getAttribute('data-id'), 10);
         const nama = row.getAttribute('data-nama');
         const email = row.getAttribute('data-email');
-        const roleId = parseInt(row.getAttribute('data-role-id'));
+        const roleId = parseInt(row.getAttribute('data-role-id'), 10);
         const roleName = row.getAttribute('data-role-name');
+        const unitName = row.getAttribute('data-unit-name');
         const isCurrent = row.getAttribute('data-is-current') === '1';
 
-        // Target displays
         document.getElementById('remove_target_nama').innerText = nama;
         document.getElementById('remove_target_email').innerText = email;
-        document.getElementById('remove_target_role').innerText = roleName;
+        document.getElementById('remove_target_role').innerText = `${roleName} (${unitName})`;
 
-        // Reset input & disabled button
         const confirmInput = document.getElementById('confirmStrictInput');
         confirmInput.value = '';
         const btnExecute = document.getElementById('btnExecuteRemoveRole');
@@ -1125,85 +1259,78 @@
         const quorumBlock = document.getElementById('removeRoleQuorumBlocked');
         const allowedSection = document.getElementById('removeRoleAllowedSection');
 
-        // Check Syarat Ketat:
-        // Syarat 1: Akun diri sendiri dilarang dicabut
         if (isCurrent || id === currentLoggedInUserId) {
             selfBlock.classList.remove('d-none');
             quorumBlock.classList.add('d-none');
             allowedSection.classList.add('d-none');
             btnExecute.classList.add('d-none');
-        }
-        // Syarat 2: Kuorum Super Admin terakhir
-        else if (roleId === 1 && currentActiveSuperAdmins <= 1) {
+        } else if (roleId === 1 && currentActiveSuperAdmins <= 1) {
             selfBlock.classList.add('d-none');
             quorumBlock.classList.remove('d-none');
             allowedSection.classList.add('d-none');
             btnExecute.classList.add('d-none');
-        }
-        // Syarat dipenuhi: izinkan dengan verifikasi ketik manual
-        else {
+        } else {
             selfBlock.classList.add('d-none');
             quorumBlock.classList.add('d-none');
             allowedSection.classList.remove('d-none');
             btnExecute.classList.remove('d-none');
         }
 
-        // Form action
         const form = document.getElementById('formCabutRole');
-        form.action = `/superadmin/pengguna-akses/remove-role/${id}`;
+        form.action = `${penggunaBaseUrl}/remove-role/${encodeURIComponent(id)}`;
 
-        const modal = new bootstrap.Modal(document.getElementById('modalCabutRole'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('modalCabutRole')).show();
     }
 
-    // Live validation for strict confirmation input 'CABUT PERAN'
     function validateStrictVerification(val) {
         const btnExecute = document.getElementById('btnExecuteRemoveRole');
-        if (val.trim().toUpperCase() === 'CABUT PERAN') {
-            btnExecute.disabled = false;
-        } else {
-            btnExecute.disabled = true;
-        }
+        btnExecute.disabled = (val.trim().toUpperCase() !== 'CABUT PERAN');
     }
 
-    // Copy Email Helper
     function copyEmail(email) {
         navigator.clipboard.writeText(email).then(() => {
             alert('Alamat email staf berhasil disalin: ' + email);
         });
     }
 
-    // Table Filtering System
     let currentRoleFilter = 'all';
+    let currentPage = 1;
+    const itemsPerPage = 10;
 
     function filterByRole(role) {
         currentRoleFilter = role;
-
         const roleSelect = document.getElementById('roleSelectFilter');
         if (roleSelect && roleSelect.value !== role) {
             roleSelect.value = role;
         }
-
+        currentPage = 1;
         filterTableRows();
     }
 
-    function filterTableRows() {
-        const query = (document.getElementById('tableFilterInput').value || '').toLowerCase().trim();
-        const statusFilter = document.getElementById('statusSelectFilter').value;
-        const rows = document.querySelectorAll('#userTable tbody tr.user-row');
-        let visibleCount = 0;
+    function goToPage(page) {
+        currentPage = page;
+        filterTableRows(false);
+    }
 
+    function filterTableRows(resetPage = true) {
+        if (resetPage) currentPage = 1;
+        const query = (document.getElementById('tableFilterInput')?.value || '').toLowerCase().trim();
+        const statusFilter = document.getElementById('statusSelectFilter')?.value || 'all';
+        const unitFilter = document.getElementById('unitSelectFilter')?.value || 'all';
+        const rows = Array.from(document.querySelectorAll('#userTable tbody tr.user-row'));
+
+        const matchedRows = [];
         rows.forEach(row => {
             const nama = (row.getAttribute('data-nama') || '').toLowerCase();
             const email = (row.getAttribute('data-email') || '').toLowerCase();
             const npk = (row.getAttribute('data-npk') || '').toLowerCase();
-            const roleName = row.getAttribute('data-role-name');
+            const roleName = row.getAttribute('data-role-name') || '';
+            const unitId = row.getAttribute('data-unit-id') || '';
+            const unitName = (row.getAttribute('data-unit-name') || '').toLowerCase();
             const isActive = row.getAttribute('data-is-active');
 
-            // Text search match
-            const matchesText = nama.includes(query) || email.includes(query) || npk.includes(query) || roleName.toLowerCase().includes(query);
+            const matchesText = nama.includes(query) || email.includes(query) || npk.includes(query) || roleName.toLowerCase().includes(query) || unitName.includes(query);
 
-            // Role filter match
             let matchesRole = true;
             if (currentRoleFilter === 'nonaktif') {
                 matchesRole = (isActive === '0');
@@ -1211,7 +1338,6 @@
                 matchesRole = (roleName === currentRoleFilter);
             }
 
-            // Status select filter match
             let matchesStatus = true;
             if (statusFilter === 'aktif') {
                 matchesStatus = (isActive === '1');
@@ -1219,36 +1345,61 @@
                 matchesStatus = (isActive === '0');
             }
 
-            if (matchesText && matchesRole && matchesStatus) {
-                row.style.display = '';
-                visibleCount++;
+            let matchesUnit = (unitFilter === 'all' || unitId === unitFilter);
+
+            if (matchesText && matchesRole && matchesStatus && matchesUnit) {
+                matchedRows.push(row);
             } else {
                 row.style.display = 'none';
             }
         });
 
-        // Visible count indicator
-        document.getElementById('visibleCount').innerText = visibleCount;
+        const totalMatched = matchedRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalMatched / itemsPerPage));
+        if (currentPage > totalPages) currentPage = totalPages;
 
-        // No data empty alert
-        const noData = document.getElementById('noDataFiltered');
-        if (visibleCount === 0) {
-            noData.classList.remove('d-none');
-        } else {
-            noData.classList.add('d-none');
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const endIdx = Math.min(startIdx + itemsPerPage, totalMatched);
+
+        matchedRows.forEach((row, idx) => {
+            if (idx >= startIdx && idx < endIdx) {
+                row.style.display = '';
+                const numCell = row.querySelector('.row-number-cell');
+                if (numCell) numCell.innerText = idx + 1;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const infoEl = document.getElementById('paginationInfoText');
+        if (infoEl) {
+            if (totalMatched === 0) {
+                infoEl.innerHTML = 'Menampilkan 0 dari 0 pengguna';
+            } else {
+                infoEl.innerHTML = `Menampilkan <strong class="text-dark">${startIdx + 1}–${endIdx}</strong> dari <strong class="text-dark">${totalMatched}</strong> pengguna &middot; ${itemsPerPage} per halaman`;
+            }
         }
+
+        const ctrlEl = document.getElementById('paginationControls');
+        if (ctrlEl) {
+            if (totalMatched === 0) {
+                ctrlEl.innerHTML = '';
+            } else {
+                let html = `<button type="button" class="page-btn ${currentPage <= 1 ? 'disabled' : ''}" ${currentPage <= 1 ? 'disabled' : `onclick="goToPage(${currentPage - 1})"`}><i class="bi bi-chevron-left"></i></button>`;
+                for (let p = 1; p <= totalPages; p++) {
+                    html += `<button type="button" class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+                }
+                html += `<button type="button" class="page-btn ${currentPage >= totalPages ? 'disabled' : ''}" ${currentPage >= totalPages ? 'disabled' : `onclick="goToPage(${currentPage + 1})"`}><i class="bi bi-chevron-right"></i></button>`;
+                ctrlEl.innerHTML = html;
+            }
+        }
+
+        document.getElementById('noDataFiltered')?.classList.toggle('d-none', totalMatched !== 0);
     }
 
-    // Bind Search Input Listeners
-    document.getElementById('tableFilterInput').addEventListener('input', filterTableRows);
-    document.getElementById('topSearchBar')?.addEventListener('input', function() {
-        document.getElementById('tableFilterInput').value = this.value;
-        filterTableRows();
-    });
+    document.getElementById('tableFilterInput')?.addEventListener('input', () => filterTableRows(true));
+    document.addEventListener('DOMContentLoaded', () => filterTableRows(true));
 
-    // =========================================================================
-    // PENGECEKAN KATA SANDI MINIMAL 8 KARAKTER (TAMBAH PENGGUNA)
-    // =========================================================================
     const createPassInput = document.getElementById('create_password');
     const createPassMsg = document.getElementById('create_password_msg');
     const createPassCounter = document.getElementById('create_password_counter');
@@ -1268,9 +1419,7 @@
                 createPassMsg.className = 'fs-11 text-muted';
                 createPassMsg.innerHTML = '<i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.';
             }
-            if (createPassCounter) {
-                createPassCounter.className = 'fs-11 fw-semibold text-muted';
-            }
+            if (createPassCounter) createPassCounter.className = 'fs-11 fw-semibold text-muted';
             return false;
         } else if (len < 8) {
             createPassInput.classList.add('is-invalid');
@@ -1279,9 +1428,7 @@
                 createPassMsg.className = 'fs-11 text-danger';
                 createPassMsg.innerHTML = `<i class="bi bi-x-circle me-1"></i>Kata sandi terlalu pendek (kurang ${8 - len} karakter).`;
             }
-            if (createPassCounter) {
-                createPassCounter.className = 'fs-11 fw-semibold text-danger';
-            }
+            if (createPassCounter) createPassCounter.className = 'fs-11 fw-semibold text-danger';
             return false;
         } else {
             createPassInput.classList.remove('is-invalid');
@@ -1290,59 +1437,45 @@
                 createPassMsg.className = 'fs-11 text-success';
                 createPassMsg.innerHTML = '<i class="bi bi-check-circle me-1"></i>Kata sandi memenuhi syarat minimal 8 karakter.';
             }
-            if (createPassCounter) {
-                createPassCounter.className = 'fs-11 fw-semibold text-success';
-            }
+            if (createPassCounter) createPassCounter.className = 'fs-11 fw-semibold text-success';
             return true;
         }
     }
 
-    if (createPassInput) {
-        createPassInput.addEventListener('input', validateCreatePassword);
-    }
+    createPassInput?.addEventListener('input', validateCreatePassword);
 
-    if (formTambahPengguna) {
-        formTambahPengguna.addEventListener('submit', function (e) {
-            if (!validateCreatePassword()) {
-                e.preventDefault();
-                createPassInput.focus();
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Kata Sandi Kurang Dari 8 Karakter',
-                        text: 'Silakan masukkan kata sandi awal minimal 8 karakter sebelum menyimpan pengguna.',
-                        icon: 'warning',
-                        confirmButtonColor: '#85172C',
-                        confirmButtonText: 'Mengerti'
-                    });
-                }
+    formTambahPengguna?.addEventListener('submit', function (e) {
+        if (!validateCreatePassword()) {
+            e.preventDefault();
+            createPassInput.focus();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Kata Sandi Kurang Dari 8 Karakter',
+                    text: 'Silakan masukkan kata sandi awal minimal 8 karakter sebelum menyimpan pengguna.',
+                    icon: 'warning',
+                    confirmButtonColor: '#85172C',
+                    confirmButtonText: 'Mengerti'
+                });
             }
-        });
-    }
+        }
+    });
 
-    // Reset Form Tambah Pengguna saat modal ditutup (klik Batal, klik X, atau klik backdrop)
-    document.getElementById('modalTambahPengguna').addEventListener('hidden.bs.modal', function () {
-        // Reset semua input teks & select
+    document.getElementById('modalTambahPengguna')?.addEventListener('hidden.bs.modal', function () {
         document.getElementById('create_nama').value = '';
         document.getElementById('create_email').value = '';
         document.getElementById('create_npk').value = '';
         document.getElementById('create_password').value = '';
-        document.getElementById('create_role').selectedIndex = 0;
-
-        // Reset checkbox is_active ke kondisi awal (checked/aktif)
+        const crRole = document.getElementById('create_role');
+        if (crRole) crRole.selectedIndex = 0;
         document.getElementById('create_is_active').checked = true;
 
-        // Reset status validasi & ikon mata kata sandi
         if (createPassInput) {
             createPassInput.classList.remove('is-invalid', 'is-valid');
             if (createPassInput.type === 'text') {
                 createPassInput.type = 'password';
-                const eyeIcon = createPassInput.nextElementSibling?.querySelector('i');
-                if (eyeIcon) {
-                    eyeIcon.classList.replace('bi-eye-slash', 'bi-eye');
-                }
+                createPassInput.nextElementSibling?.querySelector('i')?.classList.replace('bi-eye-slash', 'bi-eye');
             }
         }
-
         if (createPassMsg) {
             createPassMsg.className = 'fs-11 text-muted';
             createPassMsg.innerHTML = '<i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.';

@@ -19,69 +19,23 @@
 
     <!-- Data Entry External CSS -->
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
+
+    @include('partials.milestone-modal-helper')
 </head>
 <body>
+@php
+    $valAuthUser = auth()->user();
+    if ($valAuthUser) {
+        $valAuthUser->loadMissing(['role', 'direktorat']);
+    }
+    $isUnitVal    = $valAuthUser ? $valAuthUser->isValidatorUnit() : false;
+    $valPrefix    = $isUnitVal ? 'validator.unit.' : 'validator.';
+    $valUnitLabel = $valAuthUser ? $valAuthUser->getUnitName() : 'Direktorat Akademik';
+@endphp
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom active">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
-                    <i class="bi bi-bell-fill"></i>
-                    <span>Setting Alert Call</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'buatfaq'])
 
     <!-- Mobile Sidebar Backdrop -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -142,7 +96,7 @@
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route($valPrefix . 'pengaturanAkun') }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
@@ -177,7 +131,7 @@
                 $isEditing = isset($isEdit) && $isEdit;
                 $latestVer = $isEditing ? $faq->latest_version : null;
                 $faqStatus = $latestVer ? strtolower($latestVer->status) : 'draf';
-                $formAction = $isEditing ? route('validator.faq.update', $faq->id) : route('validator.buatfaq.store');
+                $formAction = $isEditing ? route($valPrefix . 'faq.update', $faq->id) : route($valPrefix . 'buatfaq.store');
                 $defaultMode = (!$isEditing && isset($selectedExistingFaq) && $selectedExistingFaq) ? 'existing' : 'new';
 
                 if ($isEditing) {
@@ -210,7 +164,9 @@
                 <div class="alert alert-danger rounded-4 border-danger-subtle d-flex align-items-start gap-3 mb-4">
                     <i class="bi bi-exclamation-octagon-fill fs-5 text-danger mt-1"></i>
                     <div>
-                        <div class="fw-bold fs-12 text-uppercase mb-1">Catatan Revisi dari Validator</div>
+                        <div class="fw-bold fs-12 text-uppercase mb-1">
+                            {{ ($latestVer && in_array($faqStatus, ['ditolak', 'rejected'], true)) ? $latestVer->getRejectionBadgeLabel($faq->unit_name) : 'Catatan Revisi dari Validator' }}
+                        </div>
                         <div class="fs-13 text-dark">{{ $latestVer->catatan }}</div>
                         <div class="fs-11 text-danger mt-1">Perbaikan akan disimpan tetap pada <strong>Versi {{ $displayVerNum }} ({{ $displayVersionId }})</strong> tanpa menambah nomor versi baru.</div>
                     </div>
@@ -232,14 +188,7 @@
                     <div class="form-meta-bar">
                         <div>
                             <div class="meta-id" id="metaHeaderIdText">
-                                {{ $displayFaqId }} &middot; Versi {{ $displayVerNum }} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge">{{ $displayVersionId }}</span>
-                            </div>
-                            <div class="meta-desc" id="metaHeaderDesc">
-                                @if($isEditing)
-                                    Menyusun versi jawaban <strong>{{ $displayVersionId }}</strong> untuk pertanyaan <strong>{{ $faq->id }}</strong>.
-                                @else
-                                    Jawaban baru dari FAQ baru menggunakan kode <strong>{{ $newFaqId ?? 'FAQ-0001' }}-V1</strong>. Jika menambah versi jawaban dari FAQ yang dipilih, kode menjadi <strong>FAQ-XXXX-V2</strong>, dst.
-                                @endif
+                                {{ $displayFaqId }} &middot; Versi {{ $displayVerNum }} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge"></span>
                             </div>
                         </div>
                         <span class="badge-status {{ in_array($faqStatus, ['ditolak', 'rejected'], true) ? 'badge-status-revisi' : 'badge-status-draft' }}">
@@ -284,7 +233,7 @@
                                                 $fLatestSt = strtolower((string) ($fItem->latest_version?->status ?? 'draf'));
                                                 $canAddNewVer = in_array($fLatestSt, ['diterima', 'terbit', 'approved', 'active'], true);
                                                 $optionSuffix = match(true) {
-                                                    in_array($fLatestSt, ['menunggu validasi', 'submitted'], true) => '(Sedang Menunggu Validasi)',
+                                                    \App\Models\FaqVersion::isWaitingValidation($fLatestSt)        => '(Sedang Menunggu Validasi)',
                                                     in_array($fLatestSt, ['ditolak', 'rejected'], true)            => '(Status Ditolak — Silakan Revisi)',
                                                     in_array($fLatestSt, ['draf', 'draft'], true)                  => '(Status Draf — Belum Diterima/Terbit)',
                                                     default                                                        => '(Versi ' . $nextVNum . ')',
@@ -459,13 +408,13 @@
                     </div>
                 </div>
 
-                <!-- Sticky Bottom Action Bar (Validator: Langsung Masuk ke Validasi FAQ & Siap Terbit) -->
+                <!-- Sticky Bottom Action Bar -->
                 <div class="sticky-bottom-bar d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    <a href="{{ route('validator.daftarFAQ') }}" class="btn-cancel">Batal</a>
+                    <a href="{{ route($valPrefix . 'daftarFAQ') }}" class="btn-cancel">Batal</a>
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" onclick="submitValidasi()" class="btn-submit-validasi">
                             <i class="bi bi-send-check"></i>
-                            <span>Simpan &amp; Siap Terbit</span>
+                            <span>{{ $isUnitVal ? 'Simpan & Teruskan ke Admik' : 'Simpan & Siap Terbit' }}</span>
                         </button>
                     </div>
                 </div>
@@ -508,7 +457,7 @@
                         @endforeach
                     @else
                         <div class="text-center py-4 text-muted fs-13">
-                            Belum ada data di tabel Sumber Pustaka. Anda dapat menambahkannya di menu <a href="{{ route('validator.sumberpustaka') }}">Sumber Pustaka</a>.
+                            Belum ada data di tabel Sumber Pustaka. Anda dapat menambahkannya di menu <a href="{{ route($valPrefix . 'sumberpustaka') }}">Sumber Pustaka</a>.
                         </div>
                     @endif
                 </div>
@@ -521,7 +470,7 @@
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <form action="{{ route('validator.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="excelUploadForm">
+            <form action="{{ route($valPrefix . 'uploadExcel') }}" method="POST" enctype="multipart/form-data" id="excelUploadForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold fs-16">Unggah File FAQ</h5>
@@ -542,7 +491,7 @@
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Contoh Template Unggah File:</span>
-                            <a href="{{ route('validator.template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                            <a href="{{ route($valPrefix . 'template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
@@ -886,7 +835,7 @@
         const excludeId = currentEditingFaqId || (modeFaq === 'existing' ? selectedExistingId : '');
 
         dupTimeout = setTimeout(() => {
-            const url = `{{ route('validator.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}&a=${encodeURIComponent(a)}${excludeId ? '&exclude_id=' + encodeURIComponent(excludeId) : ''}`;
+            const url = `{{ route($valPrefix . 'faq.checkDuplicate') }}?q=${encodeURIComponent(q)}&a=${encodeURIComponent(a)}${excludeId ? '&exclude_id=' + encodeURIComponent(excludeId) : ''}`;
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
@@ -926,13 +875,13 @@
                         let badgeClass = 'bg-secondary text-white';
                         if (em.status_label === 'Terbit' || em.status_label === 'Diterima' || em.status_label === 'Active Publish' || em.status_label === 'Disetujui') {
                             badgeClass = 'bg-success text-white';
-                        } else if (em.status_label === 'Menunggu Validasi') {
+                        } else if (String(em.status_label || '').toLowerCase().startsWith('menunggu validasi')) {
                             badgeClass = 'bg-primary text-white';
                         }
 
                         exactBody.innerHTML = `
                             <div class="mb-1">
-                                Pertanyaan yang Anda ketik memiliki kemiripan <strong>100%</strong> dengan FAQ <strong>${escHtml(em.id)}</strong> yang saat ini berada dalam kondisi:
+                                Pertanyaan yang Anda ketik memiliki kemiripan <strong>100%</strong> dengan FAQ <strong>${escHtml(em.id)}</strong> (${escHtml(em.unit_nama || 'Direktorat Akademik')}) yang saat ini berada dalam kondisi:
                                 <span class="badge ${badgeClass} ms-1 px-2 py-1">${escHtml(em.status_label)}</span>
                             </div>
                             <div class="p-2 bg-white rounded-2 border fs-12 text-secondary mt-1.5">
@@ -944,16 +893,17 @@
                         exactBox?.classList.add('d-none');
                     }
 
-                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa
-                    const candidates = (data.candidates || []);
+                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa lintas unit
+                    const candidates = (data.candidates || data.duplicates || []);
                     if (candidates.length > 0) {
                         listBox.innerHTML = candidates.map(d => {
-                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(d.status_label || 'Draf') + '</span>';
-                            if (d.status_label === 'Terbit' || d.status_label === 'Diterima' || d.status_label === 'Active Publish' || d.status_label === 'Disetujui') {
-                                stBadge = '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">' + escHtml(d.status_label) + '</span>';
-                            } else if (d.status_label === 'Menunggu Validasi') {
-                                stBadge = '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Menunggu Validasi</span>';
-                            } else if (d.status_label === 'Ditolak') {
+                            const stLbl = String(d.status_label || 'Draf');
+                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(stLbl) + '</span>';
+                            if (stLbl === 'Terbit' || stLbl === 'Diterima' || stLbl === 'Active Publish' || stLbl === 'Disetujui') {
+                                stBadge = '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">' + escHtml(stLbl) + '</span>';
+                            } else if (stLbl.toLowerCase().startsWith('menunggu validasi')) {
+                                stBadge = '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">' + escHtml(stLbl) + '</span>';
+                            } else if (stLbl === 'Ditolak') {
                                 stBadge = '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Ditolak</span>';
                             }
 
@@ -964,8 +914,9 @@
                             return `
                                 <div class="p-2 bg-white rounded-2 border d-flex flex-wrap align-items-center justify-content-between gap-2">
                                     <div>
-                                        <span class="fw-bold text-dark">${escHtml(d.id)}</span>:
-                                        <span class="text-dark">${escHtml(d.pertanyaan)}</span>
+                                        <span class="fw-bold text-dark">${escHtml(d.id)}</span>
+                                        <span class="kms-unit-pill ms-1"><i class="bi bi-building"></i>${escHtml(d.unit_nama || 'Direktorat Akademik')}</span>:
+                                        <span class="text-dark ms-1">${escHtml(d.pertanyaan)}</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-1.5">
                                         ${simBadge}
@@ -1097,7 +1048,7 @@
 
         const selectedExistingId = document.getElementById('existingFaqSelect')?.value || '';
         const excludeId = currentEditingFaqId || (modeFaq === 'existing' ? selectedExistingId : '');
-        const checkUrl = `{{ route('validator.faq.checkDuplicate') }}?q=${encodeURIComponent(q)}&a=${encodeURIComponent(ansText)}${excludeId ? '&exclude_id=' + encodeURIComponent(excludeId) : ''}`;
+        const checkUrl = `{{ route($valPrefix . 'faq.checkDuplicate') }}?q=${encodeURIComponent(q)}&a=${encodeURIComponent(ansText)}${excludeId ? '&exclude_id=' + encodeURIComponent(excludeId) : ''}`;
 
         fetch(checkUrl)
             .then(r => r.json())
@@ -1153,13 +1104,13 @@
         }
 
         Swal.fire({
-            title: 'Simpan & Siap Diterbitkan?',
-            text: 'FAQ ini akan langsung masuk ke halaman Validasi FAQ dengan status Diterima dan tinggal diterbitkan tanpa perlu disetujui lagi.',
+            title: {{ \Illuminate\Support\Js::from($isUnitVal ? 'Simpan & Teruskan ke Validator Admik?' : 'Simpan & Siap Diterbitkan?') }},
+            text: {{ \Illuminate\Support\Js::from($isUnitVal ? 'FAQ ini akan disimpan untuk unit Anda dan langsung diteruskan ke antrean Validator Admik.' : 'FAQ ini akan langsung masuk ke halaman Validasi FAQ dengan status Diterima dan tinggal diterbitkan tanpa perlu disetujui lagi.') }},
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#85172C',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Simpan & Siap Terbit',
+            confirmButtonText: {{ \Illuminate\Support\Js::from($isUnitVal ? 'Ya, Teruskan ke Admik' : 'Ya, Simpan & Siap Terbit') }},
             cancelButtonText: 'Batal',
             reverseButtons: true
         }).then((res) => {

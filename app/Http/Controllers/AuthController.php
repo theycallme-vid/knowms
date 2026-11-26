@@ -76,17 +76,30 @@ class AuthController extends Controller
 
     private function redirectToDashboard()
     {
-        // Bersihkan url.intended jika mengarah ke login atau root agar tidak loop
-        $intended = session()->get('url.intended');
-        if ($intended && ($intended === route('login') || $intended === url('/'))) {
-            session()->forget('url.intended');
-        }
+        $user = Auth::user();
+        $user?->loadMissing(['role', 'direktorat']);
+        $roleName = $user?->getRoleName() ?? '';
 
-        $roleName = Auth::user()->getRoleName();
+        // Bersihkan url.intended jika mengarah ke login, root, atau lintas scope role/unit
+        $intended = (string) session()->get('url.intended', '');
+        if ($intended !== '') {
+            $path = parse_url($intended, PHP_URL_PATH) ?: '/';
+            $invalidIntended = ($intended === route('login') || $intended === url('/') || $path === '/')
+                || ($roleName === 'Validator' && $user->isValidatorUnit() && str_starts_with($path, '/validator/') && !str_starts_with($path, '/validator-unit'))
+                || ($roleName === 'Validator' && $user->isValidatorAdmik() && str_starts_with($path, '/validator-unit'))
+                || ($roleName === 'Data Entry' && !str_starts_with($path, '/data-entry'))
+                || ($roleName === 'Super Admin' && !str_starts_with($path, '/superadmin') && !str_starts_with($path, '/admin'));
+
+            if ($invalidIntended) {
+                session()->forget('url.intended');
+            }
+        }
 
         return match ($roleName) {
             'Super Admin' => redirect()->intended(route('admin.dashboard')),
-            'Validator'   => redirect()->intended(route('validator.daftarFAQ')),
+            'Validator'   => redirect()->intended(
+                $user->isValidatorUnit() ? route('validator.unit.daftarFAQ') : route('validator.daftarFAQ')
+            ),
             'Data Entry'  => redirect()->intended(route('dataentry.daftarFAQ')),
             default       => redirect()->route('login'),
         };

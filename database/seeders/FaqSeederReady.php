@@ -620,14 +620,19 @@ class FaqSeederReady extends Seeder
             4 => ' (Penyempurnaan rincian dokumen pendukung dan ketentuan terbaru).',
         ];
 
+        $userDirMap = User::pluck('tDirektorat_id', 'id')->all();
+        $pusatDirId = \App\Models\Direktorat::pusatId();
+
         foreach (array_values($faqs) as $idx => $item) {
+            $ownerDirId = (int) ($userDirMap[$item['de_id']] ?? $pusatDirId);
             $faq = Faq::updateOrCreate(
                 ['id' => $item['id']],
                 [
-                    'id_dataentry' => $item['de_id'],
-                    'pertanyaan'   => $item['pertanyaan'],
-                    'created_at'   => $now,
-                    'updated_at'   => $now,
+                    'id_dataentry'   => $item['de_id'],
+                    'tDirektorat_id' => $ownerDirId,
+                    'pertanyaan'     => $item['pertanyaan'],
+                    'created_at'     => $now,
+                    'updated_at'     => $now,
                 ]
             );
 
@@ -669,6 +674,7 @@ class FaqSeederReady extends Seeder
             FaqVersion::where('tFaqs_id', $faq->id)
                 ->whereNotIn('id', $createdVersionIds)
                 ->delete();
+            FaqVersion::syncLatestFlag($faq->id);
 
             // Sinkronkan tags
             $tagIdsToSync = [];

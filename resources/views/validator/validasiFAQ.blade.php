@@ -20,80 +20,16 @@
 
     <!-- Validator CSS -->
     <link rel="stylesheet" href="{{ asset('css/validator/style.css') }}">
+
+    @include('partials.milestone-modal-helper')
 </head>
 <body>
-
-@php
-    $authUser = auth()->user();
-    if ($authUser && !$authUser->relationLoaded('role')) {
-        $authUser->load('role');
-    }
-    $roleName = $authUser ? $authUser->getRoleName() : 'Validator';
-@endphp
 
 <div class="d-flex">
     <!-- ══════════════════════════════════════
          SIDEBAR
     ══════════════════════════════════════ -->
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom active">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
-                    <i class="bi bi-bell-fill"></i>
-                    <span>Setting Alert Call</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'validasiFAQ'])
 
     <!-- Overlay for mobile sidebar -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -219,6 +155,16 @@
                                        placeholder="Cari kode atau pertanyaan FAQ...">
                             </div>
 
+                            <!-- Filter Unit Terdaftar -->
+                            <select name="unit_id" id="unitFilterSelect" class="filter-select" onchange="document.getElementById('validasiFilterForm').submit()">
+                                <option value="all" {{ in_array((string) request('unit_id', 'all'), ['', 'all'], true) ? 'selected' : '' }}>Semua Unit Terdaftar</option>
+                                @foreach(($direktorats ?? collect()) as $dirOpt)
+                                    <option value="{{ $dirOpt->id }}" {{ (string) request('unit_id') === (string) $dirOpt->id ? 'selected' : '' }}>
+                                        {{ $dirOpt->nama }}
+                                    </option>
+                                @endforeach
+                            </select>
+
                             <!-- Filter Data Entry -->
                             <select name="data_entry" id="dataEntryFilter" class="filter-select" onchange="document.getElementById('validasiFilterForm').submit()">
                                 <option value="all" {{ request('data_entry', 'all') === 'all' ? 'selected' : '' }}>Semua Data Entry</option>
@@ -233,7 +179,7 @@
                                 <option value="terlama" {{ request('sort') === 'terlama' ? 'selected' : '' }}>Terlama</option>
                             </select>
 
-                            @if(request()->hasAny(['search', 'data_entry', 'sort']) && collect(request()->only(['search', 'data_entry', 'sort']))->filter(fn($v) => $v && $v !== 'all' && $v !== 'terbaru')->isNotEmpty())
+                            @if(request()->hasAny(['search', 'unit_id', 'data_entry', 'sort']) && collect(request()->only(['search', 'unit_id', 'data_entry', 'sort']))->filter(fn($v) => $v && $v !== 'all' && $v !== 'terbaru')->isNotEmpty())
                                 <a href="{{ route('validator.validasiFAQ') }}" class="btn-filter-reset">
                                     <i class="bi bi-x-lg"></i> Reset
                                 </a>
@@ -254,11 +200,12 @@
                                     <th style="width: 48px;" class="ps-4">
                                         <input type="checkbox" id="selectAllCheckbox" class="faq-checkbox" title="Pilih semua FAQ">
                                     </th>
-                                    <th style="width: 130px;">Kode / Versi</th>
-                                    <th>Pertanyaan</th>
-                                    <th style="width: 200px;">Data Entry</th>
-                                    <th style="width: 165px;">Waktu Pengajuan</th>
-                                    <th style="width: 115px;" class="text-end pe-4">Aksi</th>
+                                    <th style="width: 130px;">KODE / VERSI</th>
+                                    <th>PERTANYAAN</th>
+                                    <th style="width: 190px;">UNIT</th>
+                                    <th style="width: 185px;">DATA ENTRY</th>
+                                    <th style="width: 165px;">WAKTU PENGAJUAN</th>
+                                    <th style="width: 115px;" class="text-end pe-4">AKSI</th>
                                 </tr>
                             </thead>
                             <tbody id="faqTableBody">
@@ -279,11 +226,15 @@
                                         $schedLabel   = $item->schedule_label ?? '';
                                         $tagsJson     = json_encode($item->tags_list ?? []);
                                         $prevVersJson = json_encode($item->previous_versions ?? []);
+                                        $simFaqsJson  = json_encode($item->similar_faqs ?? []);
+                                        $logsJson     = json_encode($item->milestone_logs ?? []);
                                         $hasRevision  = !empty($item->jawaban_sebelumnya) || !empty($item->catatan_revisi);
+                                        $simCount     = is_array($item->similar_faqs ?? null) ? count($item->similar_faqs) : 0;
                                     @endphp
                                     <tr class="faq-row {{ $isChecked ? 'row-checked' : '' }}"
                                         data-id="{{ $item->id }}"
                                         data-status="{{ $isApproved ? 'Diterima' : 'Menunggu Validasi' }}"
+                                        data-raw-status="{{ $item->raw_status ?? ($isApproved ? 'Diterima' : 'Menunggu Validasi Admik') }}"
                                         data-is-approved="{{ $isApproved ? '1' : '0' }}"
                                         data-is-scheduled="{{ $isScheduled ? '1' : '0' }}"
                                         data-schedule-mode="{{ $schedMode }}"
@@ -303,6 +254,11 @@
                                         data-prev-answer="{{ $item->jawaban_sebelumnya ?? '' }}"
                                         data-revision-note="{{ $item->catatan_revisi ?? '' }}"
                                         data-prev-versions="{{ $prevVersJson }}"
+                                        data-similar-faqs="{{ $simFaqsJson }}"
+                                        data-milestone-logs="{{ $logsJson }}"
+                                        data-unit-nama="{{ $item->unit_nama ?? 'Direktorat Akademik' }}"
+                                        data-unit-is-pusat="{{ !empty($item->unit_is_pusat) ? '1' : '0' }}"
+                                        data-unit-approval="{{ $item->unit_approval_info ?? '' }}"
                                         data-full-source="{{ $item->sumber }}"
                                         data-full-source-type="{{ $item->sumber_type ?? 'Publik' }}"
                                         data-full-source-link="{{ $item->sumber_link ?? '' }}"
@@ -331,27 +287,13 @@
                                         <!-- Pertanyaan -->
                                         <td>
                                             <div class="faq-question">{{ $item->pertanyaan }}</div>
-                                            @if($isApproved)
-                                                <div class="mt-1.5">
-                                                    @if($isScheduled && $schedLabel)
-                                                        <span class="publish-wait-badge is-scheduled-date">
-                                                            <i class="bi bi-calendar-event"></i>
-                                                            <span>{{ $schedLabel }}</span>
-                                                        </span>
-                                                    @else
-                                                        <span class="publish-wait-badge">
-                                                            <i class="bi bi-info-circle"></i>
-                                                            <span>Diterima &middot; Belum Diterbitkan</span>
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            @elseif($hasRevision)
-                                                <div class="mt-1.5">
-                                                    <span class="badge rounded-pill" style="background-color:#FEF2F2;color:#B91C1C;border:1px solid #FECACA;font-size:0.68rem;padding:0.25rem 0.65rem;font-weight:600;">
-                                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Hasil Revisi
-                                                    </span>
-                                                </div>
-                                            @endif
+                                        </td>
+
+                                        <!-- Unit -->
+                                        <td>
+                                            <span class="kms-unit-pill {{ !empty($item->unit_is_pusat) ? 'is-pusat' : '' }}" title="Unit asal pengajuan FAQ">
+                                                <i class="bi {{ !empty($item->unit_is_pusat) ? 'bi-bank2' : 'bi-building' }}"></i>{{ $item->unit_nama ?? 'Direktorat Akademik' }}
+                                            </span>
                                         </td>
 
                                         <!-- Data Entry -->
@@ -381,7 +323,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-5">
+                                        <td colspan="7" class="text-center py-5">
                                             <div class="d-flex flex-column align-items-center gap-2 text-muted">
                                                 <i class="bi bi-journal-check fs-2 opacity-50"></i>
                                                 <div class="fw-semibold fs-14 text-dark">Belum ada antrean FAQ yang menunggu validasi</div>
@@ -469,9 +411,10 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content kms-modal-content" style="border-radius: 18px; overflow: hidden;">
             <div class="kms-modal-header" style="background: linear-gradient(135deg, #FFFDFB 0%, #FDF2F4 100%); border-bottom: 1px solid #F3E2E5; padding: 1.1rem 1.4rem;">
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <span class="badge rounded-pill px-2.5 py-1 fw-bold fs-12" style="background-color: #85172C; color: #ffffff;" id="viewModalCode">FAQ-0001</span>
                     <span class="fs-12 fw-semibold" style="color: #85172C;" id="viewModalVersion">Versi 1</span>
+                    <span class="kms-unit-pill" id="viewModalUnitPill"><i class="bi bi-building" id="viewModalUnitIcon"></i><span id="viewModalUnitText">Direktorat Akademik</span></span>
                     <span class="fs-12 text-muted">&middot;</span>
                     <span class="fs-12 text-muted" id="viewModalDe">Data Entry</span>
                     <span class="fs-12 text-muted">&middot;</span>
@@ -479,7 +422,26 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.75rem;"></button>
             </div>
-            <div class="kms-modal-body" style="padding: 1.4rem;">
+            <div class="kms-modal-body" style="padding: 1.4rem; max-height: 74vh; overflow-y: auto;">
+                <!-- Milestone Status Validasi -->
+                <div id="viewModalMilestoneWrap"></div>
+
+                <!-- Info Persetujuan Tahap 1 (Unit) bila berasal dari Unit Non-Pusat -->
+                <div class="mb-3 d-none" id="viewModalUnitApprovalBanner">
+                    <div class="rounded-3 px-3 py-2 d-flex align-items-center gap-2" style="background-color:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;font-size:0.78rem;">
+                        <i class="bi bi-patch-check-fill fs-6"></i>
+                        <span id="viewModalUnitApprovalText"></span>
+                    </div>
+                </div>
+
+                <!-- Catatan Kemiripan dengan FAQ Lain Lintas Seluruh Unit -->
+                <div class="mb-3">
+                    <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">
+                        <i class="bi bi-intersect me-1"></i>Catatan Kemiripan dengan FAQ Lain (Semua Unit)
+                    </div>
+                    <div id="viewModalSimilarWrap"></div>
+                </div>
+
                 <!-- Pertanyaan -->
                 <div class="mb-3">
                     <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Pertanyaan</div>
@@ -584,9 +546,13 @@
             <form id="formSingleReject" method="POST">
                 @csrf
                 <div class="kms-modal-body">
-                    <div class="p-2.5 rounded-3 border bg-light mb-3" style="padding: 0.65rem 0.85rem;">
+                    <div class="p-2.5 rounded-3 border bg-light mb-2.5" style="padding: 0.65rem 0.85rem;">
                         <div class="fw-bold fs-12 text-dark" id="singleRejectCode">FAQ-0001</div>
                         <div class="fs-12 text-muted mt-0.5" id="singleRejectQuestion"></div>
+                    </div>
+                    <div class="rounded-3 px-2.5 py-2 mb-3 fs-11" style="background-color:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        FAQ akan dikembalikan langsung ke Data Entry asal dengan tanda <strong>"Ditolak oleh Validator Admik"</strong>.
                     </div>
                     <div>
                         <label for="rejectCatatanInput" class="form-label fw-semibold fs-12 text-dark mb-1">
@@ -1007,12 +973,64 @@
             prevVersions = [];
         }
 
+        let similarFaqs = [];
+        try {
+            similarFaqs = JSON.parse(row.getAttribute('data-similar-faqs') || '[]');
+        } catch (e) {
+            similarFaqs = [];
+        }
+
+        let milestoneLogs = [];
+        try {
+            milestoneLogs = JSON.parse(row.getAttribute('data-milestone-logs') || '[]');
+        } catch (e) {
+            milestoneLogs = [];
+        }
+
+        const unitNama     = row.getAttribute('data-unit-nama') || 'Direktorat Akademik';
+        const unitIsPusat  = row.getAttribute('data-unit-is-pusat') === '1';
+        const unitApproval = row.getAttribute('data-unit-approval') || '';
+        const rawStatusVal = row.getAttribute('data-raw-status') || (isApproved ? 'Diterima' : 'Menunggu Validasi Admik');
+
         document.getElementById('viewModalCode').textContent     = code;
         document.getElementById('viewModalVersion').textContent  = version;
         document.getElementById('viewModalQuestion').textContent = question;
         document.getElementById('viewModalDe').textContent       = de;
         document.getElementById('viewModalTime').textContent     = `${date}, ${time}`;
         document.getElementById('viewModalAnswer').innerHTML     = answer;
+
+        const unitPillEl = document.getElementById('viewModalUnitPill');
+        const unitTextEl = document.getElementById('viewModalUnitText');
+        const unitIconEl = document.getElementById('viewModalUnitIcon');
+        if (unitTextEl) unitTextEl.textContent = unitNama;
+        if (unitPillEl) unitPillEl.classList.toggle('is-pusat', unitIsPusat);
+        if (unitIconEl) unitIconEl.className = unitIsPusat ? 'bi bi-bank2' : 'bi bi-building';
+
+        const unitBannerEl = document.getElementById('viewModalUnitApprovalBanner');
+        const unitBannerTextEl = document.getElementById('viewModalUnitApprovalText');
+        if (unitBannerEl && unitBannerTextEl) {
+            if (unitApproval) {
+                unitBannerTextEl.textContent = unitApproval;
+                unitBannerEl.classList.remove('d-none');
+            } else {
+                unitBannerEl.classList.add('d-none');
+            }
+        }
+
+        const milestoneWrapEl = document.getElementById('viewModalMilestoneWrap');
+        if (milestoneWrapEl && window.kmsBuildMilestoneHtml) {
+            milestoneWrapEl.innerHTML = window.kmsBuildMilestoneHtml({
+                raw_status: rawStatusVal,
+                is_pusat_unit: unitIsPusat,
+                unit_nama: unitNama,
+                milestone_logs: milestoneLogs,
+            });
+        }
+
+        const simWrapEl = document.getElementById('viewModalSimilarWrap');
+        if (simWrapEl && window.kmsBuildSimilarFaqsHtml) {
+            simWrapEl.innerHTML = window.kmsBuildSimilarFaqsHtml(similarFaqs);
+        }
 
         const answerLabelEl = document.getElementById('viewModalAnswerLabel');
         if (answerLabelEl) {

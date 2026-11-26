@@ -33,68 +33,13 @@
         ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
         ->implode('') ?: 'KM';
     $activeTab = request('tab') === 'keamanan' || $errors->password->any() ? 'keamanan' : 'profil';
+    $isUnitVal = $user ? $user->isValidatorUnit() : false;
+    $valPrefix = $isUnitVal ? 'validator.unit.' : 'validator.';
 @endphp
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
-                    <i class="bi bi-bell-fill"></i>
-                    <span>Setting Alert Call</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom active">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'pengaturanAkun'])
 
     <!-- Overlay for mobile sidebar -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -141,7 +86,7 @@
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route($valPrefix . 'pengaturanAkun') }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
@@ -245,7 +190,7 @@
                 <div class="col-12 col-lg-8 col-xl-9">
                     <!-- TAB: Informasi Profil -->
                     <div data-tab-pane="profil" class="{{ $activeTab === 'profil' ? '' : 'd-none' }}">
-                        <form method="POST" action="{{ route('validator.pengaturanAkun.profile') }}" class="settings-card">
+                        <form method="POST" action="{{ route($valPrefix . 'pengaturanAkun.profile') }}" class="settings-card">
                             @csrf
                             <div class="settings-card-header">
                                 <h2 class="settings-card-title">Informasi Profil</h2>
@@ -297,7 +242,7 @@
 
                     <!-- TAB: Keamanan & Kata Sandi -->
                     <div data-tab-pane="keamanan" class="{{ $activeTab === 'keamanan' ? '' : 'd-none' }}">
-                        <form method="POST" action="{{ route('validator.pengaturanAkun.password') }}" class="settings-card">
+                        <form method="POST" action="{{ route($valPrefix . 'pengaturanAkun.password') }}" class="settings-card">
                             @csrf
                             <div class="settings-card-header">
                                 <h2 class="settings-card-title">Ubah Kata Sandi</h2>

@@ -24,56 +24,7 @@
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Data Entry</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom">
-                    <i class="bi bi-send-check"></i>
-                    <span>Pengajuan FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom active">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('dataentry.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('dataentry.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.dataentry-sidebar', ['activeMenu' => 'buatfaq'])
 
     <!-- Mobile Sidebar Backdrop -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -263,7 +214,7 @@
                                 <th style="min-width: 190px;">KATA KUNCI</th>
                                 <th style="min-width: 190px;">SUMBER PUSTAKA</th>
                                 <th style="width: 130px;">STATUS</th>
-                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 180px; text-align: right;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -350,7 +301,7 @@
                                     <td class="faq-status-cell">
                                         @php
                                             $exactStatusLabel = $item['exact_match']['status_label'] ?? '';
-                                            $isWaitingValPreview = (strtolower($item['status'] ?? '') === 'submitted') || ($exactStatusLabel === 'Menunggu Validasi');
+                                            $isWaitingValPreview = (strtolower($item['status'] ?? '') === 'submitted') || str_starts_with(strtolower((string) $exactStatusLabel), 'menunggu validasi');
                                         @endphp
                                         @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
                                             <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-11 d-inline-block mb-1">

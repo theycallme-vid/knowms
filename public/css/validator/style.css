@@ -939,13 +939,14 @@ body {
 .btn-pill-approved {
     background-color: #E6F6EE;
     color: #059669;
-    border-color: #D1FAE5;
+    border-color: #6EE7B7;
 }
 
 .btn-action-approve:hover,
 .btn-pill-approved:hover {
     background-color: #D1FAE5;
     color: #047857;
+    border-color: #34D399;
 }
 
 .btn-action-reject,

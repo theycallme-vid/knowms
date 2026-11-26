@@ -50,6 +50,7 @@ class DaftarPustaka extends Model
     /**
      * Pastikan tabel tdaftarpustaka memiliki kolom judul, link VARCHAR(60),
      * dan menghapus kolom type (public/private) jika masih ada di database lama.
+     * Di-cache permanen pada file store agar tidak menjalankan 3x SHOW COLUMNS di setiap request.
      */
     public static function ensurePublicPrivateEnum(): void
     {
@@ -60,6 +61,10 @@ class DaftarPustaka extends Model
         $checked = true;
 
         try {
+            if (\Illuminate\Support\Facades\Cache::store('file')->get('kms_schema_daftarpustaka_v2')) {
+                return;
+            }
+
             $judulCol = \Illuminate\Support\Facades\DB::selectOne("SHOW COLUMNS FROM tdaftarpustaka LIKE 'judul'");
             if (!$judulCol) {
                 \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka ADD COLUMN judul VARCHAR(100) NULL AFTER id");
@@ -75,6 +80,8 @@ class DaftarPustaka extends Model
             if ($col) {
                 \Illuminate\Support\Facades\DB::statement("ALTER TABLE tdaftarpustaka DROP COLUMN type");
             }
+
+            \Illuminate\Support\Facades\Cache::store('file')->forever('kms_schema_daftarpustaka_v2', true);
         } catch (\Throwable $e) {
             // Abaikan jika tabel belum ada
         }

@@ -33,15 +33,8 @@
 
         <!-- PANEL KANAN (Form Login) -->
         <div class="right-panel">
-            <header class="right-header">
-                <a href="#" class="back-link">
-                    &larr; Kembali ke portal mahasiswa
-                </a>
-            </header>
-
             <main class="panel-content right-content">
                 <div class="form-wrapper">
-                    <span class="badge">AKSES STAF UBAYA</span>
                     <h2 class="form-heading">Selamat datang kembali.</h2>
                     <p class="form-subheading">Silakan masuk untuk melanjutkan pengelolaan dan berbagi wawasan akademik di ruang lingkup kampus.</p>
 

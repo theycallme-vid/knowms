@@ -100,6 +100,7 @@ class FaqVersionSeeder extends Seeder
             FaqVersion::where('tFaqs_id', $faq->id)
                 ->whereNotIn('id', $createdVersionIds)
                 ->delete();
+            FaqVersion::syncLatestFlag($faq->id);
         }
     }
 }

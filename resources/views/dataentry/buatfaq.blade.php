@@ -19,61 +19,14 @@
 
     <!-- Data Entry External CSS -->
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
+
+    @include('partials.milestone-modal-helper')
 </head>
 <body>
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Data Entry</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom">
-                    <i class="bi bi-send-check"></i>
-                    <span>Pengajuan FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom active">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('dataentry.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('dataentry.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.dataentry-sidebar', ['activeMenu' => 'buatfaq'])
 
     <!-- Mobile Sidebar Backdrop -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -202,7 +155,9 @@
                 <div class="alert alert-danger rounded-4 border-danger-subtle d-flex align-items-start gap-3 mb-4">
                     <i class="bi bi-exclamation-octagon-fill fs-5 text-danger mt-1"></i>
                     <div>
-                        <div class="fw-bold fs-12 text-uppercase mb-1">Catatan Revisi dari Validator</div>
+                        <div class="fw-bold fs-12 text-uppercase mb-1">
+                            {{ ($latestVer && in_array($faqStatus, ['ditolak', 'rejected'], true)) ? $latestVer->getRejectionBadgeLabel($faq->unit_name) : 'Catatan Revisi dari Validator' }}
+                        </div>
                         <div class="fs-13 text-dark">{{ $latestVer->catatan }}</div>
                         <div class="fs-11 text-danger mt-1">Perbaikan akan disimpan tetap pada <strong>Versi {{ $displayVerNum }} ({{ $displayVersionId }})</strong> tanpa menambah nomor versi baru.</div>
                     </div>
@@ -224,14 +179,7 @@
                     <div class="form-meta-bar">
                         <div>
                             <div class="meta-id" id="metaHeaderIdText">
-                                {{ $displayFaqId }} &middot; Versi {{ $displayVerNum }} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge">{{ $displayVersionId }}</span>
-                            </div>
-                            <div class="meta-desc" id="metaHeaderDesc">
-                                @if($isEditing)
-                                    Menyusun versi jawaban <strong>{{ $displayVersionId }}</strong> untuk pertanyaan <strong>{{ $faq->id }}</strong>.
-                                @else
-                                    Jawaban baru dari FAQ baru menggunakan kode <strong>{{ $newFaqId ?? 'FAQ-0001' }}-V1</strong>. Jika menambah versi jawaban dari FAQ yang dipilih, kode menjadi <strong>FAQ-XXXX-V2</strong>, dst.
-                                @endif
+                                {{ $displayFaqId }} &middot; Versi {{ $displayVerNum }} <span class="badge bg-light text-dark border ms-1 fw-semibold" id="metaVersionIdBadge"></span>
                             </div>
                         </div>
                         <span class="badge-status {{ in_array($faqStatus, ['ditolak', 'rejected'], true) ? 'badge-status-revisi' : 'badge-status-draft' }}">
@@ -276,7 +224,7 @@
                                                 $fLatestSt = strtolower((string) ($fItem->latest_version?->status ?? 'draf'));
                                                 $canAddNewVer = in_array($fLatestSt, ['diterima', 'terbit', 'approved', 'active'], true);
                                                 $optionSuffix = match(true) {
-                                                    in_array($fLatestSt, ['menunggu validasi', 'submitted'], true) => '(Sedang Menunggu Validasi)',
+                                                    \App\Models\FaqVersion::isWaitingValidation($fLatestSt)        => '(Sedang Menunggu Validasi)',
                                                     in_array($fLatestSt, ['ditolak', 'rejected'], true)            => '(Status Ditolak — Silakan Revisi)',
                                                     in_array($fLatestSt, ['draf', 'draft'], true)                  => '(Status Draf — Belum Diterima/Terbit)',
                                                     default                                                        => '(Versi ' . $nextVNum . ')',
@@ -919,13 +867,13 @@
                         let badgeClass = 'bg-secondary text-white';
                         if (em.status_label === 'Terbit' || em.status_label === 'Diterima' || em.status_label === 'Active Publish' || em.status_label === 'Disetujui') {
                             badgeClass = 'bg-success text-white';
-                        } else if (em.status_label === 'Menunggu Validasi') {
+                        } else if (String(em.status_label || '').toLowerCase().startsWith('menunggu validasi')) {
                             badgeClass = 'bg-primary text-white';
                         }
 
                         exactBody.innerHTML = `
                             <div class="mb-1">
-                                Pertanyaan yang Anda ketik memiliki kemiripan <strong>100%</strong> dengan FAQ <strong>${escHtml(em.id)}</strong> yang saat ini berada dalam kondisi:
+                                Pertanyaan yang Anda ketik memiliki kemiripan <strong>100%</strong> dengan FAQ <strong>${escHtml(em.id)}</strong> (${escHtml(em.unit_nama || 'Direktorat Akademik')}) yang saat ini berada dalam kondisi:
                                 <span class="badge ${badgeClass} ms-1 px-2 py-1">${escHtml(em.status_label)}</span>
                             </div>
                             <div class="p-2 bg-white rounded-2 border fs-12 text-secondary mt-1.5">
@@ -937,16 +885,17 @@
                         exactBox?.classList.add('d-none');
                     }
 
-                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa
-                    const candidates = (data.candidates || []);
+                    // 3. Kandidat FAQ yang memiliki kemiripan teks / makna serupa lintas unit
+                    const candidates = (data.candidates || data.duplicates || []);
                     if (candidates.length > 0) {
                         listBox.innerHTML = candidates.map(d => {
-                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(d.status_label || 'Draf') + '</span>';
-                            if (d.status_label === 'Terbit' || d.status_label === 'Diterima' || d.status_label === 'Active Publish' || d.status_label === 'Disetujui') {
-                                stBadge = '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">' + escHtml(d.status_label) + '</span>';
-                            } else if (d.status_label === 'Menunggu Validasi') {
-                                stBadge = '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Menunggu Validasi</span>';
-                            } else if (d.status_label === 'Ditolak') {
+                            const stLbl = String(d.status_label || 'Draf');
+                            let stBadge = '<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">' + escHtml(stLbl) + '</span>';
+                            if (stLbl === 'Terbit' || stLbl === 'Diterima' || stLbl === 'Active Publish' || stLbl === 'Disetujui') {
+                                stBadge = '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">' + escHtml(stLbl) + '</span>';
+                            } else if (stLbl.toLowerCase().startsWith('menunggu validasi')) {
+                                stBadge = '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">' + escHtml(stLbl) + '</span>';
+                            } else if (stLbl === 'Ditolak') {
                                 stBadge = '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Ditolak</span>';
                             }
 
@@ -957,8 +906,9 @@
                             return `
                                 <div class="p-2 bg-white rounded-2 border d-flex flex-wrap align-items-center justify-content-between gap-2">
                                     <div>
-                                        <span class="fw-bold text-dark">${escHtml(d.id)}</span>:
-                                        <span class="text-dark">${escHtml(d.pertanyaan)}</span>
+                                        <span class="fw-bold text-dark">${escHtml(d.id)}</span>
+                                        <span class="kms-unit-pill ms-1"><i class="bi bi-building"></i>${escHtml(d.unit_nama || 'Direktorat Akademik')}</span>:
+                                        <span class="text-dark ms-1">${escHtml(d.pertanyaan)}</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-1.5">
                                         ${simBadge}

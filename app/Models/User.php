@@ -18,6 +18,7 @@ class User extends Authenticatable
         'nama',
         'email',
         'password',
+        'password_encrypted',
         'npk',
         'tRoles_id',
         'is_active',
@@ -26,7 +27,23 @@ class User extends Authenticatable
 
     protected $hidden = [
         'password',
+        'password_encrypted',
     ];
+
+    /**
+     * Ambil kata sandi terdekripsi untuk ditampilkan kepada Super Admin / Validator berwenang.
+     */
+    public function getViewablePassword(): string
+    {
+        if (empty($this->password_encrypted)) {
+            return '';
+        }
+        try {
+            return \Illuminate\Support\Facades\Crypt::decryptString((string) $this->password_encrypted);
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
 
     protected $casts = [
         'is_active'  => 'boolean',
@@ -86,7 +103,51 @@ class User extends Authenticatable
         return $this->getRoleName() === $roleName;
     }
 
-    public function isAdmin(): bool   { return $this->hasRole('Super Admin'); }
+    public function isAdmin(): bool     { return $this->hasRole('Super Admin'); }
     public function isValidator(): bool { return $this->hasRole('Validator'); }
     public function isDataEntry(): bool { return $this->hasRole('Data Entry'); }
+
+    /**
+     * Cek apakah pengguna berada di Direktorat Pusat (Direktorat Akademik).
+     * Jika tDirektorat_id kosong (akun lama), diperlakukan sebagai Pusat agar tidak terkunci.
+     */
+    public function isPusat(): bool
+    {
+        if (empty($this->tDirektorat_id)) {
+            return true;
+        }
+
+        if (!$this->relationLoaded('direktorat')) {
+            $this->load('direktorat');
+        }
+
+        if ($this->direktorat) {
+            if ($this->direktorat->getAttributes() && array_key_exists('is_pusat', $this->direktorat->getAttributes())) {
+                return (bool) $this->direktorat->is_pusat;
+            }
+            return strtolower(trim((string) $this->direktorat->nama)) === 'direktorat akademik'
+                || (int) $this->direktorat->id === 1;
+        }
+
+        return (int) $this->tDirektorat_id === 1;
+    }
+
+    public function isValidatorAdmik(): bool { return $this->isValidator() && $this->isPusat(); }
+    public function isValidatorUnit(): bool  { return $this->isValidator() && !$this->isPusat(); }
+    public function isDataEntryAdmik(): bool { return $this->isDataEntry() && $this->isPusat(); }
+    public function isDataEntryUnit(): bool  { return $this->isDataEntry() && !$this->isPusat(); }
+
+    public function getUnitName(): string
+    {
+        if (!$this->relationLoaded('direktorat') && !empty($this->tDirektorat_id)) {
+            $this->load('direktorat');
+        }
+
+        return $this->direktorat?->nama ?: 'Direktorat Akademik';
+    }
+
+    public function getEffectiveDirektoratId(): int
+    {
+        return (int) ($this->tDirektorat_id ?: Direktorat::pusatId());
+    }
 }

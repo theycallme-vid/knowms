@@ -21,6 +21,8 @@
     <link rel="stylesheet" href="{{ asset('css/validator/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
 
+    @include('partials.milestone-modal-helper')
+
     <style>
         div.swal2-popup.kms-view-modal {
             width: 1080px !important;
@@ -210,72 +212,7 @@
     <!-- ══════════════════════════════════════
          SIDEBAR
     ══════════════════════════════════════ -->
-    @php
-                $authUser = auth()->user();
-                if ($authUser && !$authUser->relationLoaded('role')) {
-                    $authUser->load('role');
-                }
-                $roleName = $authUser ? $authUser->getRoleName() : 'Validator';
-            @endphp
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom active">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
-                    <i class="bi bi-bell-fill"></i>
-                    <span>Setting Alert Call</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'daftarFAQ'])
 
     <!-- Overlay mobile -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none"
@@ -444,11 +381,12 @@
                     </div>
                 </div>
 
-                <!-- ── Filter Bar (Satu Baris: Search + Kategori Fakultas + Status + Sort) ── -->
-                <!-- ── Filter Bar (Search + Kata Kunci + Status + Sort, Auto-Submit) ── -->
+                <!-- ── Filter Bar (Search + Unit Terdaftar + Kata Kunci + Status + Sort, Auto-Submit) ── -->
                 @include('partials.daftar-faq-filter-bar', [
-                    'actionRoute' => route('validator.daftarFAQ'),
+                    'actionRoute'      => route('validator.daftarFAQ'),
                     'kataKunciOptions' => $kataKunciOptions ?? collect(),
+                    'direktorats'      => $direktorats ?? collect(),
+                    'showUnitFilter'   => true,
                 ])
 
                 <!-- ── Table ── -->
@@ -458,9 +396,8 @@
                             <tr>
                                 <th style="width:115px;">Kode / Versi</th>
                                 <th>Pertanyaan</th>
-                                <th style="width:155px;">Data Entry</th>
-                                <th style="width:135px;">Waktu Pengajuan</th>
-                                <th style="width:215px;">Status</th>
+                                <th style="width:185px;">Unit</th>
+                                <th style="width:225px;">Status</th>
                                 <th style="width:195px;" class="text-end pe-4">Aksi</th>
                             </tr>
                         </thead>
@@ -471,26 +408,34 @@
                                     $status        = $latestVersion?->status ?? 'Draf';
                                     $versionLabel  = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                     $de            = $faq->dataEntry;
+                                    $faqUnitNama   = $faq->unit_name;
+                                    $faqIsPusat    = $faq->isPusatUnit();
                                     $statusClass   = match($status) {
-                                        'Diterima'          => 'badge-approved',
-                                        'Terbit'            => 'badge-active',
-                                        'Menunggu Validasi' => 'badge-submitted',
-                                        'Ditolak'           => 'badge-rejected',
-                                        default             => 'badge-draft',
+                                        'Diterima'                 => 'badge-approved',
+                                        'Terbit'                   => 'badge-active',
+                                        'Menunggu Validasi Unit',
+                                        'Menunggu Validasi Admik',
+                                        'Menunggu Validasi'        => 'badge-submitted',
+                                        'Ditolak'                  => 'badge-rejected',
+                                        default                    => 'badge-draft',
                                     };
                                     $statusLabel   = match($status) {
-                                        'Terbit'            => 'Terbit',
-                                        'Diterima'          => 'Diterima',
-                                        'Menunggu Validasi' => 'Menunggu Validasi',
-                                        'Ditolak'           => 'Ditolak',
-                                        default             => $status,
+                                        'Terbit'                   => 'Terbit',
+                                        'Diterima'                 => 'Diterima',
+                                        'Menunggu Validasi Unit'   => 'Menunggu Validasi Unit',
+                                        'Menunggu Validasi Admik',
+                                        'Menunggu Validasi'        => 'Menunggu Validasi Admik',
+                                        'Ditolak'                  => $latestVersion ? $latestVersion->getRejectionBadgeLabel($faqUnitNama) : 'Ditolak',
+                                        default                    => $status,
                                     };
                                     $statusIcon    = match($status) {
-                                        'Diterima'          => 'bi-check-circle-fill',
-                                        'Terbit'            => 'bi-lightning-fill',
-                                        'Menunggu Validasi' => 'bi-hourglass-split',
-                                        'Ditolak'           => 'bi-x-circle-fill',
-                                        default             => 'bi-pencil',
+                                        'Diterima'                 => 'bi-check-circle-fill',
+                                        'Terbit'                   => 'bi-lightning-fill',
+                                        'Menunggu Validasi Unit',
+                                        'Menunggu Validasi Admik',
+                                        'Menunggu Validasi'        => 'bi-hourglass-split',
+                                        'Ditolak'                  => 'bi-x-circle-fill',
+                                        default                    => 'bi-pencil',
                                     };
                                     $createdAtJkt  = ($latestVersion?->updated_at ?? $latestVersion?->created_at ?? $faq->updated_at ?? $faq->created_at)?->timezone('Asia/Jakarta');
                                 @endphp
@@ -501,47 +446,16 @@
                                         <div class="faq-version">{{ $versionLabel }}</div>
                                     </td>
 
-                                    <!-- Pertanyaan + Tags -->
+                                    <!-- Pertanyaan -->
                                     <td>
                                         <div class="faq-question">{{ Str::limit($faq->pertanyaan, 85) }}</div>
-                                        @if($faq->tags->isNotEmpty())
-                                            <div class="faq-tags">
-                                                @foreach($faq->tags->take(3) as $tag)
-                                                    <span class="tag-pill">{{ $tag->nama }}</span>
-                                                @endforeach
-                                                @if($faq->tags->count() > 3)
-                                                    <span class="tag-pill">+{{ $faq->tags->count() - 3 }}</span>
-                                                @endif
-                                                <span class="tag-pill" style="background-color:#F8FAFC; color:#475569; border-color:#E2E8F0;" title="Statistik Views, Like & Dislike Mahasiswa">
-                                                    <i class="bi bi-eye me-1"></i>{{ $faq->views_count ?? 0 }}
-                                                    &middot; <i class="bi bi-hand-thumbs-up text-success ms-1 me-1"></i>{{ $faq->likes_count ?? 0 }}
-                                                    &middot; <i class="bi bi-hand-thumbs-down text-danger ms-1 me-1"></i>{{ $faq->dislikes_count ?? 0 }}
-                                                </span>
-                                            </div>
-                                        @else
-                                            <div class="faq-tags">
-                                                <span class="tag-pill" style="background-color:#F8FAFC; color:#475569; border-color:#E2E8F0;" title="Statistik Views, Like & Dislike Mahasiswa">
-                                                    <i class="bi bi-eye me-1"></i>{{ $faq->views_count ?? 0 }}
-                                                    &middot; <i class="bi bi-hand-thumbs-up text-success ms-1 me-1"></i>{{ $faq->likes_count ?? 0 }}
-                                                    &middot; <i class="bi bi-hand-thumbs-down text-danger ms-1 me-1"></i>{{ $faq->dislikes_count ?? 0 }}
-                                                </span>
-                                            </div>
-                                        @endif
                                     </td>
 
-                                    <!-- Data Entry (Cukup Namanya Saja) -->
+                                    <!-- Unit -->
                                     <td>
-                                        <div class="fs-13 fw-semibold text-dark">{{ $de?->nama ?? '—' }}</div>
-                                    </td>
-
-                                    <!-- Waktu Pengajuan (Timezone Jakarta GMT+7) -->
-                                    <td>
-                                        <div class="fs-13 text-dark">
-                                            {{ $createdAtJkt ? $createdAtJkt->translatedFormat('d M Y') : '—' }}
-                                        </div>
-                                        <div class="fs-11 text-muted">
-                                            {{ $createdAtJkt ? $createdAtJkt->format('H.i') . ' WIB' : '' }}
-                                        </div>
+                                        <span class="kms-unit-pill {{ $faqIsPusat ? 'is-pusat' : '' }}" title="Unit asal pengajuan FAQ">
+                                            <i class="bi {{ $faqIsPusat ? 'bi-bank2' : 'bi-building' }}"></i>{{ $faqUnitNama }}
+                                        </span>
                                     </td>
 
                                     <!-- Status Badge -->
@@ -562,7 +476,7 @@
                                                 @endif
                                             </div>
                                         @else
-                                            <span class="badge-status {{ $statusClass }}">
+                                            <span class="badge-status {{ $statusClass }}" style="{{ $status === 'Menunggu Validasi Unit' ? 'background-color:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;' : '' }}">
                                                 <i class="bi {{ $statusIcon }}"></i>
                                                 {{ $statusLabel }}
                                             </span>
@@ -587,7 +501,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="5" class="text-center py-5">
                                         <div class="d-flex flex-column align-items-center gap-2 text-muted">
                                             <i class="bi bi-journal-x fs-1 opacity-30"></i>
                                             <div class="fw-semibold fs-14">Belum ada FAQ ditemukan</div>
@@ -831,12 +745,8 @@
                     ? `<div style="margin-bottom: 1.1rem;"><div class="text-uppercase fw-bold" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em; margin-bottom: 0.45rem;">Kata Kunci</div><div class="d-flex flex-wrap gap-2">${d.tags.map(t => `<span class="badge rounded-pill" style="background-color:#F8F5F1;color:#85172C;border:1px solid #EDE7E1;font-size:0.76rem;padding:0.35rem 0.8rem;font-weight:600;">${t}</span>`).join('')}</div></div>`
                     : '';
 
-                const rawSt = (latest.status || 'Draf').toLowerCase();
-                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draf</span>`;
-                if (rawSt === 'terbit' || rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
-                else if (rawSt === 'diterima' || rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Diterima</span>';
-                else if (rawSt === 'menunggu validasi' || rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
-                else if (rawSt === 'ditolak' || rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
+                const statusBadge = window.kmsFormatStatusBadgeHtml(latest.status, d.rejection_label);
+                const milestoneHtml = window.kmsBuildMilestoneHtml(d);
 
                 const latestVerObj = (d.versions || []).find(v => v.id === latest.id) || (d.versions || [])[0] || {};
                 const dp = latestVerObj.daftar_pustaka || null;
@@ -923,7 +833,7 @@
                                                 <div class="kms-ver-body">
                                                     <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                                         <div class="kms-ver-sublabel mb-0">Jawaban</div>
-                                                        ${v.status ? `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.7rem;padding:0.25rem 0.65rem;">Status: ${v.status}</span>` : ''}
+                                                        ${(v.rejection_label || v.status) ? `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.7rem;padding:0.25rem 0.65rem;">Status: ${v.rejection_label || v.status}</span>` : ''}
                                                     </div>
                                                     <div class="kms-ver-answer">${v.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}</div>
                                                     ${vSourceHtml}
@@ -959,6 +869,9 @@
                                     <span><i class="bi bi-clock me-1"></i>${d.created_at || '-'}</span>
                                 </div>
                             </div>
+
+                            <!-- Milestone Status Validasi -->
+                            ${milestoneHtml}
 
                             <!-- Pertanyaan -->
                             <div style="margin-bottom: 1.1rem;">
@@ -1022,5 +935,6 @@
 </script>
 
 
+@include('partials.admin-incoming-call-alert')
 </body>
 </html>

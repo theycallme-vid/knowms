@@ -110,9 +110,8 @@
                     <!-- Card Header: Badge & QR Frame Icon -->
                     <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
                         <div>
-                            <span class="badge-akses-mhs mb-2">AKSES MAHASISWA</span>
                             <h2 class="display-serif fs-3 fw-bold text-dark mb-1">
-                                Pindai kartu, buka pengetahuan.
+                                Scan QR KTM Digital Anda
                             </h2>
                             <p class="text-muted fs-13 mb-0">
                                 Gunakan QR pada kartu mahasiswa digital untuk melanjutkan.

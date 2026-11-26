@@ -50,7 +50,7 @@ class GuestController extends Controller
             $faqs = Faq::with([
                 'tags',
                 'versions' => fn ($q) => $q->where('status', 'Terbit')
-                    ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->orderByDesc('version_number')
                     ->latest('updated_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
@@ -67,7 +67,6 @@ class GuestController extends Controller
                     'tlogmahasiswa.tFaqs_id as faq_id',
                     'tsession.kode_fakultas as session_key',
                     'tlogmahasiswa.jenis_interaksi',
-                    'tlogmahasiswa.keyword',
                     'tlogmahasiswa.hasil',
                     DB::raw('COUNT(*) as total_akses')
                 )
@@ -75,7 +74,6 @@ class GuestController extends Controller
                     'tlogmahasiswa.tFaqs_id',
                     'tsession.kode_fakultas',
                     'tlogmahasiswa.jenis_interaksi',
-                    'tlogmahasiswa.keyword',
                     'tlogmahasiswa.hasil'
                 )
                 ->get();

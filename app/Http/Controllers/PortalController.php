@@ -167,7 +167,7 @@ class PortalController extends Controller
             $faqs = Faq::with([
                 'tags',
                 'versions' => fn ($q) => $q->where('status', 'Terbit')
-                    ->orderByRaw("CAST(SUBSTRING_INDEX(id, '-V', -1) AS UNSIGNED) DESC")
+                    ->orderByDesc('version_number')
                     ->latest('updated_at'),
                 'versions.daftarPustaka',
             ])->whereHas('versions', function ($q) {
@@ -184,7 +184,6 @@ class PortalController extends Controller
                     'tlogmahasiswa.tFaqs_id as faq_id',
                     'tsession.kode_fakultas as session_key',
                     'tlogmahasiswa.jenis_interaksi',
-                    'tlogmahasiswa.keyword',
                     'tlogmahasiswa.hasil',
                     DB::raw('COUNT(*) as total_akses')
                 )
@@ -192,7 +191,6 @@ class PortalController extends Controller
                     'tlogmahasiswa.tFaqs_id',
                     'tsession.kode_fakultas',
                     'tlogmahasiswa.jenis_interaksi',
-                    'tlogmahasiswa.keyword',
                     'tlogmahasiswa.hasil'
                 )
                 ->get();
@@ -406,7 +404,8 @@ class PortalController extends Controller
                 }
             }
 
-            // shortcut: query full summary per sync batch (1x per 30s per active client), cache if log rows > 100k
+            // Invalidate summary cache agar angka view/like terbaru langsung terbaca
+            \Illuminate\Support\Facades\Cache::store('file')->forget('kms_faq_interaction_summary_all');
             $summary = LogMahasiswa::getFaqInteractionSummary();
             $counts = ($lastFaqId && isset($summary[$lastFaqId]))
                 ? $summary[$lastFaqId]

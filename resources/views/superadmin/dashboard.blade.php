@@ -49,6 +49,10 @@
                     <i class="bi bi-journal-text"></i>
                     <span>Daftar FAQ</span>
                 </a>
+                <a href="{{ route('superadmin.kelolaUnit') }}" class="nav-link-custom">
+                    <i class="bi bi-building-gear"></i>
+                    <span>Kelola Unit</span>
+                </a>
                 <a href="{{ route('superadmin.pengguna-akses') }}" class="nav-link-custom">
                     <i class="bi bi-people"></i>
                     <span>Pengguna &amp; Akses</span>

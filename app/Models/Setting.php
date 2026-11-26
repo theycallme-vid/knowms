@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -113,9 +114,19 @@ class Setting extends Model
         ],
     ];
 
+    public static function clearCache(): void
+    {
+        try {
+            Cache::store('file')->forget('kms_settings_all_int');
+            Cache::store('file')->forget('kms_allowed_call_unit_ids');
+        } catch (Throwable $e) {
+            // Abaikan jika cache file tidak tersedia
+        }
+    }
+
     /**
      * Pastikan tabel tsettings dan kolom jenis_interaksi pada tlogmahasiswa tersedia,
-     * serta isi nilai default jika belum ada.
+     * serta isi nilai default jika belum ada (di-cache agar tidak query information_schema di setiap request).
      */
     public static function ensureDefaults(): void
     {
@@ -126,6 +137,10 @@ class Setting extends Model
         $ensured = true;
 
         try {
+            if (Cache::store('file')->get('kms_schema_settings_v2')) {
+                return;
+            }
+
             if (!Schema::hasTable('tsettings')) {
                 Schema::create('tsettings', function (Blueprint $table) {
                     $table->id();
@@ -152,37 +167,45 @@ class Setting extends Model
                     ]);
                 }
             }
+
+            Cache::store('file')->forever('kms_schema_settings_v2', true);
         } catch (Throwable $e) {
             // Gunakan nilai fallback DEFAULTS di memori apabila koneksi DB belum siap
         }
     }
 
     /**
-     * Mengambil seluruh pengaturan sebagai array asosiatif [key => int].
+     * Mengambil seluruh pengaturan sebagai array asosiatif [key => int] (cached 5 menit).
      */
     public static function allIntValues(): array
     {
-        $result = [];
-        foreach (self::DEFAULTS as $key => $meta) {
-            $result[$key] = (int) $meta['value'];
-        }
-
         try {
-            $rows = self::pluck('value', 'key');
-            if ($rows->count() < count(self::DEFAULTS)) {
-                self::ensureDefaults();
-                $rows = self::pluck('value', 'key');
-            }
-            foreach ($rows as $k => $v) {
-                if (array_key_exists($k, $result) && is_numeric($v)) {
-                    $result[$k] = (int) $v;
+            return Cache::store('file')->remember('kms_settings_all_int', 300, function () {
+                $result = [];
+                foreach (self::DEFAULTS as $key => $meta) {
+                    $result[$key] = (int) $meta['value'];
                 }
-            }
-        } catch (Throwable $e) {
-            self::ensureDefaults();
-        }
 
-        return $result;
+                $rows = self::pluck('value', 'key');
+                if ($rows->count() < count(self::DEFAULTS)) {
+                    self::ensureDefaults();
+                    $rows = self::pluck('value', 'key');
+                }
+                foreach ($rows as $k => $v) {
+                    if (array_key_exists($k, $result) && is_numeric($v)) {
+                        $result[$k] = (int) $v;
+                    }
+                }
+
+                return $result;
+            });
+        } catch (Throwable $e) {
+            $result = [];
+            foreach (self::DEFAULTS as $key => $meta) {
+                $result[$key] = (int) $meta['value'];
+            }
+            return $result;
+        }
     }
 
     /**
@@ -200,23 +223,30 @@ class Setting extends Model
                 ]
             );
         }
+        self::clearCache();
     }
 
     /**
      * Mengambil daftar ID unit/direktorat yang berhak menerima notifikasi panggilan masuk dari tsettings.
+     * Di-cache 5 menit pada file store agar polling alert call tidak membebani database.
      *
      * @return array<int>
      */
     public static function getAllowedCallUnitIds(): array
     {
-        self::ensureDefaults();
-        $raw = self::where('key', 'alert_call_unit_ids')->value('value');
-        if ($raw === null || trim((string) $raw) === '') {
-            $raw = self::DEFAULTS['alert_call_unit_ids']['value'] ?? '1';
-        }
+        try {
+            return Cache::store('file')->remember('kms_allowed_call_unit_ids', 300, function () {
+                $raw = self::where('key', 'alert_call_unit_ids')->value('value');
+                if ($raw === null || trim((string) $raw) === '') {
+                    $raw = self::DEFAULTS['alert_call_unit_ids']['value'] ?? '1';
+                }
 
-        $ids = array_filter(array_map('intval', explode(',', (string) $raw)));
-        return !empty($ids) ? array_values(array_unique($ids)) : [1];
+                $ids = array_filter(array_map('intval', explode(',', (string) $raw)));
+                return !empty($ids) ? array_values(array_unique($ids)) : [1];
+            });
+        } catch (Throwable $e) {
+            return [1];
+        }
     }
 
     /**
@@ -241,5 +271,6 @@ class Setting extends Model
                 'keterangan' => 'Daftar ID Unit/Direktorat yang ditugaskan menerima notifikasi panggilan masuk dari mahasiswa.',
             ]
         );
+        self::clearCache();
     }
 }

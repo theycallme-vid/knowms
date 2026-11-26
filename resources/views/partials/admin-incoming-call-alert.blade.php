@@ -1,3 +1,8 @@
+@php
+    $__callAlertUser = auth()->user();
+    $__canPollIncomingCall = $__callAlertUser && !in_array((int) ($__callAlertUser->tRoles_id ?? 0), [1, 3], true);
+@endphp
+@if($__canPollIncomingCall)
 <!-- ========================================================================= -->
 <!-- NOTIFIKASI PANGGILAN VIDEO MASUK REAL-TIME UNTUK ADMIN                    -->
 <!-- ========================================================================= -->
@@ -144,10 +149,14 @@
         }
     }
 
+    let isPollingCalls = false;
+
     /**
-     * Periksa panggilan video aktif dari mahasiswa setiap 4 detik
+     * Periksa panggilan video aktif dari mahasiswa setiap 8 detik (jeda otomatis saat tab tidak aktif)
      */
     async function checkIncomingCalls() {
+        if (document.hidden || isPollingCalls) return;
+        isPollingCalls = true;
         try {
             const res = await fetch("{{ route('layanan.videocall.api.active') }}", {
                 headers: { 'Accept': 'application/json' }
@@ -169,6 +178,8 @@
             }
         } catch (err) {
             // Silently ignore polling errors
+        } finally {
+            isPollingCalls = false;
         }
     }
 
@@ -204,8 +215,12 @@
         hideIncomingCallAlert();
     };
 
-    // Jalankan poller berkala
-    setInterval(checkIncomingCalls, 3500);
-    setTimeout(checkIncomingCalls, 1500);
+    // Jalankan poller berkala (8 detik, langsung cek saat tab kembali aktif)
+    setInterval(checkIncomingCalls, 8000);
+    setTimeout(checkIncomingCalls, 2000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) checkIncomingCalls();
+    });
 })();
 </script>
+@endif

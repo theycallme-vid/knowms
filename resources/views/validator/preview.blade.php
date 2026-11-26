@@ -19,65 +19,23 @@
 
     <!-- Data Entry External CSS -->
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
+
+    @include('partials.milestone-modal-helper')
 </head>
 <body>
+@php
+    $valAuthUser = auth()->user();
+    if ($valAuthUser) {
+        $valAuthUser->loadMissing(['role', 'direktorat']);
+    }
+    $isUnitVal    = $valAuthUser ? $valAuthUser->isValidatorUnit() : false;
+    $valPrefix    = $isUnitVal ? 'validator.unit.' : 'validator.';
+    $valUnitLabel = $valAuthUser ? $valAuthUser->getUnitName() : 'Direktorat Akademik';
+@endphp
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom active">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'buatfaq'])
 
     <!-- Mobile Sidebar Backdrop -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -138,7 +96,7 @@
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route($valPrefix . 'pengaturanAkun') }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
@@ -156,12 +114,12 @@
         <!-- Content Area -->
         <div class="content-area">
             <div class="d-flex align-items-center gap-3 mb-2">
-                <a href="{{ route('validator.daftarFAQ') }}" class="back-link mb-0">
+                <a href="{{ route($valPrefix . 'daftarFAQ') }}" class="back-link mb-0">
                     <i class="bi bi-chevron-left"></i>
                     <span>Daftar FAQ</span>
                 </a>
                 <span class="text-muted fs-12">&middot;</span>
-                <a href="{{ route('validator.buatfaq') }}" class="back-link mb-0">
+                <a href="{{ route($valPrefix . 'buatfaq') }}" class="back-link mb-0">
                     <i class="bi bi-pencil-square"></i>
                     <span>Mode Input Satuan</span>
                 </a>
@@ -267,7 +225,7 @@
                                 <th style="min-width: 190px;">KATA KUNCI</th>
                                 <th style="min-width: 190px;">SUMBER PUSTAKA</th>
                                 <th style="width: 130px;">STATUS</th>
-                                <th style="width: 180px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 180px; text-align: right;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -354,7 +312,7 @@
                                     <td class="faq-status-cell">
                                         @php
                                             $exactStatusLabel = $item['exact_match']['status_label'] ?? '';
-                                            $isWaitingValPreview = (strtolower($item['status'] ?? '') === 'submitted') || ($exactStatusLabel === 'Menunggu Validasi');
+                                            $isWaitingValPreview = (strtolower($item['status'] ?? '') === 'submitted') || str_starts_with(strtolower((string) $exactStatusLabel), 'menunggu validasi');
                                         @endphp
                                         @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
                                             <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-11 d-inline-block mb-1">
@@ -405,22 +363,24 @@
             </div>
 
             <!-- Form Submit Pratinjau -->
-            <form id="submitPratinjauForm" action="{{ route('validator.pratinjau.submit') }}" method="POST">
+            <form id="submitPratinjauForm" action="{{ route($valPrefix . 'pratinjau.submit') }}" method="POST">
                 @csrf
                 <input type="hidden" name="action" id="submitActionInput" value="submit">
                 <input type="hidden" name="items_json" id="itemsJsonInput">
                 <div id="selectedIdsContainer"></div>
 
-                <!-- Sticky Bottom Action Bar (Validator: Langsung Masuk ke Validasi FAQ & Siap Terbit) -->
+                <!-- Sticky Bottom Action Bar -->
                 <div class="sticky-bottom-bar d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-2">
                         <span class="selected-pill-badge" id="bottomPillCount">0 dipilih</span>
-                        <span class="fs-12 text-muted">FAQ yang disimpan akan langsung masuk ke halaman Validasi FAQ (status Diterima) dan siap diterbitkan.</span>
+                        <span class="fs-12 text-muted">
+                            {{ $isUnitVal ? 'FAQ yang disimpan akan langsung diteruskan ke antrean Validator Admik.' : 'FAQ yang disimpan akan langsung masuk ke halaman Validasi FAQ (status Diterima) dan siap diterbitkan.' }}
+                        </span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" onclick="submitSelectedForValidation()" class="btn-submit-validasi">
                             <i class="bi bi-send-check"></i>
-                            <span id="btnSubmitValidationText">Simpan &amp; Siap Terbit (0)</span>
+                            <span id="btnSubmitValidationText">{{ $isUnitVal ? 'Simpan & Teruskan ke Admik (0)' : 'Simpan & Siap Terbit (0)' }}</span>
                         </button>
                     </div>
                 </div>
@@ -533,7 +493,7 @@
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <form action="{{ route('validator.uploadExcel') }}" method="POST" enctype="multipart/form-data" id="reuploadExcelForm">
+            <form action="{{ route($valPrefix . 'uploadExcel') }}" method="POST" enctype="multipart/form-data" id="reuploadExcelForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold fs-16">Unggah File FAQ</h5>
@@ -553,7 +513,7 @@
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-dark"><i class="bi bi-info-circle me-1"></i>Contoh Template Unggah File:</span>
-                            <a href="{{ route('validator.template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                            <a href="{{ route($valPrefix . 'template.faq') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
@@ -683,7 +643,8 @@
         const selectedText = `${selectedCount} dipilih`;
         document.getElementById('bottomPillCount').textContent = selectedText;
         document.getElementById('selectedCounterText').textContent = selectedText;
-        document.getElementById('btnSubmitValidationText').textContent = `Simpan & Siap Terbit (${selectedCount})`;
+        const baseBtnLabel = {{ \Illuminate\Support\Js::from($isUnitVal ? 'Simpan & Teruskan ke Admik' : 'Simpan & Siap Terbit') }};
+        document.getElementById('btnSubmitValidationText').textContent = `${baseBtnLabel} (${selectedCount})`;
         document.getElementById('totalCounter').textContent = total;
         document.getElementById('visibleCounter').textContent = visibleCount;
     }
@@ -898,7 +859,7 @@
         }
 
         // Kirim juga ke session backend via AJAX
-        fetch(`{{ route('validator.pratinjau.updateItem') }}`, {
+        fetch(`{{ route($valPrefix . 'pratinjau.updateItem') }}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -932,7 +893,7 @@
         }).then((res) => {
             if (res.isConfirmed) {
                 document.getElementById('row-' + rowId)?.remove();
-                fetch(`{{ route('validator.pratinjau.deleteItem') }}`, {
+                fetch(`{{ route($valPrefix . 'pratinjau.deleteItem') }}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1031,13 +992,13 @@
         }
 
         Swal.fire({
-            title: `Simpan ${checkedCount} FAQ ke Antrean Siap Terbit?`,
-            text: 'FAQ yang dipilih akan langsung masuk ke halaman Validasi FAQ dengan status Diterima dan tinggal diterbitkan tanpa perlu disetujui lagi.',
+            title: {{ \Illuminate\Support\Js::from($isUnitVal ? 'Teruskan ' : 'Simpan ') }} + checkedCount + {{ \Illuminate\Support\Js::from($isUnitVal ? ' FAQ ke Validator Admik?' : ' FAQ ke Antrean Siap Terbit?') }},
+            text: {{ \Illuminate\Support\Js::from($isUnitVal ? 'FAQ yang dipilih akan langsung diteruskan ke antrean Validator Admik.' : 'FAQ yang dipilih akan langsung masuk ke halaman Validasi FAQ dengan status Diterima dan tinggal diterbitkan tanpa perlu disetujui lagi.') }},
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#85172C',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Simpan & Siap Terbit',
+            confirmButtonText: {{ \Illuminate\Support\Js::from($isUnitVal ? 'Ya, Teruskan ke Admik' : 'Ya, Simpan & Siap Terbit') }},
             cancelButtonText: 'Batal',
             reverseButtons: true
         }).then((res) => {

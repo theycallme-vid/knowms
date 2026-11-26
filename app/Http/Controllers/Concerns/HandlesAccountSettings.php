@@ -36,7 +36,7 @@ trait HandlesAccountSettings
 
         $validated = $request->validateWithBag('profile', [
             'nama'  => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:100', Rule::unique('tusers', 'email')->ignore($user->id)],
+            'email' => ['required', 'email', 'max:50', Rule::unique('tusers', 'email')->ignore($user->id)],
         ], [
             'nama.required'  => 'Nama lengkap wajib diisi.',
             'email.required' => 'Email wajib diisi.',

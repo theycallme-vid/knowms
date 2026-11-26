@@ -794,14 +794,19 @@ class FaqSeeder extends Seeder
             4 => ' (Penyempurnaan rincian dokumen pendukung dan ketentuan terbaru).',
         ];
 
+        $userDirMap = User::pluck('tDirektorat_id', 'id')->all();
+        $pusatDirId = \App\Models\Direktorat::pusatId();
+
         foreach (array_values($faqs) as $idx => $item) {
+            $ownerDirId = (int) ($userDirMap[$item['id_dataentry']] ?? $pusatDirId);
             $faq = Faq::updateOrCreate(
                 ['id' => $item['id']],
                 [
-                    'id_dataentry' => $item['id_dataentry'],
-                    'pertanyaan'   => $item['pertanyaan'],
-                    'created_at'   => $item['created_at'],
-                    'updated_at'   => $item['created_at'],
+                    'id_dataentry'   => $item['id_dataentry'],
+                    'tDirektorat_id' => $ownerDirId,
+                    'pertanyaan'     => $item['pertanyaan'],
+                    'created_at'     => $item['created_at'],
+                    'updated_at'     => $item['created_at'],
                 ]
             );
 
@@ -831,7 +836,10 @@ class FaqSeeder extends Seeder
                 $versionTime = $item['created_at']->copy()->subDays(($versiTotal - $v) * 14);
 
                 // Versi terdahulu (sebelum versi terbaru) wajib sudah berstatus 'Terbit' karena versi baru hanya bisa ditambah setelah versi sebelumnya Diterima/Terbit
-                $versionStatus = $isLatest ? $item['status'] : 'Terbit';
+                $rawItemStatus = ($item['status'] === 'Menunggu Validasi')
+                    ? ($ownerDirId === $pusatDirId ? 'Menunggu Validasi Admik' : 'Menunggu Validasi Unit')
+                    : $item['status'];
+                $versionStatus = $isLatest ? $rawItemStatus : 'Terbit';
                 $versionValidatorId = $isLatest
                     ? (in_array($item['status'], ['Diterima', 'Terbit', 'Ditolak'], true) ? $validatorId : null)
                     : $validatorId;
@@ -841,6 +849,7 @@ class FaqSeeder extends Seeder
                     [
                         'tDaftarPustakas_id' => $versionPustakaId,
                         'tFaqs_id'           => $faq->id,
+                        'version_number'     => FaqVersion::extractVersionNumber($versionId),
                         'id_validator'       => $versionValidatorId,
                         'jawaban'            => $versionJawaban,
                         'status'             => $versionStatus,
@@ -855,6 +864,7 @@ class FaqSeeder extends Seeder
             FaqVersion::where('tFaqs_id', $faq->id)
                 ->whereNotIn('id', $createdVersionIds)
                 ->delete();
+            FaqVersion::syncLatestFlag($faq->id);
 
             // Hubungkan Tag ke FAQ via tabel tdetail_faqs
             $tagIdsToSync = [];

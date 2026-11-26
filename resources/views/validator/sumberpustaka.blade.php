@@ -21,67 +21,19 @@
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
 </head>
 <body>
+@php
+    $valAuthUser = auth()->user();
+    if ($valAuthUser) {
+        $valAuthUser->loadMissing(['role', 'direktorat']);
+    }
+    $isUnitVal    = $valAuthUser ? $valAuthUser->isValidatorUnit() : false;
+    $valPrefix    = $isUnitVal ? 'validator.unit.' : 'validator.';
+    $valUrlPrefix = $isUnitVal ? url('/validator-unit') : url('/validator');
+@endphp
 
 <div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Validator</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('validator.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('validator.validasiFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-list-check"></i>
-                    <span>Validasi FAQ</span>
-                </a>
-                <a href="{{ route('validator.buatfaq') }}" class="nav-link-custom">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('validator.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('validator.sumberpustaka') }}" class="nav-link-custom active">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-                <a href="{{ route('validator.pengguna-akses') }}" class="nav-link-custom">
-                    <i class="bi bi-people"></i>
-                    <span>Pengguna &amp; Akses</span>
-                </a>
-                <a href="{{ route('validator.pengaturanAlertCall') }}" class="nav-link-custom">
-                    <i class="bi bi-bell-fill"></i>
-                    <span>Setting Alert Call</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('validator.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.validator-sidebar', ['activeMenu' => 'sumberpustaka'])
 
     <!-- Mobile Sidebar Backdrop -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -142,7 +94,7 @@
                             </div>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('validator.pengaturanAkun') }}">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route($valPrefix . 'pengaturanAkun') }}">
                                 <i class="bi bi-gear text-secondary"></i> Pengaturan Akun
                             </a>
                         </li>
@@ -193,13 +145,13 @@
                                 Sumber file: <strong>{{ $previewSourcesFile }}</strong> &middot; Membaca 2 kolom: <strong>1. Judul Tautan</strong> dan <strong>2. Tautan / Link</strong>.
                             </div>
                         </div>
-                        <form action="{{ route('validator.sumberpustaka.cancelImport') }}" method="POST">
+                        <form action="{{ route($valPrefix . 'sumberpustaka.cancelImport') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3 fs-12">Batalkan Pratinjau</button>
                         </form>
                     </div>
 
-                    <form action="{{ route('validator.sumberpustaka.saveImport') }}" method="POST">
+                    <form action="{{ route($valPrefix . 'sumberpustaka.saveImport') }}" method="POST">
                         @csrf
                         <div class="table-responsive bg-white border rounded-3 mb-3">
                             <table class="table faq-table align-middle mb-0">
@@ -258,7 +210,7 @@
                     </div>
                     <div class="position-relative" style="min-width: 260px;">
                         <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted fs-13"></i>
-                        <input type="text" id="searchPustakaInput" class="form-control form-control-sm rounded-3 ps-5 fs-13" placeholder="Cari sumber pustaka...">
+                        <input type="text" id="searchPustakaInput" class="form-control form-control-sm rounded-3 ps-5 fs-13" placeholder="Cari Sumber Pustaka">
                     </div>
                 </div>
 
@@ -270,7 +222,7 @@
                                 <th>Dokumen/Tautan Sumber Pustaka</th>
                                 <th style="width: 145px;">JENIS</th>
                                 <th style="width: 165px;">DIGUNAKAN PADA</th>
-                                <th style="width: 300px; text-align: right;">TINDAKAN</th>
+                                <th style="width: 300px; text-align: right;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody id="pustakaTableBody">
@@ -312,10 +264,10 @@
                                                 @if($isFile)
                                                     <button type="button"
                                                             class="btn-action btn-action-view"
-                                                            onclick="openViewPustakaModal('{{ route('validator.pustaka.view', $p->id) }}', '{{ route('validator.pustaka.download', $p->id) }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}')">
+                                                            onclick="openViewPustakaModal('{{ route($valPrefix . 'pustaka.view', $p->id) }}', '{{ route($valPrefix . 'pustaka.download', $p->id) }}', '{{ addslashes($judulDisplay) }}', '{{ addslashes($p->link) }}')">
                                                         <i class="bi bi-eye"></i> Lihat
                                                     </button>
-                                                    <a href="{{ route('validator.pustaka.download', $p->id) }}" class="btn-action btn-action-view text-decoration-none">
+                                                    <a href="{{ route($valPrefix . 'pustaka.download', $p->id) }}" class="btn-action btn-action-view text-decoration-none">
                                                         <i class="bi bi-download"></i> Unduh
                                                     </a>
                                                 @elseif(str_starts_with((string) $p->link, 'http://') || str_starts_with((string) $p->link, 'https://'))
@@ -330,7 +282,7 @@
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
 
-                                                <form action="{{ route('validator.sumberpustaka.destroy', $p->id) }}" method="POST" id="del-pustaka-{{ $p->id }}" class="d-inline">
+                                                <form action="{{ route($valPrefix . 'sumberpustaka.destroy', $p->id) }}" method="POST" id="del-pustaka-{{ $p->id }}" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="button" class="btn-table-delete" onclick="confirmDeletePustaka('{{ $p->id }}', '{{ addslashes($judulDisplay) }}')">
@@ -354,7 +306,7 @@
 <div class="modal fade" id="addPustakaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <form action="{{ route('validator.sumberpustaka.store') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route($valPrefix . 'sumberpustaka.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold fs-16">Tambah Sumber Pustaka</h5>
@@ -446,7 +398,7 @@
 <div class="modal fade" id="uploadPustakaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow">
-            <form action="{{ route('validator.sumberpustaka.upload') }}" method="POST" enctype="multipart/form-data" id="uploadPustakaForm">
+            <form action="{{ route($valPrefix . 'sumberpustaka.upload') }}" method="POST" enctype="multipart/form-data" id="uploadPustakaForm">
                 @csrf
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold fs-16">Import Daftar Tautan Sumber Pustaka (Excel / CSV / PDF)</h5>
@@ -471,7 +423,7 @@
                     <div class="p-3 rounded-3 bg-light border fs-12 text-secondary">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-dark"><i class="bi bi-table me-1"></i>Format 2 Kolom (Excel / CSV / PDF):</span>
-                            <a href="{{ route('validator.template.pustaka') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
+                            <a href="{{ route($valPrefix . 'template.pustaka') }}" class="text-decoration-none fw-semibold" style="color: var(--brand-maroon);">
                                 <i class="bi bi-download me-1"></i>Unduh Template
                             </a>
                         </div>
@@ -644,7 +596,7 @@
 
     function openEditPustakaModal(id, currentJudul, currentLink, isFile) {
         const form = document.getElementById('editPustakaForm');
-        form.action = `{{ url('/validator/sumber-pustaka') }}/${id}/update`;
+        form.action = `{{ $valUrlPrefix }}/sumber-pustaka/${id}/update`;
 
         const titleEl = document.getElementById('editPustakaModalTitle');
         const editJudulLabel = document.getElementById('editJudulLabel');

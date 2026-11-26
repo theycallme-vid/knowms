@@ -22,6 +22,8 @@
     <link rel="stylesheet" href="{{ asset('css/validator/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/dataentry/style.css') }}">
 
+    @include('partials.milestone-modal-helper')
+
     <style>
         div.swal2-popup.kms-pengajuan-view-modal {
             width: 880px !important;
@@ -194,56 +196,7 @@
     <!-- ══════════════════════════════════════
          SIDEBAR
     ══════════════════════════════════════ -->
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <!-- KMS Brand Header -->
-            <div class="sidebar-brand">
-                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="sidebar-logo-img">
-            </div>
-
-            <!-- Role Badge -->
-            <div>
-                <span class="role-pill">Ruang Data Entry</span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="nav flex-column">
-                <a href="{{ route('dataentry.daftarFAQ') }}" class="nav-link-custom">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Daftar FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.pengajuan') }}" class="nav-link-custom active">
-                    <i class="bi bi-send-check"></i>
-                    <span>Pengajuan FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.buatfaq') }}" class="nav-link-custom">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Buat FAQ</span>
-                </a>
-                <a href="{{ route('dataentry.katakunci') }}" class="nav-link-custom">
-                    <i class="bi bi-tags"></i>
-                    <span>Daftar Kata Kunci</span>
-                </a>
-                <a href="{{ route('dataentry.sumberpustaka') }}" class="nav-link-custom">
-                    <i class="bi bi-book"></i>
-                    <span>Sumber Pustaka</span>
-                </a>
-            </nav>
-        </div>
-
-        <!-- Bottom Section of Sidebar -->
-        <div>
-            <hr class="sidebar-divider">
-            <a href="{{ route('dataentry.pengaturanAkun') }}" class="nav-link-custom">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan Akun</span>
-            </a>
-            <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link-custom nav-link-logout text-secondary">
-                <i class="bi bi-box-arrow-right"></i>
-                <span>Keluar</span>
-            </a>
-        </div>
-    </aside>
+    @include('partials.dataentry-sidebar', ['activeMenu' => 'pengajuan'])
 
     <!-- Overlay for mobile sidebar -->
     <div class="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -382,10 +335,12 @@
                             <!-- Filter Status -->
                             <select name="status" class="filter-select" onchange="document.getElementById('pengajuanFilterForm').submit()">
                                 @php $stPengReq = request('status', 'all'); @endphp
-                                <option value="all"              {{ $stPengReq === 'all' ? 'selected' : '' }}>Semua Status</option>
-                                <option value="Draf"             {{ in_array($stPengReq, ['Draf', 'Draft'], true) ? 'selected' : '' }}>Draf</option>
-                                <option value="Ditolak"          {{ in_array($stPengReq, ['Ditolak', 'Rejected'], true) ? 'selected' : '' }}>Ditolak</option>
-                                <option value="Menunggu Validasi" {{ in_array($stPengReq, ['Menunggu Validasi', 'Submitted'], true) ? 'selected' : '' }}>Menunggu Validasi</option>
+                                <option value="all"                     {{ $stPengReq === 'all' ? 'selected' : '' }}>Semua Status</option>
+                                <option value="Draf"                    {{ in_array($stPengReq, ['Draf', 'Draft'], true) ? 'selected' : '' }}>Draf</option>
+                                <option value="Ditolak"                 {{ in_array($stPengReq, ['Ditolak', 'Rejected'], true) ? 'selected' : '' }}>Ditolak</option>
+                                <option value="Menunggu Validasi"       {{ in_array($stPengReq, ['Menunggu Validasi', 'Submitted'], true) ? 'selected' : '' }}>Menunggu Validasi (Semua)</option>
+                                <option value="Menunggu Validasi Unit"  {{ $stPengReq === 'Menunggu Validasi Unit' ? 'selected' : '' }}>Menunggu Validasi Unit</option>
+                                <option value="Menunggu Validasi Admik" {{ $stPengReq === 'Menunggu Validasi Admik' ? 'selected' : '' }}>Menunggu Validasi Admik</option>
                             </select>
 
                             <!-- Sort -->
@@ -418,18 +373,21 @@
                                     <th>Pertanyaan</th>
                                     <th style="width: 170px;">Data Entry</th>
                                     <th style="width: 155px;">Waktu Pengajuan</th>
-                                    <th style="width: 145px;">Status</th>
+                                    <th style="width: 215px;">Status</th>
                                     <th style="width: 195px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="faqTableBody">
                                 @forelse($faqs as $faq)
                                     @php
-                                        $latestVersion = $faq->versions->first(fn ($v) => in_array($v->status, ['Draf', 'Ditolak', 'Menunggu Validasi'], true)) ?? $faq->versions->first();
+                                        $latestVersion = $faq->versions->first(fn ($v) => in_array($v->status, ['Draf', 'Ditolak', 'Menunggu Validasi Unit', 'Menunggu Validasi Admik', 'Menunggu Validasi'], true)) ?? $faq->versions->first();
                                         $status        = $latestVersion?->status ?? 'Draf';
                                         $stLower       = strtolower($status);
                                         $versionLabel  = \App\Models\FaqVersion::formatVersiLabel($latestVersion?->id);
                                         $deName        = $faq->dataEntry?->nama ?? 'Data Entry';
+                                        $faqUnitNama   = $faq->unit_name;
+                                        $faqIsPusat    = $faq->isPusatUnit();
+                                        $rejStage      = strtolower((string) ($latestVersion?->rejected_by_stage ?? ''));
                                         $nextVerId     = $faq->generateNextVersionId();
                                         $canSubmit     = in_array($stLower, ['draf', 'draft', 'ditolak', 'rejected'], true);
                                         $hasTags       = $faq->tags && $faq->tags->isNotEmpty();
@@ -437,20 +395,52 @@
                                         $createdAtJkt  = ($latestVersion?->updated_at ?? $faq->created_at)?->timezone('Asia/Jakarta');
 
                                         $statusClass = match($status) {
+                                            'Menunggu Validasi Unit',
+                                            'Menunggu Validasi Admik',
                                             'Menunggu Validasi', 'Submitted' => 'badge-submitted',
                                             'Ditolak', 'Rejected'            => 'badge-rejected',
                                             default                          => 'badge-draft',
                                         };
                                         $statusLabel = match($status) {
-                                            'Menunggu Validasi', 'Submitted' => 'Menunggu Validasi',
-                                            'Ditolak', 'Rejected'            => 'Ditolak',
+                                            'Menunggu Validasi Unit'         => 'Menunggu Validasi Unit',
+                                            'Menunggu Validasi Admik',
+                                            'Menunggu Validasi', 'Submitted' => 'Menunggu Validasi Admik',
+                                            'Ditolak', 'Rejected'            => $latestVersion ? $latestVersion->getRejectionBadgeLabel($faqUnitNama) : 'Ditolak',
                                             default                          => 'Draf',
                                         };
                                         $statusIcon = match($status) {
+                                            'Menunggu Validasi Unit',
+                                            'Menunggu Validasi Admik',
                                             'Menunggu Validasi', 'Submitted' => 'bi-hourglass-split',
                                             'Ditolak', 'Rejected'            => 'bi-x-circle-fill',
                                             default                          => 'bi-pencil',
                                         };
+
+                                        // Mini Stepper Milestone per baris
+                                        $drafStepCls  = $stLower === 'draf' ? 'current' : 'done';
+                                        $unitStepCls  = '';
+                                        $admikStepCls = '';
+                                        if (!$faqIsPusat) {
+                                            if ($status === 'Menunggu Validasi Unit') {
+                                                $unitStepCls = 'current';
+                                            } elseif (in_array($status, ['Menunggu Validasi Admik', 'Menunggu Validasi'], true)) {
+                                                $unitStepCls  = 'done';
+                                                $admikStepCls = 'current';
+                                            } elseif ($status === 'Ditolak') {
+                                                if ($rejStage === 'unit') {
+                                                    $unitStepCls = 'rejected';
+                                                } else {
+                                                    $unitStepCls  = 'done';
+                                                    $admikStepCls = 'rejected';
+                                                }
+                                            }
+                                        } else {
+                                            if (in_array($status, ['Menunggu Validasi Admik', 'Menunggu Validasi'], true)) {
+                                                $admikStepCls = 'current';
+                                            } elseif ($status === 'Ditolak') {
+                                                $admikStepCls = 'rejected';
+                                            }
+                                        }
                                     @endphp
                                     <tr class="faq-row"
                                         data-id="{{ $faq->id }}"
@@ -479,19 +469,35 @@
                                             <div class="faq-version">{{ $versionLabel }}</div>
                                         </td>
 
-                                        <!-- Pertanyaan -->
+                                        <!-- Pertanyaan + Milestone Stepper + Catatan Revisi -->
                                         <td>
                                             <div class="faq-question">{{ $faq->pertanyaan }}</div>
+                                            <div class="kms-mini-stepper">
+                                                <span class="kms-mini-step {{ $drafStepCls }}">1. Pengajuan</span>
+                                                @if(!$faqIsPusat)
+                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
+                                                    <span class="kms-mini-step {{ $unitStepCls }}">2. Validasi Unit</span>
+                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
+                                                    <span class="kms-mini-step {{ $admikStepCls }}">3. Validasi Admik</span>
+                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
+                                                    <span class="kms-mini-step">4. Terbit</span>
+                                                @else
+                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
+                                                    <span class="kms-mini-step {{ $admikStepCls }}">2. Validasi Admik</span>
+                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
+                                                    <span class="kms-mini-step">3. Terbit</span>
+                                                @endif
+                                            </div>
                                             @if(in_array($stLower, ['ditolak', 'rejected'], true) && $latestVersion && $latestVersion->catatan)
                                                 <div class="mt-1">
                                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-normal">
-                                                        <i class="bi bi-exclamation-circle me-1"></i>Catatan Revisi: {{ \Illuminate\Support\Str::limit($latestVersion->catatan, 65) }}
+                                                        <i class="bi bi-exclamation-circle me-1"></i><strong>{{ $statusLabel }}:</strong> {{ \Illuminate\Support\Str::limit($latestVersion->catatan, 65) }}
                                                     </span>
                                                 </div>
                                             @endif
                                         </td>
 
-                                        <!-- Data Entry (Cukup Namanya Saja) -->
+                                        <!-- Data Entry -->
                                         <td>
                                             <div class="fs-13 fw-bold text-dark lh-sm">{{ $deName }}</div>
                                         </td>
@@ -508,7 +514,7 @@
 
                                         <!-- Status -->
                                         <td>
-                                            <span class="badge-status {{ $statusClass }}">
+                                            <span class="badge-status {{ $statusClass }}" style="{{ $status === 'Menunggu Validasi Unit' ? 'background-color:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;' : '' }}">
                                                 <i class="bi {{ $statusIcon }}"></i>
                                                 {{ $statusLabel }}
                                             </span>
@@ -522,7 +528,7 @@
                                                     <span>Lihat</span>
                                                 </button>
 
-                                                @if(in_array($stLower, ['menunggu validasi', 'submitted'], true))
+                                                @if(\App\Models\FaqVersion::isWaitingValidation($stLower))
                                                     <button type="button"
                                                             class="btn-action btn-action-edit action-icon-disabled"
                                                             style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
@@ -933,20 +939,18 @@
 
                 let catatanHtml = '';
                 if (latest.catatan && !String(latest.catatan).startsWith('[PUBLISH_SCHEDULE|')) {
+                    const rejHeader = d.rejection_label || 'Catatan Validator';
                     catatanHtml = `
                         <div class="rounded-3" style="background-color: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; font-size: 0.85rem; padding: 0.85rem 1rem; margin-bottom: 1.1rem;">
-                            <div class="fw-bold" style="margin-bottom: 0.25rem;"><i class="bi bi-exclamation-circle-fill me-1"></i>Catatan Validator:</div>
-                            <div>${latest.catatan}</div>
+                            <div class="fw-bold" style="margin-bottom: 0.25rem;"><i class="bi bi-exclamation-circle-fill me-1"></i>${window.kmsEscapeHtml(rejHeader)}:</div>
+                            <div>${window.kmsEscapeHtml(latest.catatan)}</div>
                         </div>
                     `;
                 }
 
                 const rawSt = (latest.status || 'Draf').toLowerCase();
-                let statusBadge = `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.75rem;padding:0.4rem 0.85rem;">Draf</span>`;
-                if (rawSt === 'terbit' || rawSt === 'active') statusBadge = '<span class="badge rounded-pill" style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);color:#FFFFFF;box-shadow:0 2px 6px rgba(5,150,105,0.25);font-size:0.75rem;padding:0.4rem 0.9rem;font-weight:700;"><i class="bi bi-lightning-fill me-1"></i>Terbit</span>';
-                else if (rawSt === 'diterima' || rawSt === 'approved') statusBadge = '<span class="badge rounded-pill" style="background-color:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Diterima</span>';
-                else if (rawSt === 'menunggu validasi' || rawSt === 'submitted') statusBadge = '<span class="badge rounded-pill" style="background-color:#FFFBEB;color:#D97706;border:1px solid #FDE68A;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-hourglass-split me-1"></i>Menunggu Validasi</span>';
-                else if (rawSt === 'ditolak' || rawSt === 'rejected') statusBadge = '<span class="badge rounded-pill" style="background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;font-size:0.75rem;padding:0.4rem 0.85rem;"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
+                const statusBadge = window.kmsFormatStatusBadgeHtml(latest.status, d.rejection_label);
+                const milestoneHtml = window.kmsBuildMilestoneHtml(d);
 
                 const latestVerObj = (d.versions || []).find(v => v.id === latest.id) || (d.versions || [])[0] || {};
                 const dp = latestVerObj.daftar_pustaka || null;
@@ -1009,7 +1013,7 @@
                                                 <div class="kms-ver-body">
                                                     <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                                         <div class="kms-ver-sublabel mb-0">Jawaban</div>
-                                                        ${v.status ? `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.7rem;padding:0.25rem 0.65rem;">Status: ${v.status}</span>` : ''}
+                                                        ${(v.rejection_label || v.status) ? `<span class="badge rounded-pill" style="background-color:#F1F5F9;color:#475569;font-size:0.7rem;padding:0.25rem 0.65rem;">Status: ${v.rejection_label || v.status}</span>` : ''}
                                                     </div>
                                                     <div class="kms-ver-answer">${v.jawaban || '<em class="text-muted">Belum ada jawaban</em>'}</div>
                                                 </div>
@@ -1079,6 +1083,7 @@
                                 </div>
                             </div>
 
+                            ${milestoneHtml}
                             ${catatanHtml}
 
                             <div style="margin-bottom: 0.95rem;">

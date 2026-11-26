@@ -19,7 +19,10 @@ class PengaturanAkunController extends Controller
 
     protected function settingsRoute(): string
     {
-        return 'validator.pengaturanAkun';
+        $user = auth()->user();
+        return ($user && $user->isValidatorUnit())
+            ? 'validator.unit.pengaturanAkun'
+            : 'validator.pengaturanAkun';
     }
 }
 

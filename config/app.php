@@ -54,6 +54,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'whatsapp_hotline' => env('WHATSAPP_HOTLINE', '6281234567890'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
