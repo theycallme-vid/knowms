@@ -7,17 +7,17 @@
     <meta name="description" content="Pusat pengetahuan mahasiswa: temukan jawaban seputar KRS, registrasi, cuti kuliah, KHS, dan beasiswa.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
+    <!-- Google Fonts: Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <!-- Mahasiswa FAQ CSS (Full Width) -->
-    <link rel="stylesheet" href="{{ asset('css/mahasiswa/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/mahasiswa/style.css') }}?v={{ file_exists(public_path('css/mahasiswa/style.css')) ? filemtime(public_path('css/mahasiswa/style.css')) : time() }}">
 </head>
 <body>
 
@@ -372,63 +372,79 @@
 @endphp
 
 <!-- ========================================================================= -->
-<!-- NAVBAR (FULL WIDTH)                                                       -->
+<!-- NAVBAR (FULL WIDTH + DOCKED SEARCH SLOT)                                  -->
 <!-- ========================================================================= -->
-<nav class="mhs-navbar">
-    <div class="mhs-container d-flex align-items-center justify-content-between py-2">
-        <!-- Left: Logo KMS -->
-        <a href="{{ url('/') }}" class="d-flex align-items-center text-decoration-none">
-            <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="navbar-logo-img">
-        </a>
-        <!-- Right: Notifications & Profile -->
+<nav class="mhs-navbar" id="faqTopNavbar">
+    <div class="mhs-container d-flex align-items-center justify-content-between gap-3 py-2">
+        <!-- Left: Logo KMS + Sticky Search Bar Slot -->
+        <div class="navbar-brand-search-group">
+            <a href="{{ url('/') }}" class="d-flex align-items-center text-decoration-none flex-shrink-0">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="navbar-logo-img">
+            </a>
+            @include('partials.faq-google-search', ['part' => 'navbar'])
+        </div>
+
+        <!-- Right: Active Faculty Context -->
+        <div class="d-none d-md-flex align-items-center gap-2 flex-shrink-0">
+            <span class="navbar-context-pill">
+                <i class="bi bi-building"></i>
+                <span>{{ $activeNamaFakultas }}</span>
+                @if(!empty($activeTahunAngkatan))
+                    <span class="text-muted fw-normal">&middot; {{ $activeTahunAngkatan }}</span>
+                @endif
+            </span>
+        </div>
     </div>
 </nav>
 
 <!-- ========================================================================= -->
-<!-- HERO SECTION & BACKGROUND BANNER (FULL WIDTH)                            -->
+<!-- HERO SECTION: GOOGLE-LIKE FULL-SCREEN SEARCH                              -->
 <!-- ========================================================================= -->
-<header class="hero-section">
+<header class="hero-section hero-fullscreen">
     <div class="mhs-container hero-inner">
-        <div class="row align-items-center g-4">
-            <!-- Left Column: Title, Subtitle & Search Bar -->
-            <div class="col-lg-8 col-xl-8">
-                <div class="hero-eyebrow mb-2">
-                    <span style="font-weight: 900; margin-right: 2px;">&mdash;</span> PUSAT PENGETAHUAN MAHASISWA
-                </div>
-                <h1 class="display-serif hero-title mb-3">
-                    Ada pertanyaan?<br>Temukan jawabannya di sini.
-                </h1>
-                <p class="text-muted fs-13 mb-4" style="line-height: 1.6; max-width: 600px;">
-                    Dari rencana studi hingga tugas akhir, akses informasi akademik yang kamu butuhkan untuk melangkah lebih pasti.
-                </p>
-
-                @include('partials.faq-google-search', ['part' => 'bar'])
-
-                <!-- Quick Keywords -->
-                <div class="fs-11 text-muted mt-2">
-                    <span>Sering dicari:</span>
-                    <a href="#" class="suggest-chip ms-2" onclick="quickSearch('KRS'); return false;">KRS</a>
-                    <a href="#" class="suggest-chip" onclick="quickSearch('cuti'); return false;">Cuti kuliah</a>
-                    <a href="#" class="suggest-chip" onclick="quickSearch('tugas akhir'); return false;">Tugas akhir</a>
-                </div>
+        <div class="hero-center-stack">
+            <div class="hero-context-badge mb-3">
+                <i class="bi bi-building"></i>
+                <span>{{ $activeNamaFakultas }}</span>
+                @if(!empty($activeTahunAngkatan))
+                    <span class="hero-badge-muted">&middot; Angkatan {{ $activeTahunAngkatan }}{{ !empty($activeSemester) ? ' (Semester ' . $activeSemester . ')' : '' }}</span>
+                @endif
             </div>
 
-            <!-- Right Column: Floating Faculty Card -->
-            <div class="col-lg-4 col-xl-4 d-flex justify-content-lg-end">
-                <div class="faculty-card">
-                    <div class="hero-eyebrow mb-2" style="font-size: 0.65rem;">
-                        <i class="bi bi-building me-1"></i> Fakultas
-                    </div>
-                    <div class="display-serif fs-4 fw-bold text-dark mb-0">{{ $activeNamaFakultas }}</div>
-                    @if(!empty($activeTahunAngkatan))
-                        <div class="text-muted fs-12 mt-1">
-                            <i class="bi bi-mortarboard me-1"></i>Angkatan {{ $activeTahunAngkatan }}{{ !empty($activeSemester) ? ' · Semester ' . $activeSemester : '' }}
-                        </div>
-                    @endif
-                </div>
+            <div class="hero-eyebrow mb-2">
+                PUSAT PENGETAHUAN MAHASISWA
+            </div>
+
+            <h1 class="display-serif hero-title mb-3">
+                Ada pertanyaan?<br>Temukan jawabannya di sini.
+            </h1>
+
+            <p class="hero-subtitle mb-4">
+                Dari rencana studi hingga tugas akhir, cari informasi akademik yang kamu butuhkan secara instan.
+            </p>
+
+            <div id="heroSearchAnchor" class="hero-search-anchor">
+                @include('partials.faq-google-search', ['part' => 'bar'])
+            </div>
+
+            <!-- Quick Keywords -->
+            <div class="hero-quick-chips">
+                <span class="fs-12 text-muted me-1">Sering dicari:</span>
+                <a href="#" class="suggest-pill" onclick="quickSearch('KRS'); return false;">KRS</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('registrasi ulang'); return false;">Registrasi ulang</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('cuti'); return false;">Cuti kuliah</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('beasiswa'); return false;">Beasiswa</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('tugas akhir'); return false;">Tugas akhir</a>
             </div>
         </div>
     </div>
+
+    <button type="button"
+            class="hero-scroll-cue"
+            onclick="document.getElementById('faqExploreCategoriesSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+        <span>Jelajahi kategori &amp; FAQ populer</span>
+        <i class="bi bi-chevron-down"></i>
+    </button>
 </header>
 
 <!-- ========================================================================= -->

@@ -10,8 +10,8 @@
     --text-body: #334155;
     --text-muted: #64748B;
     --text-subtle: #94A3B8;
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-serif: 'Lora', Georgia, serif;
+    --font-sans: 'Montserrat', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Montserrat', system-ui, -apple-system, sans-serif;
 }
 
 * {

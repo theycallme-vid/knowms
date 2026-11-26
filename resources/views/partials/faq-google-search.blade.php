@@ -3,27 +3,493 @@
     $isGuestUserFaq = session('is_guest') === true || session('nama_fakultas') === 'Guest' || !session('kode_fakultas');
 @endphp
 
-@if($part === 'bar')
+@if($part === 'navbar')
+<div id="navbarSearchSlot" class="navbar-search-slot" aria-label="Pencarian cepat di navigasi"></div>
+@elseif($part === 'bar')
 <style>
     .hero-section {
         z-index: 20;
     }
 
+    /* Full-screen Google-like Hero Layout */
+    .hero-section.hero-fullscreen {
+        min-height: calc(100vh - 74px);
+        min-height: calc(100svh - 74px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2.5rem 0 5.25rem;
+        background:
+            radial-gradient(circle at 50% 42%,
+                rgba(248, 249, 251, 0.62) 0%,
+                rgba(248, 249, 251, 0.42) 55%,
+                rgba(248, 249, 251, 0.24) 100%),
+            url('/images/mahasiswa/banner-faq.jpg') no-repeat center center / cover;
+    }
+
+    .hero-center-stack {
+        width: 100%;
+        max-width: 880px;
+        margin: 0 auto;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* ===================================================================== */
+    /* iOS 26 LIQUID GLASS — MINIMAL, RAZOR-THIN 1PX SPECULAR RIM            */
+    /* ===================================================================== */
+    .mhs-navbar,
+    .guest-navbar {
+        background: rgba(255, 255, 255, 0.66);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    /* Clear Translucent Liquid Glass (Secondary Pills & Controls) */
+    .hero-context-badge,
+    .hero-quick-chips,
+    .hero-scroll-cue,
+    .navbar-context-pill,
+    .navbar-btn-icon,
+    .cat-pill,
+    .faq-side-nav-btn,
+    .faq-page-btn {
+        position: relative;
+        background: rgba(255, 255, 255, 0.36);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 0;
+        box-shadow:
+            inset 0 0.75px 0 rgba(255, 255, 255, 0.65),
+            0 8px 24px -8px rgba(15, 23, 42, 0.10),
+            0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    /* Masked 1px Diagonal Specular Rim (Authentic iOS 26 Glass Edge) */
+    .hero-context-badge::after,
+    .hero-quick-chips::after,
+    .hero-scroll-cue::after,
+    .navbar-context-pill::after,
+    .navbar-btn-icon::after,
+    .cat-pill::after,
+    .faq-side-nav-btn::after,
+    .faq-page-btn::after,
+    .btn-maroon::after,
+    .hero-search::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.90) 0%,
+            rgba(255, 255, 255, 0.22) 36%,
+            rgba(255, 255, 255, 0.06) 64%,
+            rgba(255, 255, 255, 0.62) 100%
+        );
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    /* Maroon / Red Tinted Liquid Glass (Clean Flat Translucent + 1px Specular Rim) */
+    .btn-maroon,
+    .cat-pill.active,
+    .faq-page-btn.active {
+        position: relative;
+        background: rgba(133, 23, 44, 0.82) !important;
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 0 !important;
+        color: #FFFFFF !important;
+        box-shadow:
+            inset 0 0.75px 0 rgba(255, 255, 255, 0.34),
+            0 10px 24px -8px rgba(133, 23, 44, 0.38),
+            0 2px 6px -1px rgba(133, 23, 44, 0.18) !important;
+    }
+
+    .btn-maroon::after,
+    .cat-pill.active::after,
+    .faq-page-btn.active::after {
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.52) 0%,
+            rgba(255, 255, 255, 0.12) 38%,
+            rgba(255, 255, 255, 0.04) 64%,
+            rgba(255, 214, 222, 0.36) 100%
+        );
+    }
+
+    .btn-maroon:hover,
+    .cat-pill.active:hover {
+        background: rgba(148, 26, 50, 0.88) !important;
+        transform: translateY(-1px);
+        box-shadow:
+            inset 0 0.75px 0 rgba(255, 255, 255, 0.42),
+            0 12px 28px -8px rgba(133, 23, 44, 0.44),
+            0 2px 8px -1px rgba(133, 23, 44, 0.22) !important;
+    }
+
+    .btn-maroon:active,
+    .cat-pill:active,
+    .suggest-pill:active {
+        transform: scale(0.985);
+    }
+
+    /* Soft Rose-Tinted Liquid Glass (Badges, Active Nav, Expanded Icons) */
+    .tag-soft,
+    .btn-history-version,
+    .guest-nav-link.active,
+    .mhs-nav-link.active,
+    .faq-toggle:not(.collapsed) .faq-icon {
+        background: rgba(133, 23, 44, 0.09);
+        backdrop-filter: blur(14px) saturate(160%);
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        border: 1px solid rgba(133, 23, 44, 0.14);
+        box-shadow: inset 0 0.75px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    /* Subtle Clean Glass for Category Pills on Light Page Surface */
+    .cat-pill:not(.active),
+    .faq-side-nav-btn,
+    .faq-page-btn:not(.active),
+    .navbar-context-pill,
+    .navbar-btn-icon {
+        background: rgba(255, 255, 255, 0.68);
+        border: 1px solid rgba(15, 23, 42, 0.07);
+    }
+
+    .cat-pill:not(.active):hover,
+    .faq-side-nav-btn:hover:not(:disabled),
+    .faq-page-btn:hover:not(:disabled):not(.active) {
+        background: rgba(255, 255, 255, 0.92);
+        border-color: rgba(133, 23, 44, 0.22);
+        color: var(--brand-maroon);
+        box-shadow: 0 8px 20px -8px rgba(15, 23, 42, 0.12);
+    }
+
+    .source-box {
+        background: rgba(234, 242, 249, 0.72);
+        backdrop-filter: blur(14px) saturate(160%);
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        border: 1px solid rgba(59, 130, 246, 0.14);
+    }
+
+    .disclaimer {
+        background: rgba(254, 249, 238, 0.76);
+        backdrop-filter: blur(14px) saturate(160%);
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        border: 1px solid rgba(217, 119, 6, 0.16);
+    }
+
+    .cta-card {
+        background: linear-gradient(135deg, rgba(234, 242, 249, 0.68) 0%, rgba(250, 240, 242, 0.72) 100%);
+        backdrop-filter: blur(18px) saturate(170%);
+        -webkit-backdrop-filter: blur(18px) saturate(170%);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.08);
+    }
+
+    .hero-context-badge {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        padding: 0.46rem 1.1rem;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #0F172A;
+    }
+
+    .hero-context-badge i {
+        color: var(--brand-maroon);
+    }
+
+    .hero-context-badge .hero-badge-muted {
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .hero-fullscreen .hero-title {
+        font-size: clamp(2.2rem, 4.2vw, 3.5rem);
+        line-height: 1.15;
+        max-width: 780px;
+        text-shadow: 0 1px 12px rgba(255, 255, 255, 0.7);
+    }
+
+    .hero-fullscreen .hero-subtitle {
+        font-size: 0.95rem;
+        line-height: 1.65;
+        max-width: 580px;
+        color: #1E293B;
+        font-weight: 500;
+        text-shadow: 0 1px 10px rgba(255, 255, 255, 0.75);
+    }
+
+    .hero-search-anchor {
+        width: 100%;
+        max-width: 860px;
+        min-height: 74px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
     .hero-search-wrapper {
         position: relative;
         width: 100%;
-        max-width: 820px;
+        max-width: 860px;
         z-index: 30;
+        text-align: left;
+    }
+
+    /* HIGHLIGHTED SPOTLIGHT GLASS SEARCH BAR (Clean Luminous White vs Clear Secondary Pills) */
+    .hero-search {
+        position: relative;
+    }
+
+    .hero-fullscreen .hero-search {
+        max-width: 860px;
+        min-height: 74px;
+        padding: 0.6rem 0.7rem 0.6rem 1.8rem;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.96);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 1),
+            0 18px 42px -12px rgba(15, 23, 42, 0.16),
+            0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+
+    .hero-fullscreen .hero-search:focus-within,
+    .hero-fullscreen .hero-search-wrapper.is-dropdown-open .hero-search {
+        background: rgba(255, 255, 255, 0.96);
+        border-color: rgba(133, 23, 44, 0.42);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 1),
+            0 0 0 4px rgba(133, 23, 44, 0.08),
+            0 22px 48px -12px rgba(15, 23, 42, 0.18);
+    }
+
+    .hero-fullscreen .hero-search i.bi-search {
+        font-size: 1.32rem;
+        color: var(--brand-maroon);
+    }
+
+    .hero-fullscreen .hero-search input {
+        font-size: 1.05rem;
+        font-weight: 500;
+        color: #0F172A;
+    }
+
+    .hero-fullscreen .hero-search input::placeholder {
+        font-size: 1rem;
+        color: #64748B;
+        font-weight: 400;
+    }
+
+    .hero-fullscreen .hero-search .btn-maroon {
+        padding: 0.88rem 2.1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Quick Search Chips under Hero Search (Clear iOS 26 Glass Bar) */
+    .hero-quick-chips {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-top: 1.2rem;
+        padding: 0.46rem 0.9rem;
+        border-radius: 9999px;
+    }
+
+    .hero-quick-chips > span {
+        color: #0F172A !important;
+        font-weight: 600;
+    }
+
+    .suggest-pill {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.34rem 0.88rem;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.52);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        color: #0F172A;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.16s ease;
+    }
+
+    .suggest-pill:hover {
+        background: rgba(133, 23, 44, 0.84);
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #FFFFFF;
+        box-shadow: 0 6px 16px -6px rgba(133, 23, 44, 0.38);
+        transform: translateY(-1px);
+    }
+
+    /* Scroll Down Indicator at bottom of Full-Screen Hero */
+    .hero-scroll-cue {
+        position: absolute;
+        bottom: 1.35rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        color: #0F172A;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.5rem 1.18rem;
+        border-radius: 9999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .hero-scroll-cue:hover {
+        color: var(--brand-maroon);
+        background: rgba(255, 255, 255, 0.68);
+        transform: translateX(-50%) translateY(-2px);
+    }
+
+    .hero-scroll-cue i {
+        font-size: 0.85rem;
+        animation: heroCueBounce 2.2s infinite ease-in-out;
+    }
+
+    @keyframes heroCueBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(3px); }
+    }
+
+    /* Docked Search Bar beside KMS Logo in Sticky Navbar (Clean Highlighted White Glass) */
+    .navbar-brand-search-group {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .navbar-search-slot {
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .navbar-search-slot.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+
+    .navbar-search-slot .hero-search-wrapper {
+        max-width: 100%;
+        margin-bottom: 0 !important;
+    }
+
+    .navbar-search-slot .hero-search {
+        min-height: 46px;
+        max-width: 100%;
+        padding: 0.28rem 0.35rem 0.28rem 1.05rem;
+        gap: 0.6rem;
+        background: rgba(255, 255, 255, 0.90);
+        backdrop-filter: blur(22px) saturate(180%);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        border: 1px solid rgba(15, 23, 42, 0.09);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 1),
+            0 4px 14px -4px rgba(15, 23, 42, 0.08);
+    }
+
+    .navbar-search-slot .hero-search:focus-within,
+    .navbar-search-slot .hero-search-wrapper.is-dropdown-open .hero-search {
+        background: #FFFFFF;
+        border-color: rgba(133, 23, 44, 0.45);
+        box-shadow:
+            0 0 0 3px rgba(133, 23, 44, 0.08),
+            0 8px 20px -6px rgba(15, 23, 42, 0.12);
+    }
+
+    .navbar-search-slot .hero-search i.bi-search {
+        font-size: 1rem;
+        color: var(--brand-maroon);
+    }
+
+    .navbar-search-slot .hero-search input {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #0F172A;
+    }
+
+    .navbar-search-slot .hero-search input::placeholder {
+        font-size: 0.85rem;
+    }
+
+    .navbar-search-slot .hero-search .btn-maroon {
+        padding: 0.45rem 1.15rem;
+        font-size: 0.78rem;
+        gap: 0.4rem;
+    }
+
+    .navbar-search-slot .hero-search-clear {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+
+    .navbar-search-slot .faq-search-dropdown {
+        top: calc(100% + 8px);
+        z-index: 1050;
+    }
+
+    .navbar-context-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.4rem 0.92rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #0F172A;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .navbar-context-pill i {
+        color: var(--brand-maroon);
     }
 
     .hero-search-wrapper.is-dropdown-open .hero-search {
-        border-color: var(--brand-maroon);
-        box-shadow: 0 14px 36px rgba(133, 23, 44, 0.14);
+        border-color: rgba(133, 23, 44, 0.45);
     }
 
     .hero-search-clear {
         border: 0;
-        background: #F1F5F9;
+        background: rgba(15, 23, 42, 0.06);
         color: #64748B;
         width: 28px;
         height: 28px;
@@ -38,19 +504,23 @@
     }
 
     .hero-search-clear:hover {
-        background: #E2E8F0;
-        color: #171A1F;
+        background: rgba(15, 23, 42, 0.12);
+        color: #0F172A;
     }
 
     .faq-search-dropdown {
         position: absolute;
-        top: calc(100% + 4px);
+        top: calc(100% + 8px);
         left: 0;
         right: 0;
-        background: #FFFFFF;
-        border: 1px solid var(--card-border);
-        border-radius: 20px;
-        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.15);
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: 22px;
+        box-shadow:
+            0 20px 50px -12px rgba(15, 23, 42, 0.18),
+            0 0 0 1px rgba(15, 23, 42, 0.05);
         overflow: hidden;
         z-index: 1000;
     }
@@ -196,25 +666,69 @@
         background: #94A3B8;
     }
 
+    @media (max-width: 991.98px) {
+        .is-search-docked .guest-nav-links-wrap,
+        .is-search-docked .navbar-context-pill {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .hero-section.hero-fullscreen {
+            min-height: calc(100vh - 64px);
+            min-height: calc(100svh - 64px);
+            padding: 2rem 0 4.75rem;
+        }
+        .navbar-brand-search-group {
+            gap: 0.65rem;
+        }
+        .navbar-search-slot .faq-search-dropdown {
+            position: fixed;
+            top: 66px;
+            left: 0.75rem;
+            right: 0.75rem;
+            width: auto;
+        }
+    }
+
     @media (max-width: 576px) {
         .faq-search-results-section {
             padding: 1.15rem 1rem;
             border-radius: 16px;
         }
-        .hero-search {
+        .hero-fullscreen .hero-search {
+            min-height: 60px;
             gap: 0.5rem;
-            padding-left: 1rem;
+            padding: 0.45rem 0.5rem 0.45rem 1.15rem;
         }
-        .hero-search .btn-maroon span {
+        .hero-quick-chips {
+            border-radius: 26px;
+        }
+        .hero-fullscreen .hero-search input {
+            font-size: 0.95rem;
+        }
+        .hero-search .btn-maroon span,
+        .navbar-search-slot .hero-search .btn-maroon span {
             display: none;
         }
-        .hero-search .btn-maroon {
-            padding: 0.65rem 0.9rem;
+        .hero-fullscreen .hero-search .btn-maroon {
+            padding: 0.7rem 0.95rem;
+        }
+        .navbar-search-slot .hero-search {
+            min-height: 40px;
+            padding: 0.2rem 0.28rem 0.2rem 0.8rem;
+            gap: 0.4rem;
+        }
+        .navbar-search-slot .hero-search .btn-maroon {
+            padding: 0.42rem 0.68rem;
+        }
+        .is-search-docked .navbar-logo-img {
+            height: 40px;
         }
     }
 </style>
 
-<div class="hero-search-wrapper mb-2" id="faqSearchWrapper">
+<div class="hero-search-wrapper" id="faqSearchWrapper">
     <!-- Search Input Form -->
     <form class="hero-search mb-0" id="faqSearchForm" onsubmit="event.preventDefault(); submitFaqSearch();" role="search">
         <i class="bi bi-search"></i>
@@ -661,10 +1175,9 @@
         syncSearchResultsScrollHeight();
 
         if (shouldScroll) {
-            const targetAnchor = exploreCategoriesEl || resultsSectionEl;
             const rect = resultsSectionEl.getBoundingClientRect();
-            if (rect.top + 260 > window.innerHeight || rect.top < 75) {
-                targetAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (rect.top + 220 > window.innerHeight || rect.top < 75) {
+                resultsSectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
     }
@@ -786,7 +1299,64 @@
         }
     });
 
+    // Dock search bar beside KMS logo in sticky navbar when hero search scrolls out of view
+    const heroSearchAnchor = document.getElementById('heroSearchAnchor');
+    const navbarSearchSlot = document.getElementById('navbarSearchSlot');
+    const topNavbar = document.getElementById('faqTopNavbar') || document.querySelector('.mhs-navbar, .guest-navbar');
+    let isSearchDocked = false;
+
+    function syncSearchDockState() {
+        if (!heroSearchAnchor || !navbarSearchSlot || !searchWrapper) return;
+
+        if (!isSearchDocked && searchWrapper.offsetHeight > 0) {
+            heroSearchAnchor.style.minHeight = searchWrapper.offsetHeight + 'px';
+        }
+
+        const navBottom = topNavbar ? topNavbar.getBoundingClientRect().bottom : 72;
+        const anchorRect = heroSearchAnchor.getBoundingClientRect();
+
+        if (!isSearchDocked && anchorRect.bottom <= navBottom + 12) {
+            const hadFocus = document.activeElement === searchInput;
+            const selStart = hadFocus ? searchInput.selectionStart : null;
+            const selEnd = hadFocus ? searchInput.selectionEnd : null;
+
+            closeDropdown();
+            navbarSearchSlot.appendChild(searchWrapper);
+            navbarSearchSlot.classList.add('is-visible');
+            topNavbar?.classList.add('is-search-docked');
+            isSearchDocked = true;
+
+            if (hadFocus) {
+                searchInput.focus({ preventScroll: true });
+                if (selStart !== null && selEnd !== null) {
+                    try { searchInput.setSelectionRange(selStart, selEnd); } catch (_) {}
+                }
+            }
+        } else if (isSearchDocked && anchorRect.bottom > navBottom + 28) {
+            const hadFocus = document.activeElement === searchInput;
+            const selStart = hadFocus ? searchInput.selectionStart : null;
+            const selEnd = hadFocus ? searchInput.selectionEnd : null;
+
+            closeDropdown();
+            navbarSearchSlot.classList.remove('is-visible');
+            topNavbar?.classList.remove('is-search-docked');
+            heroSearchAnchor.appendChild(searchWrapper);
+            isSearchDocked = false;
+
+            if (hadFocus) {
+                searchInput.focus({ preventScroll: true });
+                if (selStart !== null && selEnd !== null) {
+                    try { searchInput.setSelectionRange(selStart, selEnd); } catch (_) {}
+                }
+            }
+        }
+    }
+
+    window.addEventListener('scroll', syncSearchDockState, { passive: true });
+    window.addEventListener('resize', syncSearchDockState, { passive: true });
+
     syncClearButton();
+    syncSearchDockState();
 })();
 </script>
 @endif

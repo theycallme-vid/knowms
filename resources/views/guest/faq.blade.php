@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan KMS untuk Pengunjung / Guest: temukan informasi akademik, pendaftaran, beasiswa, dan panduan umum kampus tanpa perlu scan KTM atau NRP.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
+    <!-- Google Fonts: Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -158,24 +158,25 @@
 @endphp
 
 <!-- ========================================================================= -->
-<!-- NAVBAR (FULL WIDTH)                                                       -->
+<!-- NAVBAR (FULL WIDTH + DOCKED SEARCH SLOT)                                  -->
 <!-- ========================================================================= -->
-<nav class="guest-navbar">
-    <div class="guest-container d-flex align-items-center justify-content-between py-2">
-        <!-- Left: Logo KMS -->
-        <a href="{{ route('guest.faq') }}" class="d-flex align-items-center text-decoration-none">
-            <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="navbar-logo-img">
-        </a>
-
-        <!-- Center: Nav Links -->
-        <div class="d-none d-md-flex align-items-center gap-1">
-            <a href="{{ url('/') }}" class="guest-nav-link">Beranda</a>
-            <a href="{{ route('guest.faq') }}" class="guest-nav-link active">FAQ</a>
-            <a href="#" class="guest-nav-link">Panduan akademik</a>
+<nav class="guest-navbar" id="faqTopNavbar">
+    <div class="guest-container d-flex align-items-center justify-content-between gap-3 py-2">
+        <!-- Left: Logo KMS + Sticky Search Bar Slot -->
+        <div class="navbar-brand-search-group">
+            <a href="{{ route('guest.faq') }}" class="d-flex align-items-center text-decoration-none flex-shrink-0">
+                <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="navbar-logo-img">
+            </a>
+            @include('partials.faq-google-search', ['part' => 'navbar'])
         </div>
 
-        <!-- Right: Notifications & Profile Guest -->
-        <div class="d-flex align-items-center gap-3">
+        <!-- Right: Nav Links & Notifications -->
+        <div class="d-flex align-items-center gap-3 flex-shrink-0">
+            <div class="guest-nav-links-wrap d-none d-md-flex align-items-center gap-1">
+                <a href="{{ url('/') }}" class="guest-nav-link">Beranda</a>
+                <a href="{{ route('guest.faq') }}" class="guest-nav-link active">FAQ</a>
+                <a href="#" class="guest-nav-link">Panduan akademik</a>
+            </div>
             <button class="navbar-btn-icon" aria-label="Notifikasi" title="Notifikasi">
                 <i class="bi bi-bell"></i>
             </button>
@@ -184,59 +185,51 @@
 </nav>
 
 <!-- ========================================================================= -->
-<!-- HERO SECTION & BACKGROUND BANNER (FULL WIDTH)                            -->
+<!-- HERO SECTION: GOOGLE-LIKE FULL-SCREEN SEARCH                              -->
 <!-- ========================================================================= -->
-<header class="hero-section">
+<header class="hero-section hero-fullscreen">
     <div class="guest-container hero-inner">
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb" class="fs-11 mb-4">
-            <a href="{{ url('/') }}" class="text-decoration-none text-muted">Beranda</a>
-            <span class="mx-1.5 text-muted">&gt;</span>
-            <strong style="color: var(--brand-maroon);">FAQ Guest</strong>
-        </nav>
-
-        <div class="row align-items-center g-4">
-            <!-- Left Column: Title, Subtitle & Search Bar -->
-            <div class="col-lg-8 col-xl-8">
-                <div class="hero-eyebrow mb-2">
-                    <span style="font-weight: 900; margin-right: 2px;">&mdash;</span> PUSAT PENGETAHUAN GUEST
-                </div>
-                <h1 class="display-serif hero-title mb-3">
-                    Ada pertanyaan?<br>Temukan jawabannya di sini.
-                </h1>
-                <p class="text-muted fs-13 mb-4" style="line-height: 1.6; max-width: 600px;">
-                    Dari rencana studi hingga tugas akhir, akses informasi akademik yang kamu butuhkan untuk melangkah lebih maju.
-                </p>
-
-                @include('partials.faq-google-search', ['part' => 'bar'])
-
-                <!-- Quick Keywords -->
-                <div class="fs-11 text-muted mt-2">
-                    <span>Sering dicari:</span>
-                    <a href="#" class="suggest-chip ms-2" onclick="quickSearch('KRS'); return false;">KRS</a>
-                    <a href="#" class="suggest-chip" onclick="quickSearch('cuti'); return false;">Cuti kuliah</a>
-                    <a href="#" class="suggest-chip" onclick="quickSearch('tugas akhir'); return false;">Tugas akhir</a>
-                </div>
+        <div class="hero-center-stack">
+            <div class="hero-context-badge mb-3">
+                <i class="bi bi-globe2"></i>
+                <span>Guest</span>
+                <span class="hero-badge-muted">&middot; Akses Publik &amp; Informasi Umum Kampus</span>
             </div>
 
-            <!-- Right Column: Floating Guest Card (Menggantikan Fakultas Teknik) -->
-            <div class="col-lg-4 col-xl-4 d-flex justify-content-lg-end">
-                <div class="guest-floating-card">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="guest-card-badge">
-                            <i class="bi bi-bookmark-fill me-1"></i> DISESUAIKAN UNTUKMU
-                        </span>
-                    </div>
-                    <div class="display-serif fs-3 fw-bold text-dark mb-1">
-                        Guest
-                    </div>
-                    <div class="text-muted fs-12 mb-3">
-                        Akses Publik &amp; Informasi Umum Kampus
-                    </div>
-                </div>
+            <div class="hero-eyebrow mb-2">
+                PUSAT PENGETAHUAN GUEST
+            </div>
+
+            <h1 class="display-serif hero-title mb-3">
+                Ada pertanyaan?<br>Temukan jawabannya di sini.
+            </h1>
+
+            <p class="hero-subtitle mb-4">
+                Dari rencana studi hingga tugas akhir, cari informasi akademik yang kamu butuhkan secara instan.
+            </p>
+
+            <div id="heroSearchAnchor" class="hero-search-anchor">
+                @include('partials.faq-google-search', ['part' => 'bar'])
+            </div>
+
+            <!-- Quick Keywords -->
+            <div class="hero-quick-chips">
+                <span class="fs-12 text-muted me-1">Sering dicari:</span>
+                <a href="#" class="suggest-pill" onclick="quickSearch('KRS'); return false;">KRS</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('registrasi ulang'); return false;">Registrasi ulang</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('cuti'); return false;">Cuti kuliah</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('beasiswa'); return false;">Beasiswa</a>
+                <a href="#" class="suggest-pill" onclick="quickSearch('tugas akhir'); return false;">Tugas akhir</a>
             </div>
         </div>
     </div>
+
+    <button type="button"
+            class="hero-scroll-cue"
+            onclick="document.getElementById('faqExploreCategoriesSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+        <span>Jelajahi kategori &amp; FAQ populer</span>
+        <i class="bi bi-chevron-down"></i>
+    </button>
 </header>
 
 <!-- ========================================================================= -->
