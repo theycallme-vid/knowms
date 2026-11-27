@@ -339,23 +339,40 @@
 
                                     <!-- Aksi: Lihat & Ubah -->
                                     <td class="text-end">
-                                        <div class="d-inline-flex align-items-center gap-2">
-                                            <button type="button"
-                                                    class="btn-action"
-                                                    style="background-color: #FFFFFF; color: #334155; border: 1px solid #CBD5E1;"
-                                                    title="Lihat Detail Pengguna"
-                                                    onclick="openViewUserModal(this)">
-                                                <i class="bi bi-eye"></i>
-                                                <span>Lihat</span>
-                                            </button>
-                                            <button type="button"
-                                                    class="btn-action btn-action-edit"
-                                                    title="Ubah Pengguna & Peran"
-                                                    onclick="openEditModal(this)">
-                                                <i class="bi bi-pencil"></i>
-                                                <span>Ubah</span>
-                                            </button>
-                                        </div>
+                                        @if((int) $u->tRoles_id === 1)
+                                            <span class="badge bg-light text-muted border fs-11 px-2.5 py-1.5" title="Akun Super Admin hanya dapat dikelola oleh Super Admin">
+                                                <i class="bi bi-lock-fill me-1"></i>Terkunci
+                                            </span>
+                                        @elseif($isCurrentAdmin)
+                                            <div class="d-inline-flex align-items-center gap-2">
+                                                <button type="button"
+                                                        class="btn-action"
+                                                        style="background-color: #FFFFFF; color: #334155; border: 1px solid #CBD5E1;"
+                                                        title="Lihat Detail Pengguna"
+                                                        onclick="openViewUserModal(this)">
+                                                    <i class="bi bi-eye"></i>
+                                                    <span>Lihat</span>
+                                                </button>
+                                            </div>
+                                        @else
+                                            <div class="d-inline-flex align-items-center gap-2">
+                                                <button type="button"
+                                                        class="btn-action"
+                                                        style="background-color: #FFFFFF; color: #334155; border: 1px solid #CBD5E1;"
+                                                        title="Lihat Detail Pengguna"
+                                                        onclick="openViewUserModal(this)">
+                                                    <i class="bi bi-eye"></i>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <button type="button"
+                                                        class="btn-action btn-action-edit"
+                                                        title="Ubah Pengguna & Peran"
+                                                        onclick="openEditModal(this)">
+                                                    <i class="bi bi-pencil"></i>
+                                                    <span>Ubah</span>
+                                                </button>
+                                            </div>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -481,8 +498,9 @@
                                 </select>
                             </div>
                             <div class="col-12 col-md-6">
-                                <label for="create_direktorat" class="form-label-custom">Unit / Direktorat <span class="text-danger">*</span></label>
+                                <label for="create_direktorat" class="form-label-custom">Unit / Fakultas <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-custom" id="create_direktorat" name="tDirektorat_id" required>
+                                    <option value="" disabled selected>Pilih Unit/Fakultas</option>
                                     @foreach($allDirektorats as $d)
                                         @if($d->is_active || $d->is_pusat)
                                             <option value="{{ $d->id }}">
@@ -492,9 +510,6 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
-                        <div class="fs-11 text-muted mb-2">
-                            <i class="bi bi-lightbulb me-1 text-warning"></i>Pilih <strong>Direktorat Akademik (Pusat)</strong> untuk staf Admik, atau pilih unit/fakultas tujuan untuk <strong>Validator Unit</strong> maupun <strong>Data Entry Unit</strong>.
                         </div>
                     @endif
 
@@ -1351,17 +1366,16 @@
         if (!createPassInput) return true;
         const len = createPassInput.value.length;
 
-        if (createPassCounter) {
-            createPassCounter.innerText = `${len}/8 karakter`;
-        }
-
         if (len === 0) {
             createPassInput.classList.remove('is-invalid', 'is-valid');
             if (createPassMsg) {
                 createPassMsg.className = 'fs-11 text-muted';
                 createPassMsg.innerHTML = '<i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.';
             }
-            if (createPassCounter) createPassCounter.className = 'fs-11 fw-semibold text-muted';
+            if (createPassCounter) {
+                createPassCounter.className = 'fs-11 fw-semibold text-muted';
+                createPassCounter.innerText = '0/8 karakter';
+            }
             return false;
         } else if (len < 8) {
             createPassInput.classList.add('is-invalid');
@@ -1370,7 +1384,10 @@
                 createPassMsg.className = 'fs-11 text-danger';
                 createPassMsg.innerHTML = `<i class="bi bi-x-circle me-1"></i>Kata sandi terlalu pendek (kurang ${8 - len} karakter).`;
             }
-            if (createPassCounter) createPassCounter.className = 'fs-11 fw-semibold text-danger';
+            if (createPassCounter) {
+                createPassCounter.className = 'fs-11 fw-semibold text-danger';
+                createPassCounter.innerText = `${len}/8 karakter`;
+            }
             return false;
         } else {
             createPassInput.classList.remove('is-invalid');
@@ -1379,7 +1396,10 @@
                 createPassMsg.className = 'fs-11 text-success';
                 createPassMsg.innerHTML = '<i class="bi bi-check-circle me-1"></i>Kata sandi memenuhi syarat minimal 8 karakter.';
             }
-            if (createPassCounter) createPassCounter.className = 'fs-11 fw-semibold text-success';
+            if (createPassCounter) {
+                createPassCounter.className = 'fs-11 fw-semibold text-success d-none';
+                createPassCounter.innerText = '';
+            }
             return true;
         }
     }
@@ -1409,6 +1429,8 @@
         document.getElementById('create_password').value = '';
         const crRole = document.getElementById('create_role');
         if (crRole) crRole.selectedIndex = 0;
+        const crDir = document.getElementById('create_direktorat');
+        if (crDir) crDir.selectedIndex = 0;
         document.getElementById('create_is_active').checked = true;
 
         if (createPassInput) {

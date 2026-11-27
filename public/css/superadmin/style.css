@@ -373,6 +373,8 @@ body {
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: auto;
     gap: 0.5rem;
     font-size: 0.875rem;
     transition: all 0.2s ease;

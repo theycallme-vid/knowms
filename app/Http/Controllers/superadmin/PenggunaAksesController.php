@@ -540,27 +540,44 @@ class PenggunaAksesController extends Controller
 
     /**
      * Menampilkan daftar pengguna dan hak akses sesuai wewenang pemanggil.
+     *
+     * Urutan daftar pengguna:
+     * 1. Super Admin (tRoles_id = 1) selalu di urutan pertama.
+     * 2. Akun yang sedang login (Current User) selalu di urutan kedua (dengan badge "Akun Anda").
+     *    Jika Super Admin adalah akun yang sedang login, tampil 1 kali saja di urutan pertama.
+     * 3. Pengguna lainnya diurutkan berdasarkan waktu pembuatan akun terbaru (created_at DESC, id DESC).
      */
     public function index()
     {
         [$caller, $isSuperAdmin, $isValidatorAdmik, $isValidatorUnit] = $this->resolveCallerScope();
+        $callerId = (int) $caller->id;
 
         try {
+            $userQuery = User::with(['role', 'direktorat'])
+                ->orderByRaw('CASE WHEN tRoles_id = 1 THEN 0 WHEN id = ? THEN 1 ELSE 2 END ASC', [$callerId])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id');
+
             if ($isValidatorUnit) {
                 $ownDirId = $caller->getEffectiveDirektoratId();
-                $users = User::with(['role', 'direktorat'])
-                    ->where('tRoles_id', 2)
-                    ->where('tDirektorat_id', $ownDirId)
-                    ->orderBy('id', 'desc')
+                $users = $userQuery
+                    ->where(function ($q) use ($ownDirId, $callerId) {
+                        $q->where(function ($sub) use ($ownDirId) {
+                            $sub->where('tRoles_id', 2)
+                                ->where('tDirektorat_id', $ownDirId);
+                        })
+                        ->orWhere('tRoles_id', 1)
+                        ->orWhere('id', $callerId);
+                    })
                     ->get();
                 $roles = Role::where('id', 2)->get();
                 $direktorats = Direktorat::where('id', $ownDirId)->get();
             } elseif ($isValidatorAdmik) {
-                $users = User::with(['role', 'direktorat'])->orderBy('id', 'desc')->get();
+                $users = $userQuery->get();
                 $roles = Role::whereIn('id', [2, 3])->orderBy('id')->get();
                 $direktorats = Direktorat::orderByDesc('is_pusat')->orderBy('nama')->get();
             } else {
-                $users = User::with(['role', 'direktorat'])->orderBy('id', 'desc')->get();
+                $users = $userQuery->get();
                 $roles = Role::orderBy('id')->get();
                 $direktorats = Direktorat::orderByDesc('is_pusat')->orderBy('nama')->get();
             }
@@ -570,6 +587,9 @@ class PenggunaAksesController extends Controller
             $roles = collect($this->getFallbackRoles());
             $direktorats = collect();
         }
+
+        // Pastikan urutan collection konsisten (Super Admin -> Current User -> created_at DESC) tanpa duplikasi ID
+        $users = $this->sortUsersCollection($users, $callerId);
 
         $penggunaBaseUrl = $isSuperAdmin
             ? url('/superadmin/pengguna-akses')
@@ -894,6 +914,30 @@ class PenggunaAksesController extends Controller
         } catch (Throwable $e) {
             return redirect()->back()->with('error', 'Akun "' . $user->nama . '" tidak dapat dihapus karena masih memiliki riwayat FAQ/validasi. Silakan nonaktifkan akun sebagai gantinya.');
         }
+    }
+
+    private function sortUsersCollection($users, int $callerId)
+    {
+        return collect($users)
+            ->unique('id')
+            ->sort(function ($a, $b) use ($callerId) {
+                $pA = ((int) ($a->tRoles_id ?? 0) === 1) ? 0 : (((int) ($a->id ?? 0) === $callerId) ? 1 : 2);
+                $pB = ((int) ($b->tRoles_id ?? 0) === 1) ? 0 : (((int) ($b->id ?? 0) === $callerId) ? 1 : 2);
+
+                if ($pA !== $pB) {
+                    return $pA <=> $pB;
+                }
+
+                $timeA = isset($a->created_at) && $a->created_at ? Carbon::parse($a->created_at)->getTimestamp() : 0;
+                $timeB = isset($b->created_at) && $b->created_at ? Carbon::parse($b->created_at)->getTimestamp() : 0;
+
+                if ($timeA !== $timeB) {
+                    return $timeB <=> $timeA; // created_at DESC
+                }
+
+                return ((int) ($b->id ?? 0)) <=> ((int) ($a->id ?? 0));
+            })
+            ->values();
     }
 
     private function getFallbackRoles()

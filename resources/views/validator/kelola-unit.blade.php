@@ -310,19 +310,10 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="d-inline-flex align-items-center gap-1">
-                                            <button type="button" class="btn-action btn-action-edit" onclick="openEditUnitModal(this)" title="Ubah Nama Unit">
+                                            <button type="button" class="btn-action btn-action-edit" onclick="openEditUnitModal(this)" title="Ubah Unit & Status">
                                                 <i class="bi bi-pencil"></i>
                                                 <span>Ubah</span>
                                             </button>
-
-                                            @if(!$dir->is_pusat)
-                                                <form action="{{ $unitBaseUrl }}/toggle-status/{{ $dir->id }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" class="btn-action-icon" title="{{ $dir->is_active ? 'Nonaktifkan Unit' : 'Aktifkan Unit' }}">
-                                                        <i class="bi bi-power {{ $dir->is_active ? 'text-warning' : 'text-success' }}"></i>
-                                                    </button>
-                                                </form>
-                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -370,7 +361,8 @@
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer modal-footer-custom d-flex justify-content-between">
+                <div class="modal-footer modal-footer-custom d-flex align-items-center justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fs-13" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-maroon rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2">
                         <i class="bi bi-check2-circle"></i>
                         <span>Simpan Unit</span>
@@ -404,14 +396,20 @@
                         <input type="text" class="form-control form-control-custom" id="edit_unit_nama" name="nama" required maxlength="100">
                     </div>
 
-                    <div class="form-check form-switch mt-3 pt-2 border-top" id="editUnitActiveWrap">
-                        <input class="form-check-input" type="checkbox" role="switch" id="edit_unit_active" name="is_active" value="1">
-                        <label class="form-check-label fs-13 text-dark fw-medium" for="edit_unit_active">
-                            Status Unit Aktif
-                        </label>
+                    <div class="mt-3 pt-3 border-top" id="editUnitActiveWrap">
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" role="switch" id="edit_unit_active" name="is_active" value="1">
+                            <label class="form-check-label fs-13 text-dark fw-medium" for="edit_unit_active">
+                                Status Unit Aktif
+                            </label>
+                        </div>
+                        <div class="fs-11 text-muted" id="editUnitActiveNote">
+                            Jika dinonaktifkan, ruang kerja unit ini akan dinonaktifkan sementara hingga diaktifkan kembali.
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer modal-footer-custom d-flex justify-content-between">
+                <div class="modal-footer modal-footer-custom d-flex align-items-center justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fs-13" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-maroon rounded-pill px-4 fs-13 d-inline-flex align-items-center gap-2">
                         <i class="bi bi-save"></i>
                         <span>Simpan Perubahan</span>
@@ -457,8 +455,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     const unitBaseUrl = @json($unitBaseUrl);
+    let currentEditingUnit = { id: null, nama: '', isPusat: false, isActive: true };
 
     function toggleSidebar() {
         document.getElementById('sidebar')?.classList.toggle('show');
@@ -480,18 +480,73 @@
         const isPusat = row.getAttribute('data-is-pusat') === '1';
         const isActive = row.getAttribute('data-is-active') === '1';
 
+        currentEditingUnit = { id, nama, isPusat, isActive };
+
+        const form = document.getElementById('formEditUnit');
+        if (form) {
+            delete form.dataset.confirmedStatusChange;
+            form.action = `${unitBaseUrl}/update/${encodeURIComponent(id)}`;
+        }
+
         document.getElementById('edit_unit_nama').value = nama;
         const activeCheckbox = document.getElementById('edit_unit_active');
         const activeWrap = document.getElementById('editUnitActiveWrap');
+        const activeNote = document.getElementById('editUnitActiveNote');
+
         activeCheckbox.checked = isPusat ? true : isActive;
         activeCheckbox.disabled = isPusat;
+
         if (activeWrap) {
             activeWrap.classList.toggle('opacity-50', isPusat);
         }
 
-        document.getElementById('formEditUnit').action = `${unitBaseUrl}/update/${encodeURIComponent(id)}`;
+        if (activeNote) {
+            activeNote.textContent = isPusat
+                ? 'Direktorat Akademik (Pusat) selalu aktif sebagai pusat koordinasi KMS.'
+                : 'Jika dinonaktifkan, ruang kerja unit ini akan dinonaktifkan sementara hingga diaktifkan kembali.';
+        }
+
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditUnit')).show();
     }
+
+    document.getElementById('formEditUnit')?.addEventListener('submit', function (e) {
+        if (currentEditingUnit.isPusat) return;
+        const activeCheckbox = document.getElementById('edit_unit_active');
+        if (!activeCheckbox) return;
+
+        const newActive = activeCheckbox.checked;
+        if (newActive !== currentEditingUnit.isActive && !this.dataset.confirmedStatusChange) {
+            e.preventDefault();
+            const actionTitle = newActive ? 'Konfirmasi Aktifkan Unit' : 'Konfirmasi Nonaktifkan Unit';
+            const actionDesc = newActive
+                ? `Anda mengubah status "${currentEditingUnit.nama}" menjadi Aktif. Lanjutkan menyimpan perubahan?`
+                : `Anda mengubah status "${currentEditingUnit.nama}" menjadi Nonaktif. Lanjutkan menyimpan perubahan?`;
+            const confirmBtnText = newActive ? 'Ya, Aktifkan & Simpan' : 'Ya, Nonaktifkan & Simpan';
+            const confirmColor = newActive ? '#059669' : '#D97706';
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: actionTitle,
+                    text: actionDesc,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: confirmColor,
+                    cancelButtonColor: '#64748B',
+                    confirmButtonText: confirmBtnText,
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        this.dataset.confirmedStatusChange = '1';
+                        this.submit();
+                    }
+                });
+            } else if (confirm(actionDesc)) {
+                this.dataset.confirmedStatusChange = '1';
+                this.submit();
+            }
+        }
+    });
 
     document.getElementById('unitSearchInput')?.addEventListener('input', function () {
         const q = (this.value || '').toLowerCase().trim();
