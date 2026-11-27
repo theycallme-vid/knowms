@@ -454,7 +454,7 @@
                     </button>
                     <button type="button" class="btn-action-pill btn-pill-rejected" id="modalBtnReject">
                         <i class="bi bi-x"></i>
-                        <span>Tolak ke Data Entry</span>
+                        <span>Tolak</span>
                     </button>
                 </div>
             </div>

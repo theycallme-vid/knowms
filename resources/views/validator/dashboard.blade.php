@@ -389,8 +389,9 @@
                                             <i class="bi bi-file-earmark-text fs-5"></i>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold fs-13 text-dark">{{ $selectedVer?->daftarPustaka?->judul_tampil ?? $selectedVer?->daftarPustaka?->link ?? 'Pedoman Akademik Kampus' }}</div>
-                                            <div class="fs-11 text-muted">Rujukan Resmi</div>
+                                            @php $selDp = $selectedVer?->daftarPustaka; @endphp
+                                            <div class="fw-bold fs-13 text-dark">{{ $selDp ? ($selDp->judul_tampil ?: ($selDp->link ?? 'Tidak ada (Opsional)')) : 'Tidak ada (Opsional)' }}</div>
+                                            <div class="fs-11 text-muted">{{ $selDp ? 'Rujukan Resmi' : 'Sumber pustaka tidak disertakan' }}</div>
                                         </div>
                                     </div>
                                 </div>

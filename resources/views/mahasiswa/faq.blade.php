@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan mahasiswa: temukan jawaban seputar KRS, registrasi, cuti kuliah, KHS, dan beasiswa.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Montserrat -->
+    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -42,8 +42,8 @@
     $activeSemester      = $semester ?? session('semester') ?? \App\Http\Controllers\PortalController::estimateSemester($activeTahunAngkatan);
 
     $categories = [
-        ['key' => 'top',         'label' => 'FAQ Populer',          'icon' => 'bi-stars'],
         ['key' => 'rekomendasi', 'label' => 'Rekomendasi FAQ',      'icon' => 'bi-person-check'],
+        ['key' => 'top',         'label' => 'FAQ Populer',          'icon' => 'bi-stars'],
         ['key' => 'umum',        'label' => 'Kategori umum',        'icon' => 'bi-grid'],
         ['key' => 'fakultas',    'label' => $activeNamaFakultas,    'icon' => 'bi-building'],
         ['key' => 'akademik',    'label' => 'Akademik',             'icon' => 'bi-book'],
@@ -390,7 +390,7 @@
                 <i class="bi bi-building"></i>
                 <span>{{ $activeNamaFakultas }}</span>
                 @if(!empty($activeTahunAngkatan))
-                    <span class="text-muted fw-normal">&middot; {{ $activeTahunAngkatan }}</span>
+                    <span class="text-muted fw-normal">&middot; Angkatan {{ $activeTahunAngkatan }}</span>
                 @endif
             </span>
         </div>
@@ -403,25 +403,15 @@
 <header class="hero-section hero-fullscreen">
     <div class="mhs-container hero-inner">
         <div class="hero-center-stack">
-            <div class="hero-context-badge mb-3">
-                <i class="bi bi-building"></i>
-                <span>{{ $activeNamaFakultas }}</span>
-                @if(!empty($activeTahunAngkatan))
-                    <span class="hero-badge-muted">&middot; Angkatan {{ $activeTahunAngkatan }}{{ !empty($activeSemester) ? ' (Semester ' . $activeSemester . ')' : '' }}</span>
-                @endif
-            </div>
+
 
             <div class="hero-eyebrow mb-2">
                 PUSAT PENGETAHUAN MAHASISWA
             </div>
 
             <h1 class="display-serif hero-title mb-3">
-                Ada pertanyaan?<br>Temukan jawabannya di sini.
+                Ada Pertanyaan?<br>Temukan Jawaban Anda di sini.
             </h1>
-
-            <p class="hero-subtitle mb-4">
-                Dari rencana studi hingga tugas akhir, cari informasi akademik yang kamu butuhkan secara instan.
-            </p>
 
             <div id="heroSearchAnchor" class="hero-search-anchor">
                 @include('partials.faq-google-search', ['part' => 'bar'])
@@ -455,11 +445,8 @@
     <!-- ============================ KATEGORI (PATEN DI ATAS) ============================ -->
     <section id="faqExploreCategoriesSection" class="mb-5" style="scroll-margin-top: 88px;" aria-label="Jelajahi kategori">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="hero-eyebrow text-secondary" style="letter-spacing: 0.08em; font-size: 0.7rem;">
+            <span class="hero-eyebrow fw-bold" style="color: #0F172A; letter-spacing: 0.08em; font-size: 0.78rem;">
                 JELAJAHI KATEGORI
-            </span>
-            <span class="fs-12 text-muted d-none d-md-inline">
-                Pilih kategori sesuai kebutuhan studimu.
             </span>
         </div>
         
@@ -490,16 +477,6 @@
                         Pertanyaan populer mahasiswa. Jawaban praktis, tanpa perlu mencari jauh.
                     @endif
                 </p>
-            </div>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="tag-soft shadow-sm" title="Sinkronisasi otomatis setiap 30 detik saat ada aktivitas">
-                    <i class="bi bi-arrow-repeat"></i>
-                    <span id="lastSyncLabel">Last synchronize {{ now()->format('H:i:s') }}</span>
-                </span>
-                <span class="tag-soft shadow-sm">
-                    <i class="bi bi-stars"></i>
-                    <span id="faqCount">FAQ Populer &middot; {{ count($faqs) }} pertanyaan</span>
-                </span>
             </div>
         </div>
 
@@ -535,8 +512,7 @@
                             <div class="faq-q">{{ $f['q'] }}</div>
                         </div>
                         <span class="faq-cat-label d-inline-flex align-items-center gap-2">
-                            <span>{{ $f['cat'] }}</span>
-                            <span class="text-muted" style="font-size: 0.72rem;">
+                            <span style="font-size: 0.78rem; color: #334155;">
                                 <i class="bi bi-eye"></i> <span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span>
                                 &middot; <i class="bi bi-hand-thumbs-up text-success"></i> <span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span>
                                 &middot; <i class="bi bi-hand-thumbs-down text-secondary"></i> <span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span>
@@ -550,17 +526,7 @@
 
                     <div id="faq{{ $f['id'] }}" class="collapse" data-faq-id="{{ $realFaqId }}" data-bs-parent="#faqList">
                         <div class="faq-body pt-1">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="tag-soft">{{ $f['cat'] }}</span>
-                                <span class="fs-12 text-muted">
-                                    @if(!empty($f['angkatan_stage_label']))
-                                        Rekomendasi {{ $f['angkatan_stage_label'] }} &middot; Panduan resmi mahasiswa
-                                    @else
-                                        Panduan resmi mahasiswa
-                                    @endif
-                                </span>
-                            </div>
-                            <div class="fs-13 text-secondary mb-3" style="line-height: 1.65;">
+                            <div class="mb-3" style="font-size: 0.92rem; line-height: 1.7; color: #0F172A; font-weight: 500;">
                                 {!! $f['a'] ?? ('Informasi lengkap terkait <strong>' . e(strtolower($f['q'])) . '</strong> dapat diakses melalui pengumuman resmi fakultas atau panduan terintegrasi KMS.') !!}
                             </div>
 
@@ -568,7 +534,7 @@
                                 <a href="{{ $f['source_url'] ?? '#' }}" target="{{ ($f['source_url'] ?? '#') !== '#' ? '_blank' : '_self' }}" rel="noopener noreferrer" class="source-box mb-3">
                                     <span class="d-flex align-items-center gap-2">
                                         <i class="bi bi-book fs-6 text-primary"></i>
-                                        <span>Sumber Pustaka: {{ $f['source_label'] }}</span>
+                                        <span>Sumber: {{ $f['source_label'] }}</span>
                                     </span>
                                     <i class="bi bi-arrow-up-right fs-13"></i>
                                 </a>
@@ -629,11 +595,6 @@
 
         <!-- Navigasi Halaman (Top 10 per Halaman di Setiap Kategori) -->
         <div id="faqPagination" class="faq-pagination-bar mt-3 d-none"></div>
-
-        <!-- Official Disclaimer Callout -->
-        <div class="disclaimer mt-3 d-flex align-items-center gap-2.5 shadow-sm">
-            <span>FAQ ini merupakan panduan umum. Persyaratan dan jadwal resmi mengikuti pengumuman program studi atau fakultasmu.</span>
-        </div>
     </section>
 
     <!-- ============================ CTA BANNER ============================ -->
@@ -666,12 +627,6 @@
                 <a href="#" class="footer-link">Panduan penggunaan</a>
                 <a href="#" class="footer-link">Kebijakan privasi</a>
             </div>
-
-            <span class="footer-link d-inline-flex align-items-center gap-1.5 cursor-pointer">
-                <i class="bi bi-globe2"></i>
-                <span>Bahasa Indonesia</span>
-                <i class="bi bi-chevron-down fs-11 ms-0.5"></i>
-            </span>
         </div>
 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-3 fs-12 text-muted">
@@ -1156,7 +1111,7 @@
 
 <!-- Filter & Search Script -->
 <script>
-    let activeCat = 'top';
+    let activeCat = 'rekomendasi';
     let currentPage = 1;
     const ITEMS_PER_PAGE = 10;
     const faqLogUrl = "{{ route('faq.log-access') }}";
@@ -1404,7 +1359,7 @@
 
         pagEl.innerHTML = `
             <div class="fs-12 text-muted">
-                Menampilkan <strong class="text-dark">${showingFrom}&ndash;${showingTo}</strong> dari <strong class="text-dark">${totalMatched}</strong> pertanyaan (Halaman ${currentPage} dari ${totalPages})
+                Menampilkan <strong class="text-dark">${showingFrom}&ndash;${showingTo}</strong> dari <strong class="text-dark">${totalMatched}</strong> pertanyaan
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 ${pageButtonsHtml}

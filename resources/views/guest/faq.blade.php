@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan KMS untuk Pengunjung / Guest: temukan informasi akademik, pendaftaran, beasiswa, dan panduan umum kampus tanpa perlu scan KTM atau NRP.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Montserrat -->
+    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -240,10 +240,10 @@
     <!-- ============================ KATEGORI (PATEN DI ATAS) ============================ -->
     <section id="faqExploreCategoriesSection" class="mb-5" style="scroll-margin-top: 88px;" aria-label="Jelajahi kategori">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="hero-eyebrow text-secondary" style="letter-spacing: 0.08em; font-size: 0.7rem;">
+            <span class="hero-eyebrow fw-bold" style="color: #0F172A; letter-spacing: 0.08em; font-size: 0.78rem;">
                 JELAJAHI KATEGORI
             </span>
-            <span class="fs-12 text-muted d-none d-md-inline">
+            <span class="fs-12 text-dark d-none d-md-inline">
                 Pilih kategori sesuai kebutuhan studimu.
             </span>
         </div>
@@ -270,16 +270,6 @@
                 <h2 id="faqHeading" class="display-serif fs-2 mb-1">Mulai dari yang sering ditanyakan</h2>
                 <p class="text-muted fs-13 mb-0">Lima pertanyaan populer mahasiswa. Jawaban praktis, tanpa perlu mencari jauh.</p>
             </div>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="tag-soft shadow-sm" title="Sinkronisasi otomatis setiap 30 detik saat ada aktivitas">
-                    <i class="bi bi-arrow-repeat"></i>
-                    <span id="lastSyncLabel">Last synchronize {{ now()->format('H:i:s') }}</span>
-                </span>
-                <span class="tag-soft shadow-sm">
-                    <i class="bi bi-stars"></i>
-                    <span id="faqCount">FAQ Populer &middot; 5 pertanyaan</span>
-                </span>
-            </div>
         </div>
 
         <!-- Accordion FAQ List -->
@@ -300,9 +290,7 @@
                         <div class="flex-grow-1 text-start">
                             @if($f['id'] === 1)
                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1.5">
-                                    <span class="tag-soft">{{ $f['cat'] }}</span>
-                                    <span class="fs-12 text-muted fw-normal">Panduan umum &middot; Untuk seluruh mahasiswa</span>
-                                    <span class="fs-11 text-muted d-inline-flex align-items-center gap-2 ms-1">
+                                    <span class="fs-11 text-muted d-inline-flex align-items-center gap-2">
                                         <span><i class="bi bi-eye me-1"></i><span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span> dilihat</span>
                                         <span>&middot;</span>
                                         <span class="text-success"><i class="bi bi-hand-thumbs-up me-1"></i><span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span></span>
@@ -314,8 +302,7 @@
                         </div>
                         @if($f['id'] !== 1)
                             <span class="faq-cat-label d-inline-flex align-items-center gap-2">
-                                <span>{{ $f['cat'] }}</span>
-                                <span class="text-muted" style="font-size: 0.72rem;">
+                                <span style="font-size: 0.78rem; color: #334155;">
                                     <i class="bi bi-eye"></i> <span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span>
                                     &middot; <i class="bi bi-hand-thumbs-up text-success"></i> <span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span>
                                     &middot; <i class="bi bi-hand-thumbs-down text-secondary"></i> <span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span>
@@ -335,7 +322,7 @@
                                     <span class="tag-soft">{{ $f['cat'] }}</span>
                                     <span class="fs-12 text-muted">Panduan resmi mahasiswa</span>
                                 </div>
-                                <div class="fs-13 text-secondary mb-3" style="line-height: 1.65;">
+                                <div class="mb-3" style="font-size: 0.92rem; line-height: 1.7; color: #0F172A; font-weight: 500;">
                                     {!! $f['a'] !!}
                                 </div>
                                 @if(!empty($f['source_label']))
@@ -478,12 +465,6 @@
                 <a href="#" class="footer-link">Panduan penggunaan</a>
                 <a href="#" class="footer-link">Kebijakan privasi</a>
             </div>
-
-            <span class="footer-link d-inline-flex align-items-center gap-1.5 cursor-pointer">
-                <i class="bi bi-globe2"></i>
-                <span>Bahasa Indonesia</span>
-                <i class="bi bi-chevron-down fs-11 ms-0.5"></i>
-            </span>
         </div>
 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-3 fs-12 text-muted">

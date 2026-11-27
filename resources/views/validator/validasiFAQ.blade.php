@@ -550,10 +550,6 @@
                         <div class="fw-bold fs-12 text-dark" id="singleRejectCode">FAQ-0001</div>
                         <div class="fs-12 text-muted mt-0.5" id="singleRejectQuestion"></div>
                     </div>
-                    <div class="rounded-3 px-2.5 py-2 mb-3 fs-11" style="background-color:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;">
-                        <i class="bi bi-info-circle-fill me-1"></i>
-                        FAQ akan dikembalikan langsung ke Data Entry asal dengan tanda <strong>"Ditolak oleh Validator Admik"</strong>.
-                    </div>
                     <div>
                         <label for="rejectCatatanInput" class="form-label fw-semibold fs-12 text-dark mb-1">
                             Catatan Revisi / Alasan Penolakan <span class="text-muted fw-normal">(Opsional)</span>

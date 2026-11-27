@@ -382,7 +382,7 @@ class ValidatorFaqController extends Controller
                     'jawaban_sebelumnya'  => $targetVersion?->jawaban_sebelumnya,
                     'catatan_revisi'      => $catatanRevisi,
                     'previous_versions'   => $previousVersions,
-                    'sumber'              => $dp?->judul_tampil ?? 'Pedoman Akademik Kampus',
+                    'sumber'              => $dp ? ($dp->judul_tampil ?: ($dp->link ?? '')) : '',
                     'sumber_id'           => $dp?->id,
                     'sumber_is_file'      => $isFileSource,
                     'sumber_type'         => 'Publik',
