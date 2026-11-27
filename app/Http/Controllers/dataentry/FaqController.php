@@ -1618,6 +1618,14 @@ class FaqController extends Controller
     {
         DaftarPustaka::ensurePublicPrivateEnum();
         $pustakas = DaftarPustaka::withCount('faqVersions')->orderBy('id', 'asc')->get();
+        $faqCounts = DB::table('tfaqsversion')
+            ->whereNotNull('tDaftarPustakas_id')
+            ->select('tDaftarPustakas_id', DB::raw('COUNT(DISTINCT tFaqs_id) as total_faq'))
+            ->groupBy('tDaftarPustakas_id')
+            ->pluck('total_faq', 'tDaftarPustakas_id');
+        foreach ($pustakas as $p) {
+            $p->used_faqs_count = (int) ($faqCounts[$p->id] ?? 0);
+        }
         $previewSources = session('uploaded_sources', []);
         $previewSourcesFile = session('uploaded_sources_file', null);
 
@@ -1664,7 +1672,7 @@ class FaqController extends Controller
             return redirect()->back()->with('error', 'Untuk jenis input Tautan, kolom Link / Tautan wajib diisi.');
         }
 
-        $linkText = substr(trim($request->link), 0, 60);
+        $linkText = substr((string) (DaftarPustaka::normalizeLink($request->link) ?? trim($request->link)), 0, 60);
         DaftarPustaka::create([
             'judul'  => $judulText,
             'link'   => $linkText,
@@ -1720,7 +1728,7 @@ class FaqController extends Controller
             return redirect()->back()->with('error', 'Link sumber pustaka tidak boleh kosong.');
         }
 
-        $newLink = substr(trim($request->link), 0, 60);
+        $newLink = substr((string) (DaftarPustaka::normalizeLink($request->link) ?? trim($request->link)), 0, 60);
         $pustaka->update([
             'judul' => $newJudul,
             'link'  => $newLink,

@@ -255,12 +255,13 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <span class="badge bg-light text-dark border fs-12 fw-semibold px-2.5 py-1 rounded-pill">
-                                                {{ $p->faq_versions_count }} Versi FAQ
+                                            <span class="fs-13 fw-semibold text-dark">
+                                                {{ $p->used_faqs_count ?? $p->faq_versions_count }} FAQ
                                             </span>
                                         </td>
                                         <td style="text-align: right;">
                                             <div class="d-inline-flex align-items-center gap-2">
+                                                @php $resolvedUrl = $p->resolved_url; @endphp
                                                 @if($isFile)
                                                     <button type="button"
                                                             class="btn-action btn-action-view"
@@ -270,8 +271,8 @@
                                                     <a href="{{ route($valPrefix . 'pustaka.download', $p->id) }}" class="btn-action btn-action-view text-decoration-none">
                                                         <i class="bi bi-download"></i> Unduh
                                                     </a>
-                                                @elseif(str_starts_with((string) $p->link, 'http://') || str_starts_with((string) $p->link, 'https://'))
-                                                    <a href="{{ $p->link }}" target="_blank" class="btn-action btn-action-view text-decoration-none">
+                                                @elseif($resolvedUrl !== '')
+                                                    <a href="{{ $resolvedUrl }}" target="_blank" rel="noopener noreferrer" class="btn-action btn-action-view text-decoration-none">
                                                         <i class="bi bi-eye"></i> Lihat
                                                     </a>
                                                 @endif

@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan KMS untuk Pengunjung / Guest: temukan informasi akademik, pendaftaran, beasiswa, dan panduan umum kampus tanpa perlu scan KTM atau NRP.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Inter & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -132,9 +132,10 @@
         foreach ($publishedFaqs as $idx => $dbFaq) {
             $activeVer = $dbFaq->versions->first();
             $pustaka = $activeVer?->daftarPustaka;
-            $sourceType = $pustaka ? strtolower((string) $pustaka->type) : null;
+            $sourceType = 'public';
+            $isFileSource = $pustaka ? !empty($pustaka->upload) : false;
             $sourceLabel = $pustaka ? ($pustaka->judul_tampil ?: $pustaka->link) : null;
-            $sourceUrl = ($pustaka && filter_var($pustaka->link, FILTER_VALIDATE_URL)) ? $pustaka->link : '#';
+            $sourceUrl = ($pustaka && $pustaka->resolved_url !== '') ? $pustaka->resolved_url : '#';
             $tagNames = $dbFaq->tags->pluck('nama')->implode(' · ');
             $assignedKeys = $resolveCategoryKeys($dbFaq);
             $mappedDbFaqs[] = [
@@ -195,23 +196,13 @@
 <header class="hero-section hero-fullscreen">
     <div class="guest-container hero-inner">
         <div class="hero-center-stack">
-            <div class="hero-context-badge mb-3">
-                <i class="bi bi-globe2"></i>
-                <span>Guest</span>
-                <span class="hero-badge-muted">&middot; Akses Publik &amp; Informasi Umum Kampus</span>
-            </div>
-
             <div class="hero-eyebrow mb-2">
-                PUSAT PENGETAHUAN GUEST
+                PUSAT PENGETAHUAN MAHASISWA
             </div>
 
             <h1 class="display-serif hero-title mb-3">
-                Ada pertanyaan?<br>Temukan jawabannya di sini.
+                Ada Pertanyaan?<br>Temukan Jawaban Anda di sini.
             </h1>
-
-            <p class="hero-subtitle mb-4">
-                Dari rencana studi hingga tugas akhir, cari informasi akademik yang kamu butuhkan secara instan.
-            </p>
 
             <div id="heroSearchAnchor" class="hero-search-anchor">
                 @include('partials.faq-google-search', ['part' => 'bar'])
@@ -240,9 +231,6 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <span class="hero-eyebrow fw-bold" style="color: #0F172A; letter-spacing: 0.08em; font-size: 0.78rem;">
                 JELAJAHI KATEGORI
-            </span>
-            <span class="fs-12 text-dark d-none d-md-inline">
-                Pilih kategori sesuai kebutuhan studimu.
             </span>
         </div>
         
@@ -278,11 +266,11 @@
                     $realFaqId = $f['faq_id'] ?? ('FAQ-' . sprintf('%04d', $f['id']));
                 @endphp
                 <article class="faq-item" data-faq-id="{{ $realFaqId }}" data-cat="{{ $catClasses }}" data-text="{{ strtolower($f['q'].' '.$f['cat']) }}">
-                    <button class="faq-toggle {{ $f['id'] === 1 ? '' : 'collapsed' }}" 
+                    <button class="faq-toggle collapsed" 
                             type="button" 
                             data-bs-toggle="collapse" 
                             data-bs-target="#faq{{ $f['id'] }}" 
-                            aria-expanded="{{ $f['id'] === 1 ? 'true' : 'false' }}" 
+                            aria-expanded="false" 
                             aria-controls="faq{{ $f['id'] }}">
                         <span class="faq-num">{{ sprintf('%02d', $f['id']) }}</span>
                         <div class="flex-grow-1 text-start">
@@ -301,13 +289,9 @@
                         </span>
                     </button>
 
-                    <div id="faq{{ $f['id'] }}" class="collapse {{ $f['id'] === 1 ? 'show' : '' }}" data-faq-id="{{ $realFaqId }}" data-bs-parent="#faqList">
+                    <div id="faq{{ $f['id'] }}" class="collapse" data-faq-id="{{ $realFaqId }}" data-bs-parent="#faqList">
                         <div class="faq-body pt-1">
                             @if(!empty($f['a']))
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="tag-soft">{{ $f['cat'] }}</span>
-                                    <span class="fs-12 text-muted">Panduan resmi mahasiswa</span>
-                                </div>
                                 <div class="mb-3" style="font-size: 0.92rem; line-height: 1.7; color: #0F172A; font-weight: 500;">
                                     {!! $f['a'] !!}
                                 </div>
@@ -315,7 +299,7 @@
                                     <a href="{{ $f['source_url'] ?? '#' }}" target="{{ ($f['source_url'] ?? '#') !== '#' ? '_blank' : '_self' }}" rel="noopener noreferrer" class="source-box mb-3">
                                         <span class="d-flex align-items-center gap-2">
                                             <i class="bi bi-book fs-6 text-primary"></i>
-                                            <span>Sumber Pustaka: {{ $f['source_label'] }}</span>
+                                            <span>Sumber: {{ $f['source_label'] }}</span>
                                         </span>
                                         <i class="bi bi-arrow-up-right fs-13"></i>
                                     </a>
@@ -455,7 +439,6 @@
 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-3 fs-12 text-muted">
             <span>&copy; {{ date('Y') }} KMS &middot; Knowledge Management System</span>
-            <span class="fst-italic">Pengetahuan terhubung. Perjalanan studi lebih terarah.</span>
         </div>
     </div>
 </footer>

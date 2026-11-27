@@ -225,6 +225,7 @@ body {
 }
 
 .hero-title {
+    font-family: 'Lora', Georgia, serif;
     font-size: 2.95rem;
     font-weight: 700;
     line-height: 1.15;

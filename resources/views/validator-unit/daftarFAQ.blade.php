@@ -228,7 +228,7 @@
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
                     <span class="crumb-sep">/</span>
-                    <span>Validator Unit ({{ $unitName }})</span>
+                    <span>Validator Unit</span>
                     <span class="crumb-sep">/</span>
                     <span class="crumb-current">Daftar FAQ</span>
                 </div>
@@ -279,7 +279,6 @@
                 <div>
                     <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                         <h1 class="page-title mb-0">Daftar FAQ</h1>
-                        <span class="kms-unit-pill"><i class="bi bi-building"></i>{{ $unitName }}</span>
                     </div>
                     <p class="fs-13 text-muted mb-0">
                         Kelola FAQ milik <strong>{{ $unitName }}</strong> serta pantau FAQ terbit lintas seluruh unit agar tidak terjadi duplikasi topik.
@@ -488,18 +487,18 @@
                                                 <span class="badge rounded-pill bg-light text-secondary border" style="font-size:0.7rem;padding:0.35rem 0.65rem;" title="FAQ terbit lintas unit bersifat Read-Only">
                                                     <i class="bi bi-lock-fill me-1"></i>Read-Only
                                                 </span>
-                                            @elseif(in_array($stValLower, ['menunggu validasi admik', 'menunggu validasi'], true))
+                                            @elseif(in_array($stValLower, ['terbit', 'active'], true))
+                                                <a href="{{ route('validator.unit.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Ubah / Buat Versi Baru ({{ $nextVerId }})">
+                                                    <i class="bi bi-pencil"></i> Ubah
+                                                </a>
+                                            @else
                                                 <button type="button"
                                                         class="btn-action btn-action-edit action-icon-disabled"
                                                         style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
-                                                        title="Terkunci — Sedang ditinjau oleh Validator Admik"
+                                                        title="Terkunci — Tombol Ubah aktif setelah FAQ berstatus Terbit"
                                                         disabled>
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </button>
-                                            @else
-                                                <a href="{{ route('validator.unit.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="{{ in_array($stValLower, ['ditolak', 'rejected'], true) ? 'Revisi FAQ (' . ($latestVersion?->id ?? ($faq->id . '-V1')) . ')' : 'Ubah / Buat Versi Baru (' . $nextVerId . ')' }}">
-                                                    <i class="bi bi-pencil"></i> {{ in_array($stValLower, ['ditolak', 'rejected'], true) ? 'Revisi' : 'Ubah' }}
-                                                </a>
                                             @endif
                                         </div>
                                     </td>

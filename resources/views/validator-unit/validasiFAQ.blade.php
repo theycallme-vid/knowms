@@ -59,7 +59,7 @@
                     <i class="bi bi-house me-2"></i>
                     <span>Ruang kerja</span>
                     <span class="crumb-sep">/</span>
-                    <span>Validator Unit ({{ $unitName }})</span>
+                    <span>Validator Unit</span>
                     <span class="crumb-sep">/</span>
                     <span class="crumb-current">Validasi FAQ Unit</span>
                 </div>
@@ -182,7 +182,7 @@
                                     <th style="width: 130px;">KODE / VERSI</th>
                                     <th>PERTANYAAN</th>
                                     <th style="width: 190px;">UNIT</th>
-                                    <th style="width: 185px;">DATA ENTRY</th>
+                                    <th style="width: 215px;">STATUS</th>
                                     <th style="width: 165px;">WAKTU PENGAJUAN</th>
                                     <th style="width: 115px;" class="text-end pe-4">AKSI</th>
                                 </tr>
@@ -255,7 +255,10 @@
                                         </td>
 
                                         <td>
-                                            <div class="fs-13 fw-bold text-dark lh-sm">{{ $item->data_entry_nama }}</div>
+                                            <span class="badge-status badge-submitted" style="background-color:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;">
+                                                <i class="bi bi-hourglass-split"></i>
+                                                Menunggu Validasi Unit
+                                            </span>
                                         </td>
 
                                         <td>
@@ -417,7 +420,7 @@
                 <!-- Kata Kunci -->
                 <div class="mb-3">
                     <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Kata Kunci</div>
-                    <div class="d-flex flex-wrap gap-1.5" id="viewModalTagsContainer"></div>
+                    <div class="d-flex flex-wrap gap-2" id="viewModalTagsContainer"></div>
                 </div>
 
                 <!-- Sumber Pustaka -->
@@ -469,7 +472,7 @@
 
 <!-- MODAL KONFIRMASI PENOLAKAN OLEH VALIDATOR UNIT -->
 <div class="modal fade" id="modalSingleReject" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 470px;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 580px;">
         <div class="modal-content kms-modal-content">
             <div class="kms-modal-header">
                 <div class="d-flex align-items-center gap-2">
@@ -482,20 +485,20 @@
             </div>
             <form id="formSingleReject" method="POST">
                 @csrf
-                <div class="kms-modal-body">
-                    <div class="p-2.5 rounded-3 border bg-light mb-2.5" style="padding: 0.65rem 0.85rem;">
-                        <div class="fw-bold fs-12 text-dark" id="singleRejectCode">FAQ-0001</div>
-                        <div class="fs-12 text-muted mt-0.5" id="singleRejectQuestion"></div>
+                <div class="kms-modal-body" style="padding: 1.5rem;">
+                    <div class="rounded-3 border bg-light mb-3" style="padding: 0.9rem 1.1rem;">
+                        <div class="fw-bold fs-13 text-dark mb-1" id="singleRejectCode">FAQ-0001</div>
+                        <div class="fs-13 text-secondary lh-base" id="singleRejectQuestion"></div>
                     </div>
-                    <div class="rounded-3 px-2.5 py-2 mb-3 fs-11" style="background-color:#FFF1F2;border:1px solid #FECDD3;color:#9F1239;">
+                    <div class="rounded-3 px-3 py-2.5 mb-4 fs-12" style="background-color:#FFF1F2;border:1px solid #FECDD3;color:#9F1239;padding: 0.75rem 1rem;">
                         <i class="bi bi-info-circle-fill me-1"></i>
                         FAQ akan dikembalikan ke Data Entry dengan penanda <strong>"Ditolak oleh Validator Unit ({{ $unitName }})"</strong>.
                     </div>
                     <div>
-                        <label for="rejectCatatanInput" class="form-label fw-semibold fs-12 text-dark mb-1">
+                        <label for="rejectCatatanInput" class="form-label fw-semibold fs-13 text-dark mb-2 d-block">
                             Catatan Revisi / Alasan Penolakan <span class="text-muted fw-normal">(Wajib jelas bagi Data Entry)</span>
                         </label>
-                        <textarea name="catatan" id="rejectCatatanInput" rows="3" class="kms-textarea" placeholder="Tuliskan bagian jawaban atau rujukan yang perlu diperbaiki oleh Data Entry {{ $unitName }}..."></textarea>
+                        <textarea name="catatan" id="rejectCatatanInput" rows="4" class="kms-textarea" placeholder="Tuliskan bagian jawaban atau rujukan yang perlu diperbaiki oleh Data Entry {{ $unitName }}..."></textarea>
                     </div>
                 </div>
                 <div class="kms-modal-footer">

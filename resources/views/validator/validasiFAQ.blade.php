@@ -203,7 +203,7 @@
                                     <th style="width: 130px;">KODE / VERSI</th>
                                     <th>PERTANYAAN</th>
                                     <th style="width: 190px;">UNIT</th>
-                                    <th style="width: 185px;">DATA ENTRY</th>
+                                    <th style="width: 215px;">STATUS</th>
                                     <th style="width: 165px;">WAKTU PENGAJUAN</th>
                                     <th style="width: 115px;" class="text-end pe-4">AKSI</th>
                                 </tr>
@@ -296,9 +296,26 @@
                                             </span>
                                         </td>
 
-                                        <!-- Data Entry -->
+                                        <!-- Status -->
                                         <td>
-                                            <div class="fs-13 fw-bold text-dark lh-sm">{{ $item->data_entry_nama }}</div>
+                                            @if($isApproved)
+                                                @if($isScheduled && $schedLabel)
+                                                    <span class="publish-wait-badge is-scheduled-date">
+                                                        <i class="bi bi-calendar-event"></i>
+                                                        <span>{{ $schedLabel }}</span>
+                                                    </span>
+                                                @else
+                                                    <span class="badge-status badge-approved">
+                                                        <i class="bi bi-check-circle-fill"></i>
+                                                        Diterima
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="badge-status badge-submitted">
+                                                    <i class="bi bi-hourglass-split"></i>
+                                                    Menunggu Validasi Admik
+                                                </span>
+                                            @endif
                                         </td>
 
                                         <!-- Waktu Pengajuan (created_at) -->
@@ -476,7 +493,7 @@
                 <!-- Kata Kunci -->
                 <div class="mb-3">
                     <div class="text-uppercase fw-bold fs-11 mb-2" style="color: #85172C; letter-spacing: 0.05em;">Kata Kunci</div>
-                    <div class="d-flex flex-wrap gap-1.5" id="viewModalTagsContainer"></div>
+                    <div class="d-flex flex-wrap gap-2" id="viewModalTagsContainer"></div>
                 </div>
 
                 <!-- Sumber Pustaka -->
@@ -532,7 +549,7 @@
      MODAL 3: KONFIRMASI PENOLAKAN FAQ (SINGLE REJECT + CATATAN REVISI)
 ══════════════════════════════════════════════════════════════════ -->
 <div class="modal fade" id="modalSingleReject" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 580px;">
         <div class="modal-content kms-modal-content">
             <div class="kms-modal-header">
                 <div class="d-flex align-items-center gap-2">
@@ -545,16 +562,16 @@
             </div>
             <form id="formSingleReject" method="POST">
                 @csrf
-                <div class="kms-modal-body">
-                    <div class="p-2.5 rounded-3 border bg-light mb-2.5" style="padding: 0.65rem 0.85rem;">
-                        <div class="fw-bold fs-12 text-dark" id="singleRejectCode">FAQ-0001</div>
-                        <div class="fs-12 text-muted mt-0.5" id="singleRejectQuestion"></div>
+                <div class="kms-modal-body" style="padding: 1.5rem;">
+                    <div class="rounded-3 border bg-light mb-4" style="padding: 0.9rem 1.1rem;">
+                        <div class="fw-bold fs-13 text-dark mb-1" id="singleRejectCode">FAQ-0001</div>
+                        <div class="fs-13 text-secondary lh-base" id="singleRejectQuestion"></div>
                     </div>
                     <div>
-                        <label for="rejectCatatanInput" class="form-label fw-semibold fs-12 text-dark mb-1">
+                        <label for="rejectCatatanInput" class="form-label fw-semibold fs-13 text-dark mb-2 d-block">
                             Catatan Revisi / Alasan Penolakan <span class="text-muted fw-normal">(Opsional)</span>
                         </label>
-                        <textarea name="catatan" id="rejectCatatanInput" rows="3" class="kms-textarea" placeholder="Tuliskan bagian yang perlu diperbaiki oleh Data Entry..."></textarea>
+                        <textarea name="catatan" id="rejectCatatanInput" rows="4" class="kms-textarea" placeholder="Tuliskan bagian yang perlu diperbaiki oleh Data Entry..."></textarea>
                     </div>
                 </div>
                 <div class="kms-modal-footer">

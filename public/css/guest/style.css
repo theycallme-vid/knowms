@@ -100,10 +100,16 @@ body {
 }
 
 .navbar-logo-img {
-    height: 50px;
+    height: 64px;
     width: auto;
     object-fit: contain;
     display: block;
+}
+
+@media (max-width: 576px) {
+    .navbar-logo-img {
+        height: 52px;
+    }
 }
 
 .guest-nav-link {
@@ -191,11 +197,11 @@ body {
     width: 100%;
     background:
         linear-gradient(90deg, 
-            rgba(248, 249, 251, 0.94) 0%, 
-            rgba(248, 249, 251, 0.90) 35%, 
-            rgba(248, 249, 251, 0.70) 65%, 
-            rgba(248, 249, 251, 0.25) 85%, 
-            rgba(248, 249, 251, 0.05) 100%),
+            rgba(248, 249, 251, 0.93) 0%, 
+            rgba(248, 249, 251, 0.88) 0%, 
+            rgba(248, 249, 251, 0.68) 63%, 
+            rgba(248, 249, 251, 0.20) 80%, 
+            rgba(248, 249, 251, 0.02) 100%),
         url('/images/mahasiswa/banner-faq.jpg') no-repeat right center / cover;
     padding: 3rem 0 4.25rem;
     border-bottom: 1px solid var(--card-border);
@@ -237,6 +243,7 @@ body {
 }
 
 .hero-title {
+    font-family: 'Lora', Georgia, serif;
     font-size: 2.95rem;
     font-weight: 700;
     line-height: 1.15;

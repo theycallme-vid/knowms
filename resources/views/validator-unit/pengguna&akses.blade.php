@@ -169,13 +169,7 @@
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                 <div>
                     <div class="date-badge">
-                        @if($isValidatorUnit)
-                            RUANG VALIDATOR UNIT &middot; {{ strtoupper($callerUnitName) }}
-                        @elseif($isValidatorAdmik)
-                            RUANG PENELAAH PUSAT &middot; DIREKTORAT AKADEMIK
-                        @else
-                            MANAJEMEN PENGGUNA &amp; AKSES SISTEM
-                        @endif
+
                     </div>
                     <h1 class="page-title mb-1">{{ $isValidatorUnit ? 'Pengguna & Akses Unit' : 'Pengguna & Akses' }}</h1>
                     <p class="text-muted fs-13 mb-0">
@@ -211,12 +205,6 @@
                                 <option value="Data Entry">Data Entry ({{ $countDataEntry }})</option>
                             </select>
 
-                            <select id="statusSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-medium text-dark shadow-sm border-secondary-subtle" style="min-width: 155px;" onchange="filterTableRows()">
-                                <option value="all">Semua Status</option>
-                                <option value="aktif">Hanya Aktif</option>
-                                <option value="nonaktif">Hanya Nonaktif</option>
-                            </select>
-
                             <select id="unitSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-medium text-dark shadow-sm border-secondary-subtle" style="min-width: 215px;" onchange="filterTableRows()">
                                 <option value="all" selected>Semua Unit / Direktorat</option>
                                 @foreach($allDirektorats as $dOpt)
@@ -227,11 +215,6 @@
                             <span class="badge rounded-pill px-3 py-2 fs-12 fw-semibold" style="background-color:#FCEEEF;color:#85172C;border:1px solid #F3C5CE;">
                                 <i class="bi bi-building me-1"></i>Unit Terkunci: {{ $callerUnitName }} (Hanya Data Entry)
                             </span>
-                            <select id="statusSelectFilter" class="form-select form-select-sm rounded-pill px-3 py-2 fs-13 fw-medium text-dark shadow-sm border-secondary-subtle" style="min-width: 155px;" onchange="filterTableRows()">
-                                <option value="all">Semua Status</option>
-                                <option value="aktif">Hanya Aktif</option>
-                                <option value="nonaktif">Hanya Nonaktif</option>
-                            </select>
                         @endif
                     </div>
 
@@ -248,11 +231,10 @@
                         <thead>
                             <tr>
                                 <th style="width: 5%;">NO</th>
-                                <th style="width: 32%;">PENGGUNA</th>
-                                <th style="width: 24%;">UNIT / FAKULTAS</th>
-                                <th style="width: 15%;">PERAN</th>
-                                <th style="width: 11%;">STATUS</th>
-                                <th style="width: 13%; text-align: right;">AKSI</th>
+                                <th style="width: 37%;">PENGGUNA</th>
+                                <th style="width: 27%;">UNIT / FAKULTAS</th>
+                                <th style="width: 16%;">PERAN</th>
+                                <th style="width: 15%; text-align: right;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -324,19 +306,6 @@
                                         @endif
                                     </td>
 
-                                    <!-- Status (Font putih) -->
-                                    <td>
-                                        @if($u->is_active)
-                                            <span class="badge-role" style="background-color: #059669; color: #FFFFFF;">
-                                                <span class="badge-status-dot bg-white"></span> Aktif
-                                            </span>
-                                        @else
-                                            <span class="badge-role" style="background-color: #64748B; color: #FFFFFF;">
-                                                <span class="badge-status-dot bg-white"></span> Nonaktif
-                                            </span>
-                                        @endif
-                                    </td>
-
                                     <!-- Aksi: Lihat & Ubah -->
                                     <td class="text-end">
                                         @if((int) $u->tRoles_id === 1)
@@ -377,27 +346,17 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="5" class="text-center py-5">
                                         <div class="stat-icon mx-auto mb-2" style="background-color: #F8FAFC; color: #94A3B8;">
                                             <i class="bi bi-people fs-4"></i>
                                         </div>
                                         <div class="fw-bold fs-14 text-dark">Belum ada pengguna terdaftar</div>
-                                        <div class="text-muted fs-12 mb-3">Tambahkan akun baru untuk memberikan akses ke sistem KMS.</div>
-                                        <button type="button" class="btn btn-maroon btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalTambahPengguna">
-                                            + Tambah Pengguna
-                                        </button>
+                                        <div class="text-muted fs-12">Tambahkan akun baru melalui tombol Tambah Data Entry di pojok kanan atas.</div>
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
-                </div>
-
-                <!-- Empty State after filtering -->
-                <div id="noDataFiltered" class="text-center py-5 d-none">
-                    <i class="bi bi-search fs-2 text-muted mb-2 d-block"></i>
-                    <div class="fw-bold fs-14 text-dark">Tidak ada data pengguna yang cocok</div>
-                    <div class="text-muted fs-12">Coba sesuaikan kata kunci pencarian, unit, atau filter peran.</div>
                 </div>
 
                 <!-- Bottom Info & Pagination (10 item/halaman) -->
@@ -439,7 +398,6 @@
                     <div class="mb-3">
                         <label for="create_nama" class="form-label-custom">Nama Lengkap <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-custom" id="create_nama" name="nama" required maxlength="100" placeholder="Contoh: Sarah Anindya, S.Kom">
-                        <div class="form-text fs-11 text-muted">Sesuai nama identitas staf kampus.</div>
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -470,7 +428,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-1">
                             <div class="fs-11 text-muted" id="create_password_msg">
-                                <i class="bi bi-info-circle me-1"></i>Minimal 8 karakter.
+                                
                             </div>
                             <div class="fs-11 fw-semibold text-muted" id="create_password_counter">
                                 0/8 karakter
@@ -478,15 +436,7 @@
                         </div>
                     </div>
 
-                    @if($isValidatorUnit)
-                        <div class="p-3 rounded-3 border bg-light mb-3">
-                            <div class="fs-12 fw-semibold text-dark mb-1">Penugasan Otomatis Unit Anda:</div>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="badge-role badge-role-dataentry"><i class="bi bi-pencil-fill"></i> Role: Data Entry</span>
-                                <span class="badge rounded-pill bg-white text-dark border px-2.5 py-1 fs-12"><i class="bi bi-building me-1"></i>Unit: {{ $callerUnitName }}</span>
-                            </div>
-                        </div>
-                    @else
+                    @if(!$isValidatorUnit)
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
                                 <label for="create_role" class="form-label-custom">Pemberian Role <span class="text-danger">*</span></label>

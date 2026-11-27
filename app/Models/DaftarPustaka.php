@@ -35,6 +35,35 @@ class DaftarPustaka extends Model
         return !empty($this->upload);
     }
 
+    /** Normalisasi tautan eksternal: tambahkan https:// bila user tidak mengetikkan skema */
+    public static function normalizeLink(?string $raw): ?string
+    {
+        $val = trim((string) $raw);
+        if ($val === '') {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $val)) {
+            return $val;
+        }
+        if (str_contains($val, '.') && !str_contains($val, ' ')) {
+            return 'https://' . ltrim($val, '/');
+        }
+        return $val;
+    }
+
+    /** URL siap buka untuk dokumen (BLOB route) maupun tautan eksternal */
+    public function getResolvedUrlAttribute(): string
+    {
+        if (!empty($this->upload)) {
+            return route('pustaka.lihat', $this->id);
+        }
+        $normalized = self::normalizeLink($this->link);
+        if ($normalized && filter_var($normalized, FILTER_VALIDATE_URL)) {
+            return $normalized;
+        }
+        return '';
+    }
+
     /** Seluruh sumber pustaka otomatis bersifat Publik (dapat dilihat mahasiswa) */
     public function isPublic(): bool
     {

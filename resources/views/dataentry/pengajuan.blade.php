@@ -371,9 +371,8 @@
                                     </th>
                                     <th style="width: 130px;">Kode / Versi</th>
                                     <th>Pertanyaan</th>
-                                    <th style="width: 170px;">Data Entry</th>
-                                    <th style="width: 155px;">Waktu Pengajuan</th>
                                     <th style="width: 215px;">Status</th>
+                                    <th style="width: 155px;">Waktu Pengajuan</th>
                                     <th style="width: 195px;">Aksi</th>
                                 </tr>
                             </thead>
@@ -469,37 +468,17 @@
                                             <div class="faq-version">{{ $versionLabel }}</div>
                                         </td>
 
-                                        <!-- Pertanyaan + Milestone Stepper + Catatan Revisi -->
+                                        <!-- Pertanyaan -->
                                         <td>
                                             <div class="faq-question">{{ $faq->pertanyaan }}</div>
-                                            <div class="kms-mini-stepper">
-                                                <span class="kms-mini-step {{ $drafStepCls }}">1. Pengajuan</span>
-                                                @if(!$faqIsPusat)
-                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
-                                                    <span class="kms-mini-step {{ $unitStepCls }}">2. Validasi Unit</span>
-                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
-                                                    <span class="kms-mini-step {{ $admikStepCls }}">3. Validasi Admik</span>
-                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
-                                                    <span class="kms-mini-step">4. Terbit</span>
-                                                @else
-                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
-                                                    <span class="kms-mini-step {{ $admikStepCls }}">2. Validasi Admik</span>
-                                                    <span class="text-muted" style="font-size:0.65rem;">&rarr;</span>
-                                                    <span class="kms-mini-step">3. Terbit</span>
-                                                @endif
-                                            </div>
-                                            @if(in_array($stLower, ['ditolak', 'rejected'], true) && $latestVersion && $latestVersion->catatan)
-                                                <div class="mt-1">
-                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-normal">
-                                                        <i class="bi bi-exclamation-circle me-1"></i><strong>{{ $statusLabel }}:</strong> {{ \Illuminate\Support\Str::limit($latestVersion->catatan, 65) }}
-                                                    </span>
-                                                </div>
-                                            @endif
                                         </td>
 
-                                        <!-- Data Entry -->
+                                        <!-- Status -->
                                         <td>
-                                            <div class="fs-13 fw-bold text-dark lh-sm">{{ $deName }}</div>
+                                            <span class="badge-status {{ $statusClass }}" style="{{ $status === 'Menunggu Validasi Unit' ? 'background-color:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;' : '' }}">
+                                                <i class="bi {{ $statusIcon }}"></i>
+                                                {{ $statusLabel }}
+                                            </span>
                                         </td>
 
                                         <!-- Waktu Pengajuan -->
@@ -510,14 +489,6 @@
                                             <div class="fs-11 text-muted mt-0.5">
                                                 {{ $createdAtJkt ? $createdAtJkt->format('H.i') . ' WIB' : '' }}
                                             </div>
-                                        </td>
-
-                                        <!-- Status -->
-                                        <td>
-                                            <span class="badge-status {{ $statusClass }}" style="{{ $status === 'Menunggu Validasi Unit' ? 'background-color:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;' : '' }}">
-                                                <i class="bi {{ $statusIcon }}"></i>
-                                                {{ $statusLabel }}
-                                            </span>
                                         </td>
 
                                         <!-- Aksi (Lihat & Ubah) -->
@@ -553,7 +524,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center py-5">
+                                        <td colspan="6" class="text-center py-5">
                                             <div class="d-flex flex-column align-items-center gap-2 text-muted">
                                                 <i class="bi bi-send-check fs-2 opacity-50"></i>
                                                 <div class="fw-semibold fs-14 text-dark">Belum ada antrean pengajuan FAQ</div>

@@ -195,43 +195,6 @@
                 </div>
             </div>
 
-            <!-- Statistik Ringkas -->
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-md-4">
-                    <div class="stat-card-compact h-100">
-                        <div class="stat-icon" style="background-color:#EFF6FF; color:#2563EB;">
-                            <i class="bi bi-buildings"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Total Unit Terdaftar</div>
-                            <div class="stat-value">{{ $totalUnits }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-4">
-                    <div class="stat-card-compact h-100">
-                        <div class="stat-icon" style="background-color:#ECFDF5; color:#059669;">
-                            <i class="bi bi-check2-circle"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Unit Aktif</div>
-                            <div class="stat-value">{{ $activeUnits }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-4">
-                    <div class="stat-card-compact h-100">
-                        <div class="stat-icon" style="background-color:#F1F5F9; color:#64748B;">
-                            <i class="bi bi-pause-circle"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Unit Nonaktif</div>
-                            <div class="stat-value">{{ $inactiveUnits }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Tabel Unit -->
             <div class="card-custom">
                 <div class="d-flex align-items-center justify-content-end gap-3 mb-3 pb-3 border-bottom">
@@ -247,14 +210,13 @@
                     <table class="table custom-user-table align-middle" id="unitTable">
                         <thead>
                             <tr>
-                                <th style="width: 6%;">NO</th>
-                                <th style="width: 32%;">NAMA UNIT / DIREKTORAT</th>
-                                <th style="width: 14%;">KLASIFIKASI</th>
-                                <th style="width: 12%;">VALIDATOR</th>
-                                <th style="width: 12%;">DATA ENTRY</th>
-                                <th style="width: 10%;">TOTAL FAQ</th>
-                                <th style="width: 12%;">STATUS</th>
-                                <th style="width: 14%; text-align: right;">AKSI</th>
+                                <th style="width: 5%;" class="text-start">NO</th>
+                                <th style="width: 35%;" class="text-start">NAMA UNIT / DIREKTORAT</th>
+                                <th style="width: 12%;" class="text-center">VALIDATOR</th>
+                                <th style="width: 12%;" class="text-center">DATA ENTRY</th>
+                                <th style="width: 11%;" class="text-center">TOTAL FAQ</th>
+                                <th style="width: 11%;" class="text-center">STATUS</th>
+                                <th style="width: 14%;" class="text-end">AKSI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -264,8 +226,8 @@
                                     data-nama="{{ $dir->nama }}"
                                     data-is-pusat="{{ $dir->is_pusat ? '1' : '0' }}"
                                     data-is-active="{{ $dir->is_active ? '1' : '0' }}">
-                                    <td class="text-muted fw-semibold fs-12">{{ $idx + 1 }}</td>
-                                    <td>
+                                    <td class="text-muted fw-semibold fs-12 text-start">{{ $idx + 1 }}</td>
+                                    <td class="text-start">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-user-table flex-shrink-0" style="{{ $dir->is_pusat ? 'background-color:#FCEEEF;color:#85172C;' : 'background-color:#EFF6FF;color:#1D4ED8;' }}">
                                                 <i class="bi {{ $dir->is_pusat ? 'bi-bank2' : 'bi-building' }}"></i>
@@ -275,51 +237,52 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        @if($dir->is_pusat)
-                                            <span class="badge rounded-pill" style="background-color:#FCEEEF;color:#85172C;border:1px solid #F3C5CE;font-size:0.72rem;padding:0.32rem 0.75rem;font-weight:700;">
-                                                <i class="bi bi-star-fill me-1"></i>Pusat (Admik)
-                                            </span>
-                                        @else
-                                            <span class="badge rounded-pill" style="background-color:#F8FAFC;color:#334155;border:1px solid #CBD5E1;font-size:0.72rem;padding:0.32rem 0.75rem;font-weight:600;">
-                                                Unit / Fakultas
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td>
+                                    <td class="text-center">
                                         <span class="fw-semibold fs-13 text-dark">{{ $dir->validators_count ?? 0 }}</span>
                                         <span class="fs-11 text-muted">akun</span>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <span class="fw-semibold fs-13 text-dark">{{ $dir->data_entries_count ?? 0 }}</span>
                                         <span class="fs-11 text-muted">akun</span>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-light text-dark border fw-semibold fs-12 px-2.5 py-1">{{ $dir->faqs_count ?? 0 }} FAQ</span>
+                                    <td class="text-center">
+                                        <span class="fw-semibold fs-13 text-dark">{{ $dir->faqs_count ?? 0 }}</span>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         @if($dir->is_active)
                                             <span class="badge-role" style="background-color: #059669; color: #FFFFFF;">
                                                 <span class="badge-status-dot bg-white"></span> Aktif
                                             </span>
                                         @else
-                                            <span class="badge-role badge-inactive">
-                                                <span class="badge-status-dot bg-secondary"></span> Nonaktif
+                                            <span class="badge-role" style="background-color: #64748B; color: #FFFFFF;">
+                                                <span class="badge-status-dot bg-white"></span> Nonaktif
                                             </span>
                                         @endif
                                     </td>
                                     <td class="text-end">
-                                        <div class="d-inline-flex align-items-center gap-1">
+                                        <div class="d-inline-flex align-items-center justify-content-end gap-2">
                                             <button type="button" class="btn-action btn-action-edit" onclick="openEditUnitModal(this)" title="Ubah Unit & Status">
                                                 <i class="bi bi-pencil"></i>
                                                 <span>Ubah</span>
                                             </button>
+
+                                            @if(!$dir->is_pusat)
+                                                <form action="{{ $unitBaseUrl }}/toggle-status/{{ $dir->id }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit"
+                                                            class="btn-action-icon"
+                                                            style="{{ $dir->is_active ? 'background-color:#FEF2F2;color:#DC2626;border-color:#FECACA;' : 'background-color:#ECFDF5;color:#059669;border-color:#A7F3D0;' }}"
+                                                            title="{{ $dir->is_active ? 'Nonaktifkan Unit' : 'Aktifkan Unit' }}">
+                                                        <i class="bi bi-power"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-5 text-muted fs-13">Belum ada unit terdaftar.</td>
+                                    <td colspan="7" class="text-center py-5 text-muted fs-13">Belum ada unit terdaftar.</td>
                                 </tr>
                             @endforelse
                         </tbody>

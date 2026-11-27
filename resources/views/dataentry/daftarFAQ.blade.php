@@ -518,22 +518,18 @@
                                                 <span class="badge rounded-pill bg-light text-secondary border" style="font-size:0.7rem;padding:0.35rem 0.65rem;" title="FAQ terbit lintas unit bersifat Read-Only">
                                                     <i class="bi bi-lock-fill me-1"></i>Read-Only
                                                 </span>
-                                            @elseif(\App\Models\FaqVersion::isWaitingValidation($stLower))
-                                                <button type="button"
-                                                        class="btn-action btn-action-edit action-icon-disabled"
-                                                        style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
-                                                        title="Terkunci — Tidak dapat diubah saat status Menunggu Validasi"
-                                                        disabled>
-                                                    <i class="bi bi-pencil"></i> Ubah
-                                                </button>
-                                            @elseif(in_array($stLower, ['ditolak', 'rejected'], true))
-                                                <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Revisi FAQ ({{ $latestVersion?->id ?? ($faq->id . '-V1') }})">
-                                                    <i class="bi bi-pencil"></i> Revisi
-                                                </a>
-                                            @else
+                                            @elseif(in_array($stLower, ['terbit', 'active'], true))
                                                 <a href="{{ route('dataentry.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Tambah Versi Jawaban Baru ({{ $nextVerId }})">
                                                     <i class="bi bi-pencil"></i> Ubah
                                                 </a>
+                                            @else
+                                                <button type="button"
+                                                        class="btn-action btn-action-edit action-icon-disabled"
+                                                        style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
+                                                        title="Terkunci — Tombol Ubah aktif setelah FAQ berstatus Terbit"
+                                                        disabled>
+                                                    <i class="bi bi-pencil"></i> Ubah
+                                                </button>
                                             @endif
                                         </div>
                                     </td>

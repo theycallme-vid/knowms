@@ -493,9 +493,19 @@
                                             <button type="button" class="btn-action btn-action-view" onclick="viewValidatorFaqDetail('{{ $faq->id }}')">
                                                 <i class="bi bi-eye"></i> Lihat
                                             </button>
-                                            <a href="{{ route('validator.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="{{ in_array($stValLower, ['ditolak', 'rejected'], true) ? 'Revisi FAQ (' . ($latestVersion?->id ?? ($faq->id . '-V1')) . ')' : 'Ubah / Buat Versi Baru (' . $nextVerId . ')' }}">
-                                                <i class="bi bi-pencil"></i> {{ in_array($stValLower, ['ditolak', 'rejected'], true) ? 'Revisi' : 'Ubah' }}
-                                            </a>
+                                            @if(in_array($stValLower, ['terbit', 'active'], true))
+                                                <a href="{{ route('validator.faq.edit', $faq->id) }}" class="btn-action btn-action-edit text-decoration-none" title="Ubah / Buat Versi Baru ({{ $nextVerId }})">
+                                                    <i class="bi bi-pencil"></i> Ubah
+                                                </a>
+                                            @else
+                                                <button type="button"
+                                                        class="btn-action btn-action-edit action-icon-disabled"
+                                                        style="opacity: 0.45; cursor: not-allowed; background-color: #F1F5F9; color: #94A3B8; border-color: #CBD5E1;"
+                                                        title="Terkunci — Tombol Ubah aktif setelah FAQ berstatus Terbit"
+                                                        disabled>
+                                                    <i class="bi bi-pencil"></i> Ubah
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

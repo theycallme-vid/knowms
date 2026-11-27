@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan mahasiswa: temukan jawaban seputar KRS, registrasi, cuti kuliah, KHS, dan beasiswa.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Inter & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -310,8 +310,8 @@
             $pustaka = $activeVer?->daftarPustaka;
             $isFileSource = $pustaka ? !empty($pustaka->upload) : false;
             $sourceLabel = $pustaka ? ($pustaka->judul_tampil ?: $pustaka->link) : null;
-            $sourceUrl = $pustaka
-                ? ($isFileSource ? route('pustaka.lihat', $pustaka->id) : (filter_var($pustaka->link, FILTER_VALIDATE_URL) ? $pustaka->link : '#'))
+            $sourceUrl = ($pustaka && $pustaka->resolved_url !== '')
+                ? $pustaka->resolved_url
                 : '#';
             $tagNamesList = $dbFaq->tags->pluck('nama')->values()->all();
             $tagNames = implode(' · ', $tagNamesList);
@@ -322,8 +322,8 @@
                 $vPustaka = $verItem->daftarPustaka;
                 $vIsFile = $vPustaka ? !empty($vPustaka->upload) : false;
                 $vSourceLabel = $vPustaka ? ($vPustaka->judul_tampil ?: $vPustaka->link) : null;
-                $vSourceUrl = $vPustaka
-                    ? ($vIsFile ? route('pustaka.lihat', $vPustaka->id) : (filter_var($vPustaka->link, FILTER_VALIDATE_URL) ? $vPustaka->link : null))
+                $vSourceUrl = ($vPustaka && $vPustaka->resolved_url !== '')
+                    ? $vPustaka->resolved_url
                     : null;
                 $vTs = $verItem->updated_at ?? $verItem->created_at;
                 $versionsHistory[] = [
