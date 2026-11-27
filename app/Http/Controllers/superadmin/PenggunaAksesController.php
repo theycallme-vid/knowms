@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class PenggunaAksesController extends Controller
@@ -377,14 +378,22 @@ class PenggunaAksesController extends Controller
         $caller = $this->assertCanManageUnits();
         $isSuperAdmin = $caller->isAdmin();
 
-        $direktorats = Direktorat::withCount([
+        $withCounts = [
             'users as validators_count'   => fn ($q) => $q->where('tRoles_id', 3),
             'users as data_entries_count' => fn ($q) => $q->where('tRoles_id', 2),
-            'faqs as faqs_count',
-        ])
-            ->orderByDesc('is_pusat')
-            ->orderBy('nama', 'asc')
-            ->get();
+        ];
+
+        if (Schema::hasColumn('tfaqs', 'tDirektorat_id')) {
+            $withCounts[] = 'faqs as faqs_count';
+        }
+
+        $query = Direktorat::withCount($withCounts);
+
+        if (Schema::hasColumn('tdirektorat', 'is_pusat')) {
+            $query->orderByDesc('is_pusat');
+        }
+
+        $direktorats = $query->orderBy('nama', 'asc')->get();
 
         $unitBaseUrl   = $isSuperAdmin ? url('/superadmin/kelola-unit') : url('/validator/kelola-unit');
         $unitStoreUrl  = $isSuperAdmin ? route('superadmin.kelolaUnit.store') : route('validator.kelolaUnit.store');
