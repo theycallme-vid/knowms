@@ -1,19 +1,10 @@
 :root {
-    --portal-bg: #FAF8F5;
-    --card-bg: #FFFFFF;
-    --card-border: #EBE6DF;
-    --brand-maroon: #881327;
-    --brand-maroon-hover: #6E0E1E;
-    --brand-maroon-soft: #FCEEEF;
-    --brand-maroon-border: #F6D4D8;
-    --scanner-bg: #EDF2F7;
-    --scanner-frame: #64748B;
-    --text-heading: #182230;
-    --text-body: #344054;
-    --text-muted: #667085;
-    --text-subtle: #98A2B3;
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-serif: 'Lora', Georgia, serif;
+    --brand-maroon: #85172C;
+    --brand-maroon-hover: #6D1122;
+    --text-heading: #0F172A;
+    --text-body: #334155;
+    --text-muted: #64748B;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -22,267 +13,226 @@
 
 body {
     font-family: var(--font-sans);
-    background-color: var(--portal-bg);
     color: var(--text-body);
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    min-height: 100svh;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
-}
-
-/* ========================================================================= */
-/* TYPOGRAPHY & HELPERS                                                      */
-/* ========================================================================= */
-.display-serif {
-    font-family: var(--font-serif);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text-heading);
-}
-
-.text-maroon {
-    color: var(--brand-maroon) !important;
-}
-
-.fs-11 {
-    font-size: 0.6875rem !important;
+    background:
+        radial-gradient(circle at 50% 42%,
+            rgba(248, 249, 251, 0.72) 0%,
+            rgba(248, 249, 251, 0.52) 55%,
+            rgba(248, 249, 251, 0.34) 100%),
+        url('/images/mahasiswa/banner-faq.jpg') no-repeat center center / cover;
+    background-attachment: fixed;
 }
 
 .fs-12 {
     font-size: 0.75rem !important;
 }
 
-.fs-13 {
-    font-size: 0.8125rem !important;
-}
-
-.fs-14 {
-    font-size: 0.875rem !important;
-}
-
-.fs-15 {
-    font-size: 0.9375rem !important;
-}
-
-/* Full-Page Responsive Container */
-.portal-container {
-    width: 100%;
-    max-width: 100%;
-    padding-left: 4rem;
-    padding-right: 4rem;
-}
-
-@media (min-width: 1400px) {
-    .portal-container {
-        padding-left: 5rem;
-        padding-right: 5rem;
-    }
-}
-
-@media (max-width: 991.98px) {
-    .portal-container {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
-}
-
-@media (max-width: 575.98px) {
-    .portal-container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-}
-
 /* ========================================================================= */
-/* MAIN LAYOUT & BRAND LOGO (MENYATU DENGAN BODY CREAM)                      */
+/* CENTERED FULL-SCREEN LAYOUT                                               */
 /* ========================================================================= */
 .portal-main {
-    flex: 1;
+    min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
-    padding: 0.75rem 0 0.25rem;
+    justify-content: center;
+    padding: 1.5rem 1rem;
 }
 
-.portal-brand-bar {
-    background: transparent;
-    border: none;
+.portal-shell {
+    width: clamp(320px, 44vw, 820px);
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Clean Elevated Architectural Glass Card (Fluidly Scaled for Mobile, Laptop & Large AIO PC) */
+.portal-card {
+    position: relative;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: clamp(20px, 1.8vw, 32px);
+    padding: clamp(1.5rem, 3.2vh, 3.25rem) clamp(1.35rem, 3.2vw, 3.5rem) clamp(1.4rem, 2.8vh, 2.75rem);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        0 24px 56px -16px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.portal-header {
+    text-align: center;
+    margin-bottom: clamp(1.1rem, 2.2vh, 2rem);
 }
 
 .portal-logo-img {
-    height: 80px;
-    max-width: 100%;
+    height: clamp(50px, 6.2vh, 88px);
     width: auto;
     object-fit: contain;
     display: block;
 }
 
-@media (max-width: 991.98px) {
-    .portal-logo-img {
-        height: 60px;
-    }
-}
-
-/* ========================================================================= */
-/* LEFT COLUMN: HERO, CAMPUS IMAGE & GUEST CARD                              */
-/* ========================================================================= */
-.portal-eyebrow {
-    font-size: 0.7rem;
+.portal-title {
+    font-size: clamp(1.25rem, 1.45vw + 0.55rem, 2.05rem);
     font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--brand-maroon);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    letter-spacing: -0.02em;
+    color: var(--text-heading);
+    margin: 0 0 clamp(0.35rem, 0.7vh, 0.6rem);
 }
 
-.portal-eyebrow::before {
-    content: "";
-    display: inline-block;
-    width: 20px;
-    height: 1.75px;
-    background-color: var(--brand-maroon);
-}
-
-.portal-hero-title {
-    font-size: clamp(2rem, 2.8vw, 2.75rem);
-    line-height: 1.14;
-    font-weight: 600;
-}
-
-.portal-hero-desc {
-    font-size: 0.9rem;
+.portal-subtitle {
+    font-size: clamp(0.8rem, 0.72vw + 0.35rem, 1.08rem);
     line-height: 1.55;
     color: var(--text-muted);
-    max-width: 540px;
+    margin: 0;
 }
 
-.feature-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
+/* ========================================================================= */
+/* SEGMENTED SWITCH (SCAN QR KTM | INPUT NRP)                                */
+/* ========================================================================= */
+.portal-segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(4px, 0.4vw, 7px);
+    padding: clamp(4px, 0.45vw, 7px);
+    border-radius: clamp(12px, 1vw, 18px);
+    background: rgba(15, 23, 42, 0.06);
+    margin-bottom: clamp(1.1rem, 2.2vh, 2rem);
+}
+
+.portal-segment-btn {
+    border: 0;
+    background: transparent;
+    color: #475569;
+    font-size: clamp(0.82rem, 0.7vw + 0.35rem, 1.08rem);
     font-weight: 600;
-    color: var(--text-body);
-}
-
-/* Easy-to-change Campus Image Wrapper */
-.campus-banner-wrapper {
-    position: relative;
-    width: 100%;
-    height: 180px;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background-color: #E2E8F0;
-}
-
-.campus-banner-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    display: block;
-    transition: transform 0.4s ease;
-}
-
-.campus-banner-wrapper:hover .campus-banner-img {
-    transform: scale(1.02);
-}
-
-/* Guest Access Card */
-.guest-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 14px;
-    padding: 0.8rem 1.1rem;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.025);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-    text-decoration: none;
-    color: inherit;
-}
-
-.guest-card:hover {
-    border-color: #D0D5DD;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-    transform: translateY(-1px);
-}
-
-.guest-icon-box {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background-color: #F0F5FA;
-    color: #3B6998;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.05rem;
-    flex-shrink: 0;
-}
-
-.guest-action-link {
-    font-size: 0.8125rem;
-    font-weight: 700;
-    color: var(--brand-maroon);
-    white-space: nowrap;
+    padding: clamp(0.58rem, 1.15vh, 0.95rem) clamp(0.75rem, 1vw, 1.25rem);
+    border-radius: clamp(9px, 0.8vw, 14px);
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.16s ease;
+}
+
+.portal-segment-btn:hover:not(.active) {
+    color: var(--text-heading);
+}
+
+.portal-segment-btn.active {
+    background: #FFFFFF;
+    color: var(--text-heading);
+    box-shadow:
+        0 2px 8px rgba(15, 23, 42, 0.08),
+        0 0 0 0.5px rgba(15, 23, 42, 0.06);
+}
+
+.portal-segment-btn.active i {
+    color: var(--brand-maroon);
 }
 
 /* ========================================================================= */
-/* RIGHT COLUMN: STUDENT PORTAL SCANNER CARD                                 */
+/* NRP INPUT PANE                                                            */
 /* ========================================================================= */
-.portal-access-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 20px;
-    padding: 1.65rem 2.1rem;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.045);
+.portal-label {
+    display: block;
+    font-size: clamp(0.8rem, 0.65vw + 0.3rem, 1rem);
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: clamp(0.42rem, 0.7vh, 0.6rem);
 }
 
-@media (max-width: 575.98px) {
-    .portal-access-card {
-        padding: 1.35rem 1.25rem;
-    }
+.nrp-input-wrapper {
+    position: relative;
 }
 
-.badge-akses-mhs {
-    display: inline-block;
-    background-color: var(--brand-maroon-soft);
-    color: var(--brand-maroon);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0.3rem 0.65rem;
-    border-radius: 999px;
+.nrp-input-icon {
+    position: absolute;
+    left: clamp(14px, 1.1vw, 18px);
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748B;
+    font-size: clamp(1.05rem, 1vw + 0.25rem, 1.35rem);
+    pointer-events: none;
 }
 
-.qr-corner-badge {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background-color: #FCFBF9;
-    border: 1px solid var(--card-border);
-    color: var(--brand-maroon);
+.nrp-form-control {
+    width: 100%;
+    height: clamp(48px, 5.6vh, 64px);
+    padding: 0.7rem 1.1rem 0.7rem clamp(2.65rem, 2.6vw, 3.35rem);
+    font-family: var(--font-sans);
+    font-size: clamp(0.92rem, 0.8vw + 0.35rem, 1.18rem);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--text-heading);
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: clamp(12px, 0.9vw, 16px);
+    outline: none;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.nrp-form-control::placeholder {
+    color: #94A3B8;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.nrp-form-control:focus {
+    border-color: var(--brand-maroon);
+    box-shadow: 0 0 0 3.5px rgba(133, 23, 44, 0.10);
+}
+
+.nrp-form-control.is-invalid-nrp {
+    border-color: #DC2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
+}
+
+.nrp-hint {
+    font-size: clamp(0.75rem, 0.6vw + 0.25rem, 0.92rem);
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.nrp-detected-box {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.45rem;
+    font-size: clamp(0.78rem, 0.65vw + 0.25rem, 0.95rem);
+    font-weight: 600;
+    color: #059669;
+    margin-top: 0.5rem;
 }
 
-/* Camera Scanner Viewport */
+.nrp-error-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    font-size: clamp(0.76rem, 0.62vw + 0.25rem, 0.92rem);
+    font-weight: 500;
+    color: #DC2626;
+    margin-top: 0.5rem;
+    line-height: 1.45;
+}
+
+/* ========================================================================= */
+/* QR SCANNER PANE                                                           */
+/* ========================================================================= */
 .camera-viewport {
     position: relative;
     width: 100%;
-    height: 335px;
-    background-color: var(--scanner-bg);
-    border-radius: 14px;
+    height: clamp(210px, 31vh, 420px);
+    background: #F1F5F9;
+    border-radius: clamp(14px, 1.2vw, 22px);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -299,141 +249,110 @@ body {
     z-index: 1;
 }
 
-/* Scanner Reticle / Frame Guides */
 .scanner-frame {
     position: absolute;
-    inset: 22px 38px;
+    inset: 22px 46px;
     z-index: 2;
     pointer-events: none;
 }
 
 @media (max-width: 575.98px) {
     .scanner-frame {
-        inset: 18px 22px;
+        inset: 18px 28px;
     }
 }
 
-/* Corner Brackets */
 .scanner-corner {
     position: absolute;
-    width: 18px;
-    height: 18px;
-    border-color: var(--scanner-frame);
+    width: 20px;
+    height: 20px;
+    border-color: #94A3B8;
     border-style: solid;
     border-width: 0;
-    transition: border-color 0.25s ease;
+    transition: border-color 0.2s ease;
 }
 
-.camera-viewport.is-active .scanner-corner,
-.camera-viewport.is-active .scanner-mid {
+.camera-viewport.is-active .scanner-corner {
     border-color: #FFFFFF;
-    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
 }
 
 .corner-tl {
     top: 0;
     left: 0;
-    border-top-width: 2px;
-    border-left-width: 2px;
-    border-top-left-radius: 6px;
+    border-top-width: 2.5px;
+    border-left-width: 2.5px;
+    border-top-left-radius: 7px;
 }
 
 .corner-tr {
     top: 0;
     right: 0;
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-top-right-radius: 6px;
+    border-top-width: 2.5px;
+    border-right-width: 2.5px;
+    border-top-right-radius: 7px;
 }
 
 .corner-bl {
     bottom: 0;
     left: 0;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
-    border-bottom-left-radius: 6px;
+    border-bottom-width: 2.5px;
+    border-left-width: 2.5px;
+    border-bottom-left-radius: 7px;
 }
 
 .corner-br {
     bottom: 0;
     right: 0;
-    border-bottom-width: 2px;
-    border-right-width: 2px;
-    border-bottom-right-radius: 6px;
+    border-bottom-width: 2.5px;
+    border-right-width: 2.5px;
+    border-bottom-right-radius: 7px;
 }
 
-/* Midpoint Dashes matching the design */
-.scanner-mid {
-    position: absolute;
-    border-color: var(--scanner-frame);
-    border-style: solid;
-    border-width: 0;
-    opacity: 0.7;
-}
-
-.mid-top {
-    top: 0;
-    left: 50%;
-    width: 22px;
-    transform: translateX(-50%);
-    border-top-width: 2px;
-}
-
-.mid-bottom {
-    bottom: 0;
-    left: 50%;
-    width: 22px;
-    transform: translateX(-50%);
-    border-bottom-width: 2px;
-}
-
-.mid-left {
-    left: 0;
-    top: 50%;
-    height: 22px;
-    transform: translateY(-50%);
-    border-left-width: 2px;
-}
-
-.mid-right {
-    right: 0;
-    top: 50%;
-    height: 22px;
-    transform: translateY(-50%);
-    border-right-width: 2px;
-}
-
-/* Placeholder content inside camera viewport */
 .camera-placeholder {
     position: relative;
     z-index: 2;
     text-align: center;
-    padding: 1rem;
+    padding: 1rem 1.5rem;
 }
 
 .camera-icon-card {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background-color: #FFFFFF;
-    color: #64748B;
+    width: clamp(44px, 5.2vh, 68px);
+    height: clamp(44px, 5.2vh, 68px);
+    border-radius: clamp(12px, 1vw, 18px);
+    background: #FFFFFF;
+    color: var(--brand-maroon);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: clamp(1.2rem, 1.3vw + 0.35rem, 1.85rem);
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-    margin-bottom: 0.65rem;
+    margin-bottom: clamp(0.55rem, 1vh, 0.9rem);
 }
 
-/* Live Status Pill overlay when camera is active */
+.camera-placeholder-title {
+    font-size: clamp(0.88rem, 0.75vw + 0.35rem, 1.15rem);
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.25rem;
+}
+
+.camera-placeholder-desc {
+    font-size: clamp(0.75rem, 0.62vw + 0.3rem, 0.96rem);
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: clamp(240px, 26vw, 400px);
+    margin: 0 auto;
+}
+
 .camera-live-badge {
     position: absolute;
     bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 3;
-    background: rgba(15, 23, 42, 0.72);
-    backdrop-filter: blur(4px);
+    background: rgba(15, 23, 42, 0.74);
+    backdrop-filter: blur(8px);
     color: #FFFFFF;
     font-size: 0.7rem;
     font-weight: 500;
@@ -449,11 +368,10 @@ body {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background-color: #22C55E;
+    background: #22C55E;
     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
 }
 
-/* Switch Camera Floating Button */
 .btn-switch-camera {
     position: absolute;
     top: 10px;
@@ -470,191 +388,140 @@ body {
     justify-content: center;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: background 0.15s ease;
 }
 
-.btn-switch-camera:hover {
-    background: rgba(15, 23, 42, 0.85);
-}
-
-/* Primary Maroon Button */
+/* ========================================================================= */
+/* BUTTONS (LIQUID GLASS MAROON & CLEAN GUEST SECONDARY)                     */
+/* ========================================================================= */
 .btn-portal-maroon {
-    background-color: var(--brand-maroon);
-    color: #FFFFFF;
-    font-size: 0.84rem;
-    font-weight: 600;
-    padding: 0.72rem 1.25rem;
-    border-radius: 10px;
-    border: none;
+    position: relative;
     width: 100%;
+    height: clamp(48px, 5.6vh, 64px);
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    border-radius: clamp(12px, 0.9vw, 16px);
+    background: rgba(133, 23, 44, 0.88);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    color: #FFFFFF;
+    font-family: var(--font-sans);
+    font-size: clamp(0.88rem, 0.75vw + 0.35rem, 1.12rem);
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    gap: 0.55rem;
+    cursor: pointer;
+    box-shadow:
+        inset 0 0.75px 0 rgba(255, 255, 255, 0.35),
+        0 10px 24px -8px rgba(133, 23, 44, 0.40);
+    transition: all 0.16s ease;
 }
 
-.btn-portal-maroon:hover,
-.btn-portal-maroon:focus {
-    background-color: var(--brand-maroon-hover);
-    color: #FFFFFF;
+.btn-portal-maroon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.48) 0%,
+        rgba(255, 255, 255, 0.10) 40%,
+        rgba(255, 255, 255, 0.04) 64%,
+        rgba(255, 214, 222, 0.34) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.btn-portal-maroon:hover:not(:disabled) {
+    background: rgba(148, 26, 50, 0.94);
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 0.75px 0 rgba(255, 255, 255, 0.42),
+        0 12px 28px -8px rgba(133, 23, 44, 0.48);
+}
+
+.btn-portal-maroon:active:not(:disabled) {
+    transform: scale(0.988);
 }
 
 .btn-portal-maroon.is-stop {
-    background-color: #334155;
+    background: rgba(51, 65, 85, 0.90);
+    box-shadow: 0 8px 20px -8px rgba(15, 23, 42, 0.35);
 }
 
-.btn-portal-maroon.is-stop:hover {
-    background-color: #1E293B;
+.btn-portal-maroon.is-stop:hover:not(:disabled) {
+    background: rgba(30, 41, 59, 0.96);
 }
 
-/* Step List on the right of scanner */
-.portal-step-header {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #1E293B;
-    letter-spacing: -0.01em;
-    margin-bottom: 1.5rem;
-}
-
-.portal-step-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 1.15rem;
-    margin-bottom: 1.4rem;
-}
-
-.portal-step-item:last-child {
-    margin-bottom: 0;
-}
-
-.step-number-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #F4EEE8;
-    color: #1E293B;
-    font-size: 1rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-
-.step-title {
-    font-size: 1.025rem;
-    font-weight: 700;
-    color: #182C4A;
-    margin-bottom: 0.25rem;
-    line-height: 1.35;
-}
-
-.step-desc {
-    font-size: 0.925rem;
-    color: #64748B;
-    line-height: 1.5;
-    margin: 0;
-}
-
-/* Divider with text */
 .portal-divider {
     display: flex;
     align-items: center;
     text-align: center;
-    color: var(--text-subtle);
-    font-size: 0.75rem;
-    margin: 1rem 0 0.85rem;
+    color: #94A3B8;
+    font-size: clamp(0.74rem, 0.6vw + 0.25rem, 0.92rem);
+    font-weight: 500;
+    margin: clamp(1rem, 1.8vh, 1.65rem) 0;
 }
 
 .portal-divider::before,
 .portal-divider::after {
-    content: "";
+    content: '';
     flex: 1;
-    border-bottom: 1px solid #EAEAEA;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .portal-divider span {
     padding: 0 0.85rem;
 }
 
-/* NRP Input & Submit Button */
-.nrp-input-wrapper {
-    position: relative;
-    flex: 1;
-}
-
-.nrp-input-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-subtle);
-    font-size: 1rem;
-    pointer-events: none;
-}
-
-.nrp-form-control {
+.btn-portal-guest {
     width: 100%;
-    padding: 0.68rem 0.9rem 0.68rem 2.5rem;
-    font-size: 0.85rem;
+    height: clamp(44px, 5vh, 58px);
+    padding: 0.65rem 1.25rem;
+    border-radius: clamp(12px, 0.9vw, 16px);
+    background: rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(15, 23, 42, 0.10);
     color: var(--text-heading);
-    background-color: #FFFFFF;
-    border: 1px solid #D0D5DD;
-    border-radius: 10px;
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.nrp-form-control::placeholder {
-    color: #98A2B3;
-}
-
-.nrp-form-control:focus {
-    border-color: var(--brand-maroon);
-    box-shadow: 0 0 0 3px rgba(136, 19, 39, 0.1);
-}
-
-.btn-nrp-submit {
-    background-color: #FFFFFF;
-    color: var(--text-heading);
-    border: 1px solid #D0D5DD;
-    border-radius: 10px;
-    padding: 0.68rem 1.15rem;
-    font-size: 0.8125rem;
+    font-family: var(--font-sans);
+    font-size: clamp(0.84rem, 0.7vw + 0.32rem, 1.04rem);
     font-weight: 600;
-    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.45rem;
-    transition: all 0.2s ease;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.16s ease;
 }
 
-.btn-nrp-submit:hover {
-    background-color: #F8FAFC;
-    border-color: #98A2B3;
-    color: var(--text-heading);
+.btn-portal-guest:hover {
+    background: rgba(15, 23, 42, 0.075);
+    border-color: rgba(15, 23, 42, 0.18);
+    transform: translateY(-1px);
 }
 
-.btn-nrp-submit.has-value {
-    background-color: var(--brand-maroon);
-    border-color: var(--brand-maroon);
-    color: #FFFFFF;
+.btn-portal-guest i {
+    color: var(--brand-maroon);
+    transition: transform 0.16s ease;
 }
 
-.btn-nrp-submit.has-value:hover {
-    background-color: var(--brand-maroon-hover);
-    color: #FFFFFF;
+.btn-portal-guest:hover i {
+    transform: translateX(2px);
 }
 
 /* ========================================================================= */
 /* FOOTER                                                                    */
 /* ========================================================================= */
 .portal-footer {
-    margin-top: auto;
-    padding: 0.5rem 0 0.75rem;
-    font-size: 0.75rem;
-    color: var(--text-subtle);
+    margin-top: clamp(0.9rem, 1.6vh, 1.6rem);
+    font-size: clamp(0.74rem, 0.6vw + 0.25rem, 0.92rem);
+    font-weight: 500;
+    color: #334155;
+    text-align: center;
+    text-shadow: 0 1px 10px rgba(255, 255, 255, 0.85);
 }

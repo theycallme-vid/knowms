@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan KMS untuk Pengunjung / Guest: temukan informasi akademik, pendaftaran, beasiswa, dan panduan umum kampus tanpa perlu scan KTM atau NRP.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -170,15 +170,20 @@
             @include('partials.faq-google-search', ['part' => 'navbar'])
         </div>
 
-        <!-- Right: Nav Links & Notifications -->
-        <div class="d-flex align-items-center gap-3 flex-shrink-0">
-            <div class="guest-nav-links-wrap d-none d-md-flex align-items-center gap-1">
-                <a href="{{ url('/') }}" class="guest-nav-link">Beranda</a>
-                <a href="{{ route('guest.faq') }}" class="guest-nav-link active">FAQ</a>
-                <a href="#" class="guest-nav-link">Panduan akademik</a>
-            </div>
-            <button class="navbar-btn-icon" aria-label="Notifikasi" title="Notifikasi">
-                <i class="bi bi-bell"></i>
+        <!-- Right: Guest Context & Logout -->
+        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <span class="navbar-context-pill d-none d-md-inline-flex">
+                <i class="bi bi-globe2"></i>
+                <span>Guest</span>
+                <span class="text-muted fw-normal">&middot; Akses Umum</span>
+            </span>
+            <button type="button"
+                    class="navbar-logout-btn"
+                    onclick="endGuestSessionNow()"
+                    aria-label="Keluar"
+                    title="Keluar dari sesi guest">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="d-none d-sm-inline">Keluar</span>
             </button>
         </div>
     </div>
@@ -212,15 +217,8 @@
                 @include('partials.faq-google-search', ['part' => 'bar'])
             </div>
 
-            <!-- Quick Keywords -->
-            <div class="hero-quick-chips">
-                <span class="fs-12 text-muted me-1">Sering dicari:</span>
-                <a href="#" class="suggest-pill" onclick="quickSearch('KRS'); return false;">KRS</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('registrasi ulang'); return false;">Registrasi ulang</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('cuti'); return false;">Cuti kuliah</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('beasiswa'); return false;">Beasiswa</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('tugas akhir'); return false;">Tugas akhir</a>
-            </div>
+            <!-- Quick Keywords (Dinamis dari log pencarian & tag FAQ populer) -->
+            @include('partials.faq-google-search', ['part' => 'chips', 'popularKeywords' => $popularKeywords ?? []])
         </div>
     </div>
 
@@ -288,27 +286,15 @@
                             aria-controls="faq{{ $f['id'] }}">
                         <span class="faq-num">{{ sprintf('%02d', $f['id']) }}</span>
                         <div class="flex-grow-1 text-start">
-                            @if($f['id'] === 1)
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1.5">
-                                    <span class="fs-11 text-muted d-inline-flex align-items-center gap-2">
-                                        <span><i class="bi bi-eye me-1"></i><span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span> dilihat</span>
-                                        <span>&middot;</span>
-                                        <span class="text-success"><i class="bi bi-hand-thumbs-up me-1"></i><span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span></span>
-                                        <span class="text-secondary"><i class="bi bi-hand-thumbs-down me-1"></i><span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span></span>
-                                    </span>
-                                </div>
-                            @endif
                             <div class="faq-q">{{ $f['q'] }}</div>
                         </div>
-                        @if($f['id'] !== 1)
-                            <span class="faq-cat-label d-inline-flex align-items-center gap-2">
-                                <span style="font-size: 0.78rem; color: #334155;">
-                                    <i class="bi bi-eye"></i> <span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span>
-                                    &middot; <i class="bi bi-hand-thumbs-up text-success"></i> <span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span>
-                                    &middot; <i class="bi bi-hand-thumbs-down text-secondary"></i> <span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span>
-                                </span>
+                        <span class="faq-cat-label d-inline-flex align-items-center gap-2">
+                            <span style="font-size: 0.78rem; color: #334155;">
+                                <i class="bi bi-eye"></i> <span data-stat-views="{{ $realFaqId }}">{{ $f['views_count'] ?? 0 }}</span>
+                                &middot; <i class="bi bi-hand-thumbs-up text-success"></i> <span data-stat-likes="{{ $realFaqId }}">{{ $f['likes_count'] ?? 0 }}</span>
+                                &middot; <i class="bi bi-hand-thumbs-down text-secondary"></i> <span data-stat-dislikes="{{ $realFaqId }}">{{ $f['dislikes_count'] ?? 0 }}</span>
                             </span>
-                        @endif
+                        </span>
                         <span class="faq-icon">
                             <i class="bi bi-plus-lg faq-icon-plus"></i>
                             <i class="bi bi-dash-lg faq-icon-minus"></i>

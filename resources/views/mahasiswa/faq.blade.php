@@ -7,10 +7,10 @@
     <meta name="description" content="Pusat pengetahuan mahasiswa: temukan jawaban seputar KRS, registrasi, cuti kuliah, KHS, dan beasiswa.">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('images/logo/logo-head.png') }}">
 
-    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -384,15 +384,23 @@
             @include('partials.faq-google-search', ['part' => 'navbar'])
         </div>
 
-        <!-- Right: Active Faculty Context -->
-        <div class="d-none d-md-flex align-items-center gap-2 flex-shrink-0">
-            <span class="navbar-context-pill">
+        <!-- Right: Active Faculty Context & Logout -->
+        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <span class="navbar-context-pill d-none d-md-inline-flex">
                 <i class="bi bi-building"></i>
                 <span>{{ $activeNamaFakultas }}</span>
                 @if(!empty($activeTahunAngkatan))
                     <span class="text-muted fw-normal">&middot; Angkatan {{ $activeTahunAngkatan }}</span>
                 @endif
             </span>
+            <button type="button"
+                    class="navbar-logout-btn"
+                    onclick="endPortalSessionNow()"
+                    aria-label="Keluar"
+                    title="Keluar dari sesi mahasiswa">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="d-none d-sm-inline">Keluar</span>
+            </button>
         </div>
     </div>
 </nav>
@@ -417,15 +425,8 @@
                 @include('partials.faq-google-search', ['part' => 'bar'])
             </div>
 
-            <!-- Quick Keywords -->
-            <div class="hero-quick-chips">
-                <span class="fs-12 text-muted me-1">Sering dicari:</span>
-                <a href="#" class="suggest-pill" onclick="quickSearch('KRS'); return false;">KRS</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('registrasi ulang'); return false;">Registrasi ulang</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('cuti'); return false;">Cuti kuliah</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('beasiswa'); return false;">Beasiswa</a>
-                <a href="#" class="suggest-pill" onclick="quickSearch('tugas akhir'); return false;">Tugas akhir</a>
-            </div>
+            <!-- Quick Keywords (Dinamis dari log pencarian & tag FAQ populer) -->
+            @include('partials.faq-google-search', ['part' => 'chips', 'popularKeywords' => $popularKeywords ?? []])
         </div>
     </div>
 
