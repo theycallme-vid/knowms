@@ -157,6 +157,7 @@ class PortalController extends Controller
         $semester      = session('semester') ?: self::estimateSemester($tahunAngkatan);
 
         $publishedFaqs = collect();
+        $popularKeywords = self::topSearchedKeywords($publishedFaqs);
         $settings = Setting::allIntValues();
 
         try {
@@ -196,6 +197,7 @@ class PortalController extends Controller
                 ->get();
 
             $publishedFaqs = self::rankFaqsForStudent($faqs, $kodeFakultas, $kodeAngkatan, $semester, $logStats, $settings);
+            $popularKeywords = self::topSearchedKeywords($publishedFaqs, $recLogDays);
         } catch (Throwable $e) {
             $publishedFaqs = collect();
         }
@@ -209,6 +211,7 @@ class PortalController extends Controller
             'semester'             => $semester,
             'fakultasMap'          => self::FAKULTAS_MAP,
             'publishedFaqs'        => $publishedFaqs,
+            'popularKeywords'      => $popularKeywords,
             'idleTimeoutSeconds'   => $settings['idle_timeout_seconds'] ?? 30,
             'idleCountdownSeconds' => $settings['idle_countdown_seconds'] ?? 10,
         ]);
@@ -727,6 +730,81 @@ class PortalController extends Controller
             }
             return strcmp((string) $a->id, (string) $b->id);
         })->values();
+    }
+
+    /**
+     * Menghasilkan maksimal $limit kata kunci "Sering dicari" secara dinamis
+     * dari log pencarian tlogmahasiswa, dilengkapi tag FAQ populer, lalu fallback default.
+     */
+    public static function topSearchedKeywords(Collection $publishedFaqs, int $recLogDays = 30, int $limit = 5): array
+    {
+        $ignored = ['buka-faq', 'buka-faq-guest', 'feedback-membantu', 'feedback-belum'];
+        $selected = [];
+        $seen = [];
+
+        $addKeyword = static function (string $raw) use (&$selected, &$seen, $limit): void {
+            if (count($selected) >= $limit) {
+                return;
+            }
+            $clean = trim(preg_replace('/\s+/', ' ', $raw));
+            $len = mb_strlen($clean);
+            if ($len < 2 || $len > 30) {
+                return;
+            }
+            $lower = mb_strtolower($clean);
+            if (isset($seen[$lower])) {
+                return;
+            }
+            $seen[$lower] = true;
+            $selected[] = $clean;
+        };
+
+        try {
+            $rows = DB::table('tlogmahasiswa')
+                ->where('jenis_interaksi', 'view')
+                ->where('waktu_pencarian', '>=', now()->subDays(max(1, $recLogDays)))
+                ->whereNotNull('keyword')
+                ->whereNotIn('keyword', $ignored)
+                ->select('keyword', DB::raw('COUNT(*) as total'))
+                ->groupBy('keyword')
+                ->orderByDesc('total')
+                ->limit(30)
+                ->get();
+
+            foreach ($rows as $row) {
+                $addKeyword((string) $row->keyword);
+            }
+        } catch (Throwable $e) {
+            // Lanjutkan ke tag FAQ atau default jika tabel log belum tersedia
+        }
+
+        if (count($selected) < $limit && $publishedFaqs->isNotEmpty()) {
+            $tagCounts = [];
+            foreach ($publishedFaqs as $faq) {
+                $weight = max(1, (int) ($faq->views_count ?? $faq->total_access_count ?? 1));
+                foreach ($faq->tags ?? [] as $tag) {
+                    $name = trim((string) ($tag->nama ?? ''));
+                    if ($name === '') {
+                        continue;
+                    }
+                    $key = mb_strtolower($name);
+                    if (!isset($tagCounts[$key])) {
+                        $tagCounts[$key] = ['name' => $name, 'score' => 0];
+                    }
+                    $tagCounts[$key]['score'] += $weight;
+                }
+            }
+            uasort($tagCounts, fn ($a, $b) => $b['score'] <=> $a['score']);
+            foreach ($tagCounts as $item) {
+                $addKeyword($item['name']);
+            }
+        }
+
+        foreach (['KRS', 'Registrasi ulang', 'Cuti kuliah', 'Beasiswa', 'Tugas akhir'] as $fallback) {
+            $addKeyword($fallback);
+        }
+
+        return $selected;
     }
 
     /**

@@ -40,6 +40,7 @@ class GuestController extends Controller
         }
 
         $publishedFaqs = collect();
+        $popularKeywords = PortalController::topSearchedKeywords($publishedFaqs);
         $settings = Setting::allIntValues();
 
         try {
@@ -79,12 +80,14 @@ class GuestController extends Controller
                 ->get();
 
             $publishedFaqs = PortalController::rankFaqsForStudent($faqs, null, null, null, $logStats, $settings);
+            $popularKeywords = PortalController::topSearchedKeywords($publishedFaqs, $recLogDays);
         } catch (Throwable $e) {
             $publishedFaqs = collect();
         }
 
         return view('guest.faq', [
             'publishedFaqs'        => $publishedFaqs,
+            'popularKeywords'      => $popularKeywords,
             'idleTimeoutSeconds'   => $settings['idle_timeout_seconds'] ?? 30,
             'idleCountdownSeconds' => $settings['idle_countdown_seconds'] ?? 10,
         ]);

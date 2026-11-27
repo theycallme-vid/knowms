@@ -5,6 +5,18 @@
 
 @if($part === 'navbar')
 <div id="navbarSearchSlot" class="navbar-search-slot" aria-label="Pencarian cepat di navigasi"></div>
+@elseif($part === 'chips')
+@php
+    $chips = !empty($popularKeywords)
+        ? $popularKeywords
+        : ['KRS', 'Registrasi ulang', 'Cuti kuliah', 'Beasiswa', 'Tugas akhir'];
+@endphp
+<div class="hero-quick-chips">
+    <span class="fs-12 text-muted me-1">Sering dicari:</span>
+    @foreach($chips as $kw)
+        <a href="#" class="suggest-pill" data-term="{{ $kw }}" onclick="quickSearch(this.dataset.term); return false;">{{ $kw }}</a>
+    @endforeach
+</div>
 @elseif($part === 'bar')
 <style>
     .hero-section {
@@ -345,6 +357,16 @@
     }
 
     /* Scroll Down Indicator at bottom of Full-Screen Hero */
+    .hero-fullscreen .hero-inner {
+        z-index: 10;
+    }
+
+    body.is-hero-dropdown-open .hero-scroll-cue {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
     .hero-scroll-cue {
         position: absolute;
         bottom: 1.35rem;
@@ -481,6 +503,38 @@
 
     .navbar-context-pill i {
         color: var(--brand-maroon);
+    }
+
+    .navbar-logout-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.95rem;
+        border-radius: 9999px;
+        background: rgba(133, 23, 44, 0.08);
+        backdrop-filter: blur(14px) saturate(160%);
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        border: 1px solid rgba(133, 23, 44, 0.18);
+        box-shadow: inset 0 0.75px 0 rgba(255, 255, 255, 0.6);
+        color: var(--brand-maroon);
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: all 0.16s ease;
+    }
+
+    .navbar-logout-btn:hover {
+        background: rgba(133, 23, 44, 0.86);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #FFFFFF;
+        box-shadow: 0 8px 20px -8px rgba(133, 23, 44, 0.42);
+        transform: translateY(-1px);
+    }
+
+    .navbar-logout-btn:active {
+        transform: scale(0.98);
     }
 
     .hero-search-wrapper.is-dropdown-open .hero-search {
@@ -906,7 +960,7 @@
         const items = Array.from(document.querySelectorAll('#faqList .faq-item'));
         return items.map((el, idx) => {
             const question = (el.querySelector('.faq-q')?.textContent || '').replace(/\s+/g, ' ').trim();
-            const category = (el.querySelector('.faq-cat-label > span:first-child, .tag-soft')?.textContent || '').replace(/\s+/g, ' ').trim();
+            const category = (el.querySelector('.tag-soft, .faq-cat-label > span:first-child')?.textContent || '').replace(/\s+/g, ' ').trim();
             const bodyText = (el.querySelector('.faq-body')?.textContent || '').replace(/\s+/g, ' ').trim();
             return {
                 el,
@@ -983,12 +1037,14 @@
     function openDropdown() {
         dropdownEl.classList.remove('d-none');
         searchWrapper?.classList.add('is-dropdown-open');
+        document.body.classList.add('is-hero-dropdown-open');
         searchInput.setAttribute('aria-expanded', 'true');
     }
 
     function closeDropdown() {
         dropdownEl.classList.add('d-none');
         searchWrapper?.classList.remove('is-dropdown-open');
+        document.body.classList.remove('is-hero-dropdown-open');
         searchInput.setAttribute('aria-expanded', 'false');
         activeSuggestIdx = -1;
     }
