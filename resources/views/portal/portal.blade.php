@@ -26,49 +26,39 @@
         <section class="portal-card" aria-labelledby="portalHeading">
             <!-- Institutional Brand & Title -->
             <div class="portal-header">
-                <a href="{{ url('/portal') }}" class="d-inline-flex align-items-center text-decoration-none mb-3">
+                <a href="{{ url('/portal') }}" class="d-inline-flex align-items-center text-decoration-none mb-2">
                     <img src="{{ asset('images/logo/logo-KMS.png') }}" alt="Logo KMS - Knowledge Management System" class="portal-logo-img">
                 </a>
                 <h1 id="portalHeading" class="portal-title">Portal Informasi Akademik</h1>
-                <p class="portal-subtitle">
-                    Masukkan NRP atau pindai QR KTM Digital untuk menampilkan informasi sesuai fakultas Anda.
-                </p>
             </div>
 
-            @php
-                $showNrpFirst = $errors->has('nrp') || filled(old('nrp'));
-            @endphp
-
-            <!-- Segmented Switch: Scan QR KTM (Utama) | Input NRP -->
-            <div class="portal-segmented" role="tablist" aria-label="Metode masuk mahasiswa">
+            <!-- Pilihan Peran Utama: Mahasiswa | Umum -->
+            <div class="portal-segmented" role="tablist" aria-label="Pilih jenis pengguna">
                 <button
                     type="button"
-                    id="tabBtnQr"
-                    class="portal-segment-btn {{ $showNrpFirst ? '' : 'active' }}"
+                    id="roleBtnMahasiswa"
+                    class="portal-segment-btn active"
                     role="tab"
-                    aria-selected="{{ $showNrpFirst ? 'false' : 'true' }}"
-                    aria-controls="paneQr"
-                    onclick="switchPortalTab('qr')"
+                    aria-selected="true"
                 >
-                    <i class="bi bi-qr-code-scan"></i>
-                    <span>Scan QR KTM</span>
+                    <i class="bi bi-mortarboard"></i>
+                    <span>Mahasiswa</span>
                 </button>
                 <button
                     type="button"
-                    id="tabBtnNrp"
-                    class="portal-segment-btn {{ $showNrpFirst ? 'active' : '' }}"
+                    id="roleBtnUmum"
+                    class="portal-segment-btn"
                     role="tab"
-                    aria-selected="{{ $showNrpFirst ? 'true' : 'false' }}"
-                    aria-controls="paneNrp"
-                    onclick="switchPortalTab('nrp')"
+                    aria-selected="false"
+                    onclick="enterAsGuest()"
                 >
-                    <i class="bi bi-person-vcard"></i>
-                    <span>Input NRP</span>
+                    <i class="bi bi-globe2"></i>
+                    <span>Umum</span>
                 </button>
             </div>
 
-            <!-- TAB PANE 1: SCAN QR KTM (DEFAULT UTAMA) -->
-            <div id="paneQr" class="{{ $showNrpFirst ? 'd-none' : '' }}" role="tabpanel" aria-labelledby="tabBtnQr">
+            <!-- AREA MAHASISWA: SCAN QR KTM + INPUT NRP -->
+            <div id="paneQr">
                 <div class="camera-viewport" id="cameraViewport">
                     <video id="cameraVideo" class="camera-video d-none" autoplay playsinline muted></video>
                     <canvas id="qrCanvas" class="d-none"></canvas>
@@ -83,26 +73,14 @@
                         <i class="bi bi-arrow-repeat"></i>
                     </button>
 
-                    <div class="scanner-frame">
-                        <span class="scanner-corner corner-tl"></span>
-                        <span class="scanner-corner corner-tr"></span>
-                        <span class="scanner-corner corner-bl"></span>
-                        <span class="scanner-corner corner-br"></span>
-                    </div>
-
                     <div class="camera-placeholder" id="cameraPlaceholder">
                         <div class="camera-icon-card">
                             <i class="bi bi-qr-code-scan"></i>
                         </div>
                         <div class="camera-placeholder-title">Kamera belum aktif</div>
                         <div class="camera-placeholder-desc">
-                            Arahkan QR KTM Digital dari aplikasi MyUbaya ke dalam bingkai.
+                            Arahkan QR KTM Digital dari aplikasi MyUbaya ke kamera.
                         </div>
-                    </div>
-
-                    <div class="camera-live-badge d-none" id="cameraLiveBadge">
-                        <span class="live-dot"></span>
-                        <span>Kamera aktif &middot; Pindai QR KTM</span>
                     </div>
                 </div>
 
@@ -122,8 +100,12 @@
                 </button>
             </div>
 
-            <!-- TAB PANE 2: INPUT NRP -->
-            <div id="paneNrp" class="{{ $showNrpFirst ? '' : 'd-none' }}" role="tabpanel" aria-labelledby="tabBtnNrp">
+            <div class="portal-divider">
+                <span>atau input NRP</span>
+            </div>
+
+            <!-- INPUT NRP -->
+            <div id="paneNrp">
                 <form id="portalNrpForm" action="{{ route('portal.session') }}" method="POST" novalidate>
                     @csrf
                     <label for="nrpInput" class="portal-label">
@@ -168,23 +150,15 @@
                 </form>
             </div>
 
-            <!-- Divider & Single Guest Action -->
-            <div class="portal-divider">
-                <span>atau</span>
-            </div>
-
-            <form action="{{ route('portal.session') }}" method="POST">
+            <!-- Form Tersembunyi untuk Otomatis Masuk ke Tampilan Guest -->
+            <form id="portalGuestForm" action="{{ route('portal.session') }}" method="POST" class="d-none">
                 @csrf
-                <button type="submit" class="btn-portal-guest">
-                    <span>Masuk sebagai Tamu (Umum)</span>
-                    <i class="bi bi-arrow-right"></i>
-                </button>
             </form>
-        </section>
 
-        <footer class="portal-footer">
-            &copy; {{ date('Y') }} KMS &middot; Layanan Informasi Akademik
-        </footer>
+            <footer class="portal-footer">
+                &copy; {{ date('Y') }} KMS &middot; Layanan Informasi Akademik
+            </footer>
+        </section>
     </div>
 </main>
 
@@ -198,24 +172,6 @@
     let scanAnimationFrame = null;
     let currentFacingMode = 'environment';
 
-    const tabBtnNrp         = document.getElementById('tabBtnNrp');
-    const tabBtnQr          = document.getElementById('tabBtnQr');
-    const paneNrp           = document.getElementById('paneNrp');
-    const paneQr            = document.getElementById('paneQr');
-
-    const cameraViewport    = document.getElementById('cameraViewport');
-    const cameraVideo       = document.getElementById('cameraVideo');
-    const qrCanvas          = document.getElementById('qrCanvas');
-    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-    const cameraLiveBadge   = document.getElementById('cameraLiveBadge');
-    const btnSwitchCamera   = document.getElementById('btnSwitchCamera');
-    const btnToggleCamera   = document.getElementById('btnToggleCamera');
-    const btnCameraIcon     = document.getElementById('btnCameraIcon');
-    const btnCameraLabel    = document.getElementById('btnCameraLabel');
-    const cameraAlertBox    = document.getElementById('cameraAlertBox');
-    const cameraAlertIcon   = document.getElementById('cameraAlertIcon');
-    const cameraAlertMsg    = document.getElementById('cameraAlertMessage');
-
     const fakultasMap       = @json(\App\Http\Controllers\PortalController::FAKULTAS_MAP);
     const portalNrpForm     = document.getElementById('portalNrpForm');
     const nrpInput          = document.getElementById('nrpInput');
@@ -224,23 +180,23 @@
     const nrpDetectedBox    = document.getElementById('nrpDetectedBox');
     const nrpDetectedText   = document.getElementById('nrpDetectedText');
     const nrpHintText       = document.getElementById('nrpHintText');
+    const cameraViewport    = document.getElementById('cameraViewport');
+    const cameraVideo       = document.getElementById('cameraVideo');
+    const qrCanvas          = document.getElementById('qrCanvas');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+    const btnSwitchCamera   = document.getElementById('btnSwitchCamera');
+    const btnToggleCamera   = document.getElementById('btnToggleCamera');
+    const btnCameraIcon     = document.getElementById('btnCameraIcon');
+    const btnCameraLabel    = document.getElementById('btnCameraLabel');
+    const cameraAlertBox    = document.getElementById('cameraAlertBox');
+    const cameraAlertIcon   = document.getElementById('cameraAlertIcon');
+    const cameraAlertMsg    = document.getElementById('cameraAlertMessage');
 
-    function switchPortalTab(tab) {
-        const isNrp = tab === 'nrp';
-        tabBtnNrp.classList.toggle('active', isNrp);
-        tabBtnNrp.setAttribute('aria-selected', isNrp ? 'true' : 'false');
-        tabBtnQr.classList.toggle('active', !isNrp);
-        tabBtnQr.setAttribute('aria-selected', !isNrp ? 'true' : 'false');
-
-        paneNrp.classList.toggle('d-none', !isNrp);
-        paneQr.classList.toggle('d-none', isNrp);
-
-        if (isNrp && isCameraActive) {
+    function enterAsGuest() {
+        if (isCameraActive) {
             stopCamera();
         }
-        if (isNrp) {
-            nrpInput?.focus();
-        }
+        document.getElementById('portalGuestForm')?.submit();
     }
 
     function showCameraAlert(message, type = 'danger') {
@@ -256,9 +212,11 @@
         cameraAlertBox.classList.add('d-none');
     }
 
+    const CAMERA_AUTO_KEY   = 'kms_portal_camera_auto';
+
     async function toggleCamera() {
         if (isCameraActive) {
-            stopCamera();
+            stopCamera(true);
         } else {
             await startCamera();
         }
@@ -295,10 +253,10 @@
             await cameraVideo.play();
 
             isCameraActive = true;
+            try { localStorage.setItem(CAMERA_AUTO_KEY, '1'); } catch (_) {}
             cameraViewport.classList.add('is-active');
             cameraVideo.classList.remove('d-none');
             cameraPlaceholder.classList.add('d-none');
-            cameraLiveBadge.classList.remove('d-none');
             btnSwitchCamera.classList.remove('d-none');
 
             btnToggleCamera.disabled = false;
@@ -325,7 +283,10 @@
         }
     }
 
-    function stopCamera() {
+    function stopCamera(isManual = false) {
+        if (isManual) {
+            try { localStorage.setItem(CAMERA_AUTO_KEY, '0'); } catch (_) {}
+        }
         if (scanAnimationFrame) {
             cancelAnimationFrame(scanAnimationFrame);
             scanAnimationFrame = null;
@@ -341,7 +302,6 @@
         cameraViewport.classList.remove('is-active');
         cameraVideo.classList.add('d-none');
         cameraPlaceholder.classList.remove('d-none');
-        cameraLiveBadge.classList.add('d-none');
         btnSwitchCamera.classList.add('d-none');
 
         btnToggleCamera.disabled = false;
@@ -491,7 +451,7 @@
             const val = (nrpInput.value || '').trim();
             if (val === '') {
                 e.preventDefault();
-                showNrpError('Masukkan 9 digit NRP Anda, atau pilih "Masuk sebagai Tamu" di bawah.');
+                showNrpError('Masukkan 9 digit NRP Anda, atau pilih "Umum" di atas.');
                 nrpInput.focus();
                 return;
             }
@@ -509,8 +469,29 @@
     }
 
     window.addEventListener('beforeunload', () => {
-        if (isCameraActive) stopCamera();
+        if (isCameraActive) stopCamera(false);
     });
+
+    // Nyalakan kamera otomatis bila user sebelumnya sudah mengizinkan & tidak mematikan secara manual
+    (async function initAutoCamera() {
+        let pref = null;
+        try { pref = localStorage.getItem(CAMERA_AUTO_KEY); } catch (_) {}
+        if (pref === '0') return;
+
+        if (pref === '1') {
+            startCamera();
+            return;
+        }
+
+        if (navigator.permissions && navigator.permissions.query) {
+            try {
+                const perm = await navigator.permissions.query({ name: 'camera' });
+                if (perm.state === 'granted') {
+                    startCamera();
+                }
+            } catch (_) {}
+        }
+    })();
 </script>
 
 </body>

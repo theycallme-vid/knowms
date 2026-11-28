@@ -57,6 +57,7 @@ if (app()->environment('local')) {
 
 // HALAMAN PUBLIK: FAQ Mahasiswa, Riwayat Versi Jawaban, Sumber Pustaka & Pencatatan Log Akses Rekomendasi
 Route::get('/faq', [PortalController::class, 'faq'])->name('mahasiswa.faq');
+Route::get('/faq/search', [PortalController::class, 'searchPublishedFaq'])->middleware('throttle:120,1')->name('faq.search');
 Route::get('/faq/{id}/riwayat', [PortalController::class, 'faqHistory'])->name('mahasiswa.faq.riwayat');
 Route::post('/faq/log-access', [PortalController::class, 'logFaqAccess'])->name('faq.log-access');
 Route::get('/sumber-pustaka/{id}/lihat', [DataEntryFaqController::class, 'viewPustaka'])->name('pustaka.lihat');

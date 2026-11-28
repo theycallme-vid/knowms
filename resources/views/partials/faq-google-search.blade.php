@@ -956,12 +956,228 @@
     let currentSuggestions = [];
     let activeSearchQuery = '';
 
+    // Mesin pencarian publik tersinkronisasi penuh dengan App\Services\FaqSimilarityService:
+    // - Proteksi negasi, modalitas, aspek waktu, batas kuantitas, angka, & kode akademik
+    // - Okapi BM25 multi-field (TF utuh) + Character/Word Trigram + Reciprocal Rank Fusion (RRF) + Abstention
+    const SIM_LEXICON = @json(\App\Services\FaqSimilarityService::clientLexicon());
+    const SIM_INFORMAL = SIM_LEXICON.informal_map || {};
+    const SIM_ABBREV = SIM_LEXICON.abbreviations || {};
+    const SIM_DOMAIN_SYN = SIM_LEXICON.domain_synonyms || {};
+    const SIM_STOPWORDS = new Set(SIM_LEXICON.stopwords || []);
+    const SIM_QWORDS = new Set(SIM_LEXICON.question_words || []);
+    const SIM_NEGATIONS = new Set(SIM_LEXICON.negations || []);
+    const SIM_MODALITIES = new Set(SIM_LEXICON.modalities || []);
+    const SIM_ASPECTS = new Set(SIM_LEXICON.aspects || []);
+    const SIM_BOUNDS = new Set(SIM_LEXICON.bounds || []);
+    const SIM_CODES = new Set(SIM_LEXICON.academic_codes || []);
+    const SIM_SAFE_ROOTS = SIM_LEXICON.safe_roots || {};
+    const SIM_DO_NOT_STEM = new Set(SIM_LEXICON.do_not_stem || []);
+    const BM25_K1 = Number(SIM_LEXICON.bm25?.k1 || 1.2);
+    const BM25_B = Number(SIM_LEXICON.bm25?.b || 0.75);
+    const RRF_K = Number(SIM_LEXICON.bm25?.rrf_k || 20);
+    let searchCorpusCache = null;
+
+    function normalizeRaw(text) {
+        return String(text || '')
+            .toLowerCase()
+            .replace(/(\d),(\d)/gu, '$1.$2')
+            .replace(/\bnon\s*-\s*([a-z0-9]+)/gu, 'non_$1')
+            .replace(/\bh\s*-\s*(\d+)\b/gu, 'h_$1')
+            .replace(/\b([sd])\s*-\s*([1234])\b/gu, '$1$2')
+            .replace(/(\d)\.(\d)/gu, '$1__DEC__$2')
+            .replace(/[^\p{L}\p{N}_\s]/gu, ' ')
+            .replace(/__DEC__/g, '.')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function stemConservative(word) {
+        if (Object.prototype.hasOwnProperty.call(SIM_SAFE_ROOTS, word)) {
+            return SIM_SAFE_ROOTS[word];
+        }
+        if (word.length <= 5 || SIM_DO_NOT_STEM.has(word) || SIM_CODES.has(word) || word.includes('_') || /\d/.test(word)) {
+            return word;
+        }
+        const cand = word.replace(/(lah|kah|nya|ku|mu)$/u, '');
+        if (cand !== word && cand.length >= 5) {
+            return Object.prototype.hasOwnProperty.call(SIM_SAFE_ROOTS, cand) ? SIM_SAFE_ROOTS[cand] : cand;
+        }
+        return word;
+    }
+
+    function tokenizeText(text, includeDomainSynonyms = true) {
+        const normalized = normalizeRaw(text);
+        const emptyProt = { negations: [], negationBigrams: [], modalities: [], aspects: [], bounds: [], numbers: [], codes: [] };
+        if (!normalized) {
+            return { normalized: '', bm25Tokens: [], domainTokens: [], uniqueTokens: [], questionWords: [], protected: emptyProt };
+        }
+
+        const canonical = [];
+        normalized.split(' ').forEach(rw => {
+            if (!rw) return;
+            if (Object.prototype.hasOwnProperty.call(SIM_INFORMAL, rw)) {
+                SIM_INFORMAL[rw].split(' ').forEach(m => { if (m) canonical.push(m); });
+            } else {
+                canonical.push(rw);
+            }
+        });
+
+        const negs = [], negBigrams = [], mods = [], asps = [], bnds = [], nums = [], cds = [], qws = [];
+        const bm25Tokens = [], domainTokens = [];
+
+        for (let i = 0; i < canonical.length; i++) {
+            const w = canonical[i];
+            const isNumber = /^\d+(?:\.\d+)?$/.test(w) || /^h_\d+$/.test(w) || /^\d+x\d+$/.test(w);
+            const isCode = !isNumber && (/^(?:[a-z]{1,4}\d{1,4}|[sd][1234]|b3|k3)$/u.test(w) || SIM_CODES.has(w));
+
+            if (!isNumber && w.length < 2) continue;
+            if (SIM_QWORDS.has(w)) { qws.push(w); continue; }
+
+            if (SIM_NEGATIONS.has(w) || w.startsWith('non_')) {
+                negs.push(w);
+                if (w.startsWith('non_')) negBigrams.push(w);
+                if ((w === 'tidak' || w === 'belum' || w === 'tanpa' || w === 'bukan' || w === 'jangan' || w === 'dilarang') && canonical[i + 1]) {
+                    const nxt = canonical[i + 1];
+                    if (!SIM_STOPWORDS.has(nxt) && nxt.length >= 2) {
+                        const bg = w + '_' + stemConservative(nxt);
+                        negBigrams.push(bg);
+                        bm25Tokens.push(bg);
+                    }
+                }
+            }
+            if (SIM_MODALITIES.has(w)) mods.push(stemConservative(w));
+            if (SIM_ASPECTS.has(w)) asps.push(w);
+            if (SIM_BOUNDS.has(w)) bnds.push(w);
+            if (isNumber) nums.push(w);
+            if (isCode) cds.push(w);
+
+            if (SIM_STOPWORDS.has(w)) continue;
+
+            bm25Tokens.push(w);
+            const root = stemConservative(w);
+            if (root !== w && root.length >= 3) bm25Tokens.push(root);
+
+            if (Object.prototype.hasOwnProperty.call(SIM_ABBREV, w)) {
+                SIM_ABBREV[w].forEach(exp => bm25Tokens.push(exp));
+            }
+            if (includeDomainSynonyms && Object.prototype.hasOwnProperty.call(SIM_DOMAIN_SYN, w)) {
+                SIM_DOMAIN_SYN[w].forEach(syn => domainTokens.push(syn));
+            }
+        }
+
+        const finalBm25 = bm25Tokens.length ? bm25Tokens : canonical.filter(w => w.length >= 2 || /^\d+$/.test(w));
+        return {
+            normalized,
+            bm25Tokens: finalBm25,
+            domainTokens,
+            uniqueTokens: Array.from(new Set(finalBm25)),
+            questionWords: Array.from(new Set(qws)),
+            protected: {
+                negations: Array.from(new Set(negs)),
+                negationBigrams: Array.from(new Set(negBigrams)),
+                modalities: Array.from(new Set(mods)),
+                aspects: Array.from(new Set(asps)),
+                bounds: Array.from(new Set(bnds)),
+                numbers: Array.from(new Set(nums)),
+                codes: Array.from(new Set(cds)),
+            },
+        };
+    }
+
+    function extractNormalizedTokens(text) {
+        return tokenizeText(text, true).uniqueTokens;
+    }
+
+    function buildTrigrams(str) {
+        if (!str) return new Set();
+        const padded = '  ' + str + '  ';
+        const set = new Set();
+        for (let i = 0; i <= padded.length - 3; i++) {
+            set.add(padded.slice(i, i + 3));
+        }
+        return set;
+    }
+
+    function computeTrigramDice(triA, triB) {
+        if (!triA.size || !triB.size) return 0;
+        let inter = 0;
+        triA.forEach(t => { if (triB.has(t)) inter++; });
+        return (2.0 * inter) / (triA.size + triB.size);
+    }
+
+    function computeOkapiBm25(queryWeights, docWeightedTf, docLen, avgDocLen, docFreq, docCount) {
+        let score = 0;
+        const normFactor = BM25_K1 * (1 - BM25_B + BM25_B * (docLen / Math.max(1, avgDocLen)));
+        queryWeights.forEach((qW, term) => {
+            const tf = docWeightedTf.get(term) || 0;
+            if (tf <= 0) return;
+            const df = docFreq.get(term) || 1;
+            const idf = Math.log(1 + ((docCount - df + 0.5) / (df + 0.5)));
+            score += qW * idf * ((tf * (BM25_K1 + 1)) / (tf + normFactor));
+        });
+        return score;
+    }
+
+    function evaluateProtectedConstraints(qProt, dProt, ansProt) {
+        let multiplier = 1.0;
+        let hasConflict = false;
+
+        const hasAny = (arr, targets) => targets.some(t => arr.includes(t));
+        const qForbids = hasAny(qProt.negationBigrams, ['tidak_boleh', 'tidak_bisa', 'tidak_dapat', 'tidak_izin']) || qProt.negations.includes('dilarang');
+        const dForbids = hasAny(dProt.negationBigrams, ['tidak_boleh', 'tidak_bisa', 'tidak_dapat', 'tidak_izin']) || dProt.negations.includes('dilarang');
+        const qAllows = !qForbids && hasAny(qProt.modalities, ['boleh', 'izin', 'bisa', 'dapat']);
+        const dAllows = !dForbids && hasAny(dProt.modalities, ['boleh', 'izin', 'bisa', 'dapat']);
+        if ((qForbids && dAllows) || (qAllows && dForbids)) { hasConflict = true; multiplier *= 0.45; }
+
+        const qNotMand = hasAny(qProt.negationBigrams, ['tidak_wajib', 'tidak_harus', 'tidak_perlu']);
+        const dNotMand = hasAny(dProt.negationBigrams, ['tidak_wajib', 'tidak_harus', 'tidak_perlu']);
+        const qMand = !qNotMand && hasAny(qProt.modalities, ['wajib', 'harus', 'perlu']);
+        const dMand = !dNotMand && hasAny(dProt.modalities, ['wajib', 'harus', 'perlu']);
+        if ((qNotMand && dMand) || (qMand && dNotMand)) { hasConflict = true; multiplier *= 0.45; }
+
+        const qDone = hasAny(qProt.aspects, ['sudah', 'telah']) && !qProt.aspects.includes('belum');
+        const dDone = hasAny(dProt.aspects, ['sudah', 'telah']) && !dProt.aspects.includes('belum');
+        if ((qDone && dProt.aspects.includes('belum')) || (qProt.aspects.includes('belum') && dDone)) {
+            hasConflict = true; multiplier *= 0.48;
+        }
+
+        if (qProt.numbers.length && dProt.numbers.length && !qProt.numbers.some(n => dProt.numbers.includes(n))) {
+            const inAns = ansProt && qProt.numbers.some(n => ansProt.numbers.includes(n));
+            if (!inAns) { hasConflict = true; multiplier *= 0.55; }
+        }
+
+        return { hasConflict, multiplier };
+    }
+
     function buildSearchIndex() {
+        if (searchCorpusCache) return searchCorpusCache;
+
         const items = Array.from(document.querySelectorAll('#faqList .faq-item'));
-        return items.map((el, idx) => {
+        const docFreq = new Map();
+        let totalDocLen = 0;
+
+        const entries = items.map((el, idx) => {
             const question = (el.querySelector('.faq-q')?.textContent || '').replace(/\s+/g, ' ').trim();
-            const category = (el.querySelector('.tag-soft, .faq-cat-label > span:first-child')?.textContent || '').replace(/\s+/g, ' ').trim();
+            const category = (el.querySelector('.tag-soft')?.textContent || '').replace(/\s+/g, ' ').trim();
             const bodyText = (el.querySelector('.faq-body')?.textContent || '').replace(/\s+/g, ' ').trim();
+            const rawDataText = (el.dataset.text || '').replace(/\s+/g, ' ').trim();
+
+            const docQTok = tokenizeText(question, false);
+            const tagTok = tokenizeText(rawDataText, false);
+            const ansTok = tokenizeText(bodyText, false);
+
+            const weightedTf = new Map();
+            let weightedLen = 0;
+            docQTok.bm25Tokens.forEach(t => { weightedTf.set(t, (weightedTf.get(t) || 0) + 2.5); weightedLen += 2.5; });
+            tagTok.bm25Tokens.forEach(t => { weightedTf.set(t, (weightedTf.get(t) || 0) + 0.8); weightedLen += 0.8; });
+            ansTok.bm25Tokens.forEach(t => { weightedTf.set(t, (weightedTf.get(t) || 0) + 0.35); weightedLen += 0.35; });
+
+            weightedLen = Math.max(1, weightedLen);
+            totalDocLen += weightedLen;
+            weightedTf.forEach((_, term) => docFreq.set(term, (docFreq.get(term) || 0) + 1));
+
+            const qWords = docQTok.normalized.split(' ').filter(w => w.length >= 4 && !/\d/.test(w) && !SIM_STOPWORDS.has(w) && !SIM_QWORDS.has(w));
+
             return {
                 el,
                 idx,
@@ -969,40 +1185,113 @@
                 views: Number(el.dataset.views || el.querySelector('[data-stat-views]')?.textContent || 0),
                 question,
                 category,
-                qLower: question.toLowerCase(),
-                catLower: category.toLowerCase(),
-                bodyLower: bodyText.toLowerCase(),
+                qNorm: docQTok.normalized,
+                docQTok,
+                ansTok,
+                weightedTf,
+                weightedLen,
+                qTrigrams: buildTrigrams(docQTok.normalized),
+                qWordTrigrams: qWords.map(w => buildTrigrams(w)),
             };
         });
+
+        searchCorpusCache = {
+            entries,
+            docFreq,
+            docCount: Math.max(1, entries.length),
+            avgDocLen: Math.max(1, totalDocLen / Math.max(1, entries.length)),
+        };
+        return searchCorpusCache;
     }
 
     function findMatchingFaqs(rawQuery, preferredFaqId = null) {
-        const q = (rawQuery || '').toLowerCase().trim();
-        if (!q) return [];
+        const qTok = tokenizeText(rawQuery, true);
+        const qNorm = qTok.normalized;
+        if (!qNorm || qNorm.length < 2) return [];
 
-        const tokens = q.split(/\s+/).filter(Boolean);
-        const index = buildSearchIndex();
+        const corpus = buildSearchIndex();
+        const queryWeights = new Map();
+        qTok.bm25Tokens.forEach(t => queryWeights.set(t, (queryWeights.get(t) || 0) + 1.0));
+        qTok.domainTokens.forEach(dt => { if (!queryWeights.has(dt)) queryWeights.set(dt, 0.45); });
+
+        let idealBm25 = 0;
+        queryWeights.forEach((qW, term) => {
+            const df = corpus.docFreq.get(term) || 0;
+            const effDf = df > 0 ? df : 1;
+            const idf = Math.log(1 + ((corpus.docCount - effDf + 0.5) / (effDf + 0.5)));
+            const tfSat = (2.5 * (BM25_K1 + 1)) / (2.5 + BM25_K1);
+            idealBm25 += qW * Math.max(0.15, idf) * tfSat;
+        });
+        idealBm25 = Math.max(0.001, idealBm25);
+
+        const qTrigrams = buildTrigrams(qNorm);
+        const qWords = qNorm.split(' ').filter(w => w.length >= 4 && !/\d/.test(w) && !SIM_STOPWORDS.has(w) && !SIM_QWORDS.has(w));
+        const qWordTris = qWords.map(w => buildTrigrams(w));
+
+        const rawList = corpus.entries.map((entry, idx) => {
+            const bm25 = computeOkapiBm25(queryWeights, entry.weightedTf, entry.weightedLen, corpus.avgDocLen, corpus.docFreq, corpus.docCount);
+            const charTri = computeTrigramDice(qTrigrams, entry.qTrigrams);
+            let wordTypo = 0;
+            if (qWordTris.length && entry.qWordTrigrams.length) {
+                let sum = 0;
+                qWordTris.forEach(qt => {
+                    let best = 0;
+                    entry.qWordTrigrams.forEach(dt => { const s = computeTrigramDice(qt, dt); if (s > best) best = s; });
+                    sum += best;
+                });
+                wordTypo = sum / qWordTris.length;
+            }
+            return { idx, bm25, bm25Norm: Math.min(1, bm25 / idealBm25), charTri, wordTypo, trigram: Math.max(charTri, wordTypo * 0.85) };
+        });
+
+        const rankOf = (key) => {
+            const sorted = [...rawList].sort((a, b) => b[key] - a[key]);
+            const ranks = new Array(rawList.length);
+            sorted.forEach((item, pos) => { ranks[item.idx] = item[key] > 0.0001 ? (pos + 1) : (rawList.length + 20); });
+            return ranks;
+        };
+        const bm25Ranks = rankOf('bm25');
+        const triRanks = rankOf('trigram');
+        const maxRrf = 1.0 / (RRF_K + 1);
+
         const scored = [];
+        corpus.entries.forEach((entry, idx) => {
+            const isPreferred = Boolean(preferredFaqId && entry.faqId === String(preferredFaqId));
+            const sc = rawList[idx];
+            const constraints = evaluateProtectedConstraints(qTok.protected, entry.docQTok.protected, entry.ansTok.protected);
+            const isExact = (qNorm === entry.qNorm && !constraints.hasConflict);
+            const directInQ = (qNorm.length >= 2 && entry.qNorm.includes(qNorm));
 
-        index.forEach(entry => {
-            const combined = entry.qLower + ' ' + entry.catLower + ' ' + entry.bodyLower;
-            const hasAllTokens = tokens.every(tok => combined.includes(tok));
-            if (!hasAllTokens) return;
+            const rrfNorm = ((0.80 / (RRF_K + bm25Ranks[idx])) + (0.20 / (RRF_K + triRanks[idx]))) / maxRrf;
+            let cal01 = 0;
+            if (sc.bm25 > 0) {
+                cal01 = (0.90 * sc.bm25Norm) + (0.10 * sc.trigram);
+            } else if (sc.wordTypo >= 0.56) {
+                cal01 = 0.58 * sc.wordTypo;
+            } else {
+                cal01 = 0.18 * sc.charTri;
+            }
 
-            let score = 0;
-            if (preferredFaqId && entry.faqId === String(preferredFaqId)) score += 1000;
-            if (entry.qLower === q) score += 200;
-            if (entry.qLower.includes(q)) score += 100;
-            if (entry.qLower.startsWith(q)) score += 40;
-            if (tokens.every(tok => entry.qLower.includes(tok))) score += 50;
-            if (tokens.some(tok => entry.catLower.includes(tok))) score += 20;
-            if (tokens.some(tok => entry.bodyLower.includes(tok))) score += 5;
+            if (directInQ && !constraints.hasConflict) cal01 = Math.max(cal01, 0.58);
+            if (constraints.hasConflict) cal01 *= constraints.multiplier;
 
-            scored.push({ entry, score });
+            const similarityPct = isExact ? 100.0 : Math.round(Math.min(99, Math.max(0, cal01 * 100)) * 10) / 10;
+            const hasAnchor = sc.bm25 > 0 || directInQ || sc.wordTypo >= 0.56;
+            const threshold = qNorm.length <= 3 ? 22.0 : 32.0;
+
+            if (!isPreferred && (!hasAnchor || similarityPct < threshold)) return;
+
+            const level = isExact ? 'exact' : (similarityPct >= 70.0 && !constraints.hasConflict ? 'high' : 'moderate');
+            const rankScore = (isPreferred ? 10000 : 0) + (isExact ? 500 : 0) + similarityPct + (rrfNorm * 10);
+
+            scored.push({
+                entry: Object.assign({}, entry, { similarityPct, relevanceLevel: level }),
+                score: rankScore,
+            });
         });
 
         scored.sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
+            if (Math.abs(b.score - a.score) > 0.2) return b.score - a.score;
             if (b.entry.views !== a.entry.views) return b.entry.views - a.entry.views;
             return a.entry.idx - b.entry.idx;
         });
@@ -1010,9 +1299,12 @@
         return scored.map(item => item.entry);
     }
 
-    // Safely highlight matched tokens without injecting raw HTML
+    // Safely highlight matched tokens (termasuk hasil ekspansi sinonim & stemming) without injecting raw HTML
     function appendHighlightedText(container, text, query) {
-        const tokens = (query || '').trim().split(/\s+/).filter(Boolean);
+        const rawTokens = normalizeRaw(query).split(' ').filter(t => t.length >= 2 && !SIM_STOPWORDS.has(t));
+        const tokens = Array.from(new Set([...rawTokens, ...extractNormalizedTokens(query)]))
+            .filter(t => t.length >= 2)
+            .sort((a, b) => b.length - a.length);
         if (tokens.length === 0) {
             container.textContent = text;
             return;
@@ -1093,12 +1385,7 @@
             titleEl.className = 'faq-suggest-title';
             appendHighlightedText(titleEl, entry.question, q);
 
-            const metaEl = document.createElement('div');
-            metaEl.className = 'faq-suggest-meta';
-            metaEl.textContent = (entry.category || 'FAQ') + ' · ' + entry.views + ' dilihat';
-
             contentWrap.appendChild(titleEl);
-            contentWrap.appendChild(metaEl);
             btn.appendChild(iconWrap);
             btn.appendChild(contentWrap);
 

@@ -518,13 +518,6 @@
                 @endforeach
             </div>
         @endif
-
-        <div class="mt-4 d-flex justify-content-start">
-            <a href="{{ route('mahasiswa.faq') }}" class="rv-back-btn">
-                <i class="bi bi-arrow-left"></i>
-                <span>Kembali ke Daftar FAQ Mahasiswa</span>
-            </a>
-        </div>
     </section>
 </main>
 

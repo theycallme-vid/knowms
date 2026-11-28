@@ -183,8 +183,9 @@
 
             @if($exactDuplicateCount > 0 || $similarCount > 0)
                 <div class="alert {{ $exactDuplicateCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }} rounded-4 p-3 mb-3 fs-13">
-                    <div class="d-flex align-items-start gap-2.5">
+                    <div class="d-flex align-items-start gap-2">
                         <i class="bi {{ $exactDuplicateCount > 0 ? 'bi-exclamation-octagon-fill text-danger' : 'bi-info-circle-fill text-warning' }} fs-5 mt-0.5"></i>
+                        <i></i>
                         <div>
                             <div class="fw-bold text-dark mb-0.5">Hasil Pengecekan Duplikat &amp; Kemiripan File Import</div>
                             <div class="text-secondary fs-12">
@@ -210,7 +211,7 @@
                                     <input type="checkbox" id="selectAllCheckbox" class="form-check-input" onchange="toggleSelectAll(this)">
                                 </th>
                                 <th style="width: 120px;">KODE / VERSI</th>
-                                <th style="min-width: 280px;">PERTANYAAN & JAWABAN</th>
+                                <th style="min-width: 280px;">PERTANYAAN</th>
                                 <th style="min-width: 190px;">KATA KUNCI</th>
                                 <th style="min-width: 190px;">SUMBER PUSTAKA</th>
                                 <th style="width: 130px;">STATUS</th>
@@ -235,6 +236,8 @@
                                     data-tags="{{ e(implode(', ', $item['tags'] ?? [])) }}"
                                     data-pustaka-judul="{{ e($item['pustaka_judul'] ?? '') }}"
                                     data-pustaka-bagian="{{ e($item['pustaka_bagian'] ?? '') }}"
+                                    data-similar-faqs='@json($item['similar_candidates'] ?? [])'
+                                    data-exact-match='@json($item['exact_match'] ?? null)'
                                     id="row-{{ $rowKey }}">
                                     <td class="text-center">
                                         <input type="checkbox"
@@ -245,30 +248,27 @@
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark fs-12">{{ $item['id'] }}</div>
-                                        <div class="fs-11 text-muted">{{ $verId }} ({{ $verLabel }})</div>
+                                        <div class="fs-11 text-muted">{{ $verLabel }}</div>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark fs-13 line-clamp-1 mb-0.5 faq-pertanyaan">{{ $item['pertanyaan'] }}</div>
-                                        <div class="fs-12 text-muted line-clamp-1 faq-jawaban">{{ strip_tags($item['jawaban']) }}</div>
+                                        <div class="fw-bold text-dark fs-13 line-clamp-2 faq-pertanyaan">{{ $item['pertanyaan'] }}</div>
 
                                         <div class="faq-similarity-box mt-1">
                                             @if(!empty($item['has_exact_match']) && !empty($item['exact_match']))
                                                 @php
                                                     $em = $item['exact_match'];
-                                                    $stLabel = $em['status_label'] ?? 'Terbit';
                                                 @endphp
                                                 <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-2 bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">
                                                     <i class="bi bi-exclamation-octagon-fill"></i>
-                                                    <span>Peringatan: Mirip 100% dengan <strong>{{ $em['id'] }}</strong> (Kondisi: <strong>{{ $stLabel }}</strong>)</span>
+                                                    <span>Mirip 100% dengan <strong>{{ $em['id'] }}</strong></span>
                                                 </div>
                                             @elseif(!empty($item['similar_candidates']))
                                                 @php
                                                     $topCand = $item['similar_candidates'][0];
-                                                    $candLabel = $topCand['status_label'] ?? 'Terbit';
                                                 @endphp
                                                 <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-2 bg-warning-subtle text-dark border border-warning-subtle fs-11">
                                                     <i class="bi bi-info-circle-fill text-warning"></i>
-                                                    <span>Mirip <strong>{{ $topCand['similarity'] }}%</strong> dengan <strong>{{ $topCand['id'] }}</strong> ({{ $candLabel }}: "{{ \Illuminate\Support\Str::limit($topCand['pertanyaan'], 48) }}")</span>
+                                                    <span>Mirip <strong>{{ $topCand['similarity'] }}%</strong> dengan <strong>{{ $topCand['id'] }}</strong></span>
                                                 </div>
                                             @endif
 
@@ -381,30 +381,41 @@
 
 <!-- Modal Edit Baris Pratinjau FAQ -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-bottom">
-                <div>
-                    <h5 class="modal-title fw-bold fs-16" id="modalEditTitle">EDIT FAQ</h5>
-                    <div class="fs-12 text-muted mt-1">Lengkapi pertanyaan, jawaban, serta pilih kata kunci agar siap diajukan. Sumber pustaka bersifat opsional.</div>
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 960px;">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header" style="background: linear-gradient(135deg, #FFFDFB 0%, #FDF2F4 100%); border-bottom: 1px solid #F3E2E5; padding: 1.05rem 1.4rem;">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge rounded-pill px-2.5 py-1 fw-bold fs-12" style="background-color: #85172C; color: #ffffff;" id="modalEditCode">FAQ-0001</span>
+                    <span class="fs-12 fw-semibold" style="color: #85172C;" id="modalEditVersion">Versi 1</span>
+                    <span class="fs-12 text-muted">&middot;</span>
+                    <span class="fw-bold text-dark fs-14" id="modalEditTitle">Ubah Pratinjau FAQ</span>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="font-size: 0.75rem;"></button>
             </div>
-            <div class="modal-body p-4">
+            <div class="modal-body p-4" style="max-height: 76vh; overflow-y: auto;">
                 <input type="hidden" id="editRowId">
 
-                <div class="mb-3">
-                    <label class="form-label-custom form-label-required">Pertanyaan FAQ</label>
-                    <textarea id="modalEditPertanyaan" rows="2" class="form-control fs-13 rounded-3"></textarea>
+                <!-- Catatan Kemiripan dengan FAQ Lain -->
+                <div class="mb-3" id="editModalSimilarSection">
+                    <div class="text-uppercase fw-bold mb-2" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em;">
+                        <i class="bi bi-intersect me-1"></i>Catatan Kemiripan dengan FAQ Lain
+                    </div>
+                    <div id="editModalSimilarWrap"></div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-lg-6">
+                        <label class="text-uppercase fw-bold d-block mb-2" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em;">Pertanyaan FAQ <span class="text-danger">*</span></label>
+                        <textarea id="modalEditPertanyaan" rows="4" class="form-control rounded-3 text-dark fw-semibold" style="font-size: 0.9rem; background-color: #FFFDFB; border-color: #EDE7E1;"></textarea>
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label class="text-uppercase fw-bold d-block mb-2" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em;">Jawaban FAQ <span class="text-danger">*</span></label>
+                        <textarea id="modalEditJawaban" rows="4" class="form-control rounded-3 text-dark" style="font-size: 0.875rem; border-color: #EDE7E1;"></textarea>
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label-custom form-label-required">Jawaban FAQ</label>
-                    <textarea id="modalEditJawaban" rows="3" class="form-control fs-13 rounded-3"></textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label-custom form-label-required">Kata Kunci (Pilih dari Daftar Kata Kunci)</label>
+                    <label class="text-uppercase fw-bold d-block mb-2" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em;">Kata Kunci (Pilih dari Daftar Kata Kunci) <span class="text-danger">*</span></label>
                     <input type="hidden" id="modalEditTags">
 
                     <!-- Kata kunci yang sudah dipilih -->
@@ -456,8 +467,8 @@
                 </div>
 
                 <div class="mb-1">
-                    <label class="form-label-custom">Dokumen / Link Sumber Pustaka <span class="text-muted fw-normal fs-12">(Opsional)</span></label>
-                    <select id="modalEditJudulPustaka" class="form-select fs-13 rounded-3">
+                    <label class="text-uppercase fw-bold d-block mb-2" style="font-size: 0.72rem; color: #85172C; letter-spacing: 0.06em;">Dokumen / Link Sumber Pustaka <span class="text-muted fw-normal text-lowercase">(opsional)</span></label>
+                    <select id="modalEditJudulPustaka" class="form-select rounded-3 text-dark" style="font-size: 0.85rem; border-color: #EDE7E1;">
                         <option value="">-- Tidak ada / Opsional (Pilih jika ada Sumber Pustaka) --</option>
                         @if(isset($daftarPustaka) && $daftarPustaka->isNotEmpty())
                             @foreach($daftarPustaka as $dp)
@@ -468,9 +479,6 @@
                 </div>
             </div>
             <div class="modal-footer border-top d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-sm btn-light border rounded-3 px-3 py-2 d-inline-flex align-items-center gap-2" data-bs-dismiss="modal">
-                    <i class="bi bi-x-lg"></i><span>Batal</span>
-                </button>
                 <button type="button" class="btn btn-sm btn-maroon px-3 py-2 d-inline-flex align-items-center gap-2" onclick="saveEditedFaq()">
                     <i class="bi bi-check2-circle"></i><span>Simpan Perubahan</span>
                 </button>
@@ -675,17 +683,99 @@
         updateCounters();
     }
 
+    function renderPreviewSimilarBox(row) {
+        const wrap = document.getElementById('editModalSimilarWrap');
+        if (!wrap) return;
+
+        let candidates = [];
+        try {
+            candidates = JSON.parse(row.getAttribute('data-similar-faqs') || '[]');
+        } catch (_) { candidates = []; }
+
+        let exactMatch = null;
+        try {
+            exactMatch = JSON.parse(row.getAttribute('data-exact-match') || 'null');
+        } catch (_) { exactMatch = null; }
+
+        if (exactMatch && exactMatch.id && !candidates.some(c => c.id === exactMatch.id)) {
+            candidates = [exactMatch, ...candidates];
+        }
+
+        if (!Array.isArray(candidates) || candidates.length === 0) {
+            wrap.innerHTML = `
+                <div class="rounded-3 px-3 py-2 d-flex align-items-center gap-2" style="background-color:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;font-size:0.78rem;">
+                    <i class="bi bi-shield-check fs-6"></i>
+                    <span>Tidak ditemukan FAQ lain yang mirip.</span>
+                </div>
+            `;
+            return;
+        }
+
+        wrap.innerHTML = `
+            <div class="rounded-4 p-3" style="background: linear-gradient(135deg, #FFFDFB 0%, #FFFBEB 100%); border: 1px solid #FDE68A;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2" style="border-bottom: 1px dashed #FCD34D;">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-1.5" style="font-size: 0.8rem;">
+                        
+                        <span>Ditemukan ${candidates.length} FAQ yang Memiliki Kemiripan</span>
+                    </div>
+                </div>
+                <div class="d-flex flex-column gap-2 pe-1" style="max-height: 205px; overflow-y: auto;">
+                    ${candidates.map((sim, idx) => {
+                        const pct = Number(sim.similarity || 0);
+                        const isHigh = pct >= 70;
+                        const accentColor = isHigh ? '#DC2626' : '#D97706';
+                        const pillStyle = isHigh
+                            ? 'background-color:#FEF2F2;color:#DC2626;border:1px solid #FECACA;'
+                            : 'background-color:#FEF3C7;color:#92400E;border:1px solid #FDE68A;';
+                        const collapseId = `previewSimAns_${idx}_${String(sim.id || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+                        return `
+                            <div class="rounded-3 bg-white px-3 py-2.5 shadow-sm" style="border:1px solid #EDE7E1; border-left: 3px solid ${accentColor};">
+                                <div class="d-flex align-items-center justify-content-between gap-3">
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex flex-wrap align-items-center gap-1.5 mb-1">
+                                            <span class="badge rounded-2 fw-bold" style="background-color:#F8F5F1;color:#85172C;border:1px solid #E5DCD3;font-size:0.72rem;padding:0.22rem 0.5rem;">${escHtml(sim.id)}</span>
+                                            <span class="badge rounded-pill fw-bold" style="${pillStyle}font-size:0.7rem;padding:0.22rem 0.6rem;">${pct}% Mirip</span>
+                                        </div>
+                                        <div class="text-dark fw-semibold" style="font-size:0.85rem;line-height:1.45;">${escHtml(sim.pertanyaan || '')}</div>
+                                    </div>
+                                    ${sim.jawaban ? `
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-3 flex-shrink-0 d-inline-flex align-items-center gap-1.5 fw-semibold" style="font-size:0.73rem; border-color:#CBD5E1;" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                                       
+                                            <span> Lihat Jawaban</span>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                ${sim.jawaban ? `
+                                    <div id="${collapseId}" class="collapse mt-2 pt-2" style="border-top:1px dashed #E2E8F0;">
+                                        <div class="rounded-2 p-2.5 text-dark" style="background-color:#F8FAFC; font-size:0.8rem; line-height:1.55;">
+                                            <strong style="color:#85172C;">Jawaban ${escHtml(sim.id)}:</strong> ${escHtml(sim.jawaban)}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     // Edit Modal
     function openEditModal(rowId) {
         const row = document.getElementById('row-' + rowId);
         if (!row) return;
 
         const faqCode = row.getAttribute('data-id') || rowId;
-        const verId = row.getAttribute('data-version-id') || rowId;
+        const verLabel = row.getAttribute('data-version') || 'Versi 1';
         const currentPustaka = row.getAttribute('data-pustaka-judul') || '';
 
         document.getElementById('editRowId').value = rowId;
-        document.getElementById('modalEditTitle').textContent = `EDIT ${faqCode}`;
+        const codeEl = document.getElementById('modalEditCode');
+        const verEl = document.getElementById('modalEditVersion');
+        if (codeEl) codeEl.textContent = faqCode;
+        if (verEl) verEl.textContent = verLabel;
+        document.getElementById('modalEditTitle').textContent = 'Ubah Pratinjau FAQ';
+        renderPreviewSimilarBox(row);
         document.getElementById('modalEditPertanyaan').value = row.getAttribute('data-pertanyaan') || '';
         document.getElementById('modalEditJawaban').value = row.getAttribute('data-jawaban') || '';
         document.getElementById('modalEditTags').value = row.getAttribute('data-tags') || '';
@@ -813,7 +903,8 @@
         row.setAttribute('data-status', newStatus);
 
         row.querySelector('.faq-pertanyaan').textContent = pertanyaan;
-        row.querySelector('.faq-jawaban').textContent = jawaban;
+        const jawEl = row.querySelector('.faq-jawaban');
+        if (jawEl) jawEl.textContent = jawaban;
 
         const tagsContainer = row.querySelector('.faq-tags-container');
         if (tagsArr.length > 0) {

@@ -175,7 +175,7 @@
         <div class="d-flex align-items-center gap-2 flex-shrink-0">
             <span class="navbar-context-pill d-none d-md-inline-flex">
                 <i class="bi bi-globe2"></i>
-                <span>Guest</span>
+                <span>Tamu</span>
                 <span class="text-muted fw-normal">&middot; Akses Umum</span>
             </span>
             <button type="button"
@@ -258,14 +258,27 @@
             </div>
         </div>
 
-        <!-- Accordion FAQ List -->
-        <div id="faqList" class="accordion mt-3" style="--bs-accordion-border-width:0;">
+        <!-- Area Daftar FAQ dengan Tombol Kiri (<) & Kanan (>) untuk Halaman Sebelumnya / Selanjutnya -->
+        <div id="faqStageWrap" class="faq-stage-wrap mt-3">
+            <div class="faq-side-nav-col d-none d-md-flex">
+                <button type="button"
+                        id="faqSidePrevBtn"
+                        class="faq-side-nav-btn"
+                        onclick="stepFaqPage(-1)"
+                        aria-label="Halaman sebelumnya"
+                        title="Halaman sebelumnya">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            </div>
+
+            <!-- Accordion FAQ List -->
+            <div id="faqList" class="accordion flex-grow-1" style="--bs-accordion-border-width:0; min-width: 0;">
             @foreach($faqs as $f)
                 @php
                     $catClasses = is_array($f['keys'] ?? null) ? implode(' ', $f['keys']) : ($f['key'] ?? 'akademik');
                     $realFaqId = $f['faq_id'] ?? ('FAQ-' . sprintf('%04d', $f['id']));
                 @endphp
-                <article class="faq-item" data-faq-id="{{ $realFaqId }}" data-cat="{{ $catClasses }}" data-text="{{ strtolower($f['q'].' '.$f['cat']) }}">
+                <article class="faq-item" data-faq-id="{{ $realFaqId }}" data-rank="{{ $f['id'] }}" data-views="{{ $f['views_count'] ?? 0 }}" data-cat="{{ $catClasses }}" data-text="{{ strtolower($f['q'].' '.$f['cat']) }}">
                     <button class="faq-toggle collapsed" 
                             type="button" 
                             data-bs-toggle="collapse" 
@@ -397,28 +410,38 @@
                 <div class="fw-semibold text-dark fs-14">Tidak ada pertanyaan yang cocok</div>
                 <div class="fs-12 text-muted mt-1">Coba gunakan kata kunci pencarian yang lain atau pilih kategori di atas.</div>
             </div>
+            </div>
+
+            <div class="faq-side-nav-col d-none d-md-flex">
+                <button type="button"
+                        id="faqSideNextBtn"
+                        class="faq-side-nav-btn"
+                        onclick="stepFaqPage(1)"
+                        aria-label="Halaman selanjutnya"
+                        title="Halaman selanjutnya">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Official Disclaimer Callout -->
-        <div class="disclaimer mt-3 d-flex align-items-center gap-2.5 shadow-sm">
-            <span>FAQ ini merupakan panduan umum. Persyaratan dan jadwal resmi mengikuti pengumuman program studi atau fakultasmu.</span>
-        </div>
+        <!-- Navigasi Halaman (Top 10 per Halaman di Setiap Kategori) -->
+        <div id="faqPagination" class="faq-pagination-bar mt-3 d-none"></div>
     </section>
 
-    <!-- ============================ CTA BANNER UNTUK GUEST ============================ -->
+    <!-- ============================ CTA BANNER ============================ -->
     <section class="cta-card mt-5 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm">
         <div class="d-flex align-items-center gap-3">
             <div class="cta-icon">
-                <i class="bi bi-info-circle fs-4"></i>
+                <i class="bi bi-chat-square-text fs-4"></i>
             </div>
             <div>
-                <div class="display-serif fs-4 fw-bold text-dark">Butuh Bantuan Layanan Akademik?</div>
-                <div class="fs-13 text-muted">Layanan kontak dan konsultasi akademik langsung hanya tersedia untuk mahasiswa aktif. Silakan masuk melalui portal mahasiswa.</div>
+                <div class="display-serif fs-4 fw-bold text-dark">Belum menemukan jawabanmu?</div>
+                <div class="fs-13 text-muted">Sampaikan pertanyaanmu ke tim akademik. Kami bantu arahkan ke layanan yang tepat.</div>
             </div>
         </div>
-        <a href="{{ route('portal') }}" class="btn-maroon px-4 py-2.5 fs-13 text-decoration-none">
-            <span>Masuk Portal Mahasiswa</span>
-            <i class="bi bi-arrow-right"></i>
+        <a href="{{ route('layanan.kontak') }}" class="btn-maroon px-4 py-2.5 fs-13 text-decoration-none">
+            <span>Hubungi layanan akademik</span>
+            <i class="bi bi-arrow-up-right"></i>
         </a>
     </section>
 </main>
@@ -528,9 +551,108 @@
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<style>
+    .faq-stage-wrap {
+        display: flex;
+        align-items: stretch;
+        gap: 0.9rem;
+    }
+    .faq-stage-wrap.no-side-nav .faq-side-nav-col {
+        display: none !important;
+    }
+    .faq-side-nav-col {
+        width: 44px;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+    }
+    .faq-side-nav-btn {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: 50%;
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        color: #334155;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        transition: all 0.18s ease;
+    }
+    .faq-side-nav-btn i {
+        font-size: 1.05rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .faq-side-nav-btn:hover:not(:disabled) {
+        background-color: #FDF7F8;
+        border-color: #85172C;
+        color: #85172C;
+        box-shadow: 0 6px 16px rgba(133, 23, 44, 0.18);
+    }
+    .faq-side-nav-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        box-shadow: none;
+        background-color: #F8FAFC;
+    }
+    .faq-pagination-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.85rem;
+        padding: 0.9rem 1.25rem;
+        background-color: #FFFFFF;
+        border: 1px solid #EAEAE4;
+        border-radius: 14px;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+    }
+    .faq-page-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.75rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        background-color: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .faq-page-btn:hover:not(:disabled):not(.active) {
+        background-color: #F8FAFC;
+        border-color: #94A3B8;
+        color: #0F172A;
+    }
+    .faq-page-btn.active {
+        background-color: #85172C;
+        border-color: #85172C;
+        color: #FFFFFF;
+        box-shadow: 0 2px 6px rgba(133, 23, 44, 0.25);
+    }
+    .faq-page-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        background-color: #F8FAFC;
+    }
+</style>
+
 <!-- Filter & Search Script -->
 <script>
     let activeCat = 'top';
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 10;
+    let lastTotalPages = 1;
     const faqLogUrl = "{{ route('faq.log-access') }}";
     const csrfToken = "{{ csrf_token() }}";
     const viewedFaqIds = new Set();
@@ -654,31 +776,155 @@
             window.clearFaqSearch();
         }
         activeCat = key;
+        currentPage = 1;
         document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        filterFaq();
+        filterFaq(true);
     }
 
-    function filterFaq() {
-        let visible = 0;
-        
-        document.querySelectorAll('#faqList .faq-item').forEach(item => {
-            const itemCats = (item.dataset.cat || '').split(' ');
-            const show = activeCat === 'top' || itemCats.includes(activeCat);
-            item.classList.toggle('d-none', !show);
-            if (show) visible++;
+    function stepFaqPage(delta) {
+        const target = currentPage + delta;
+        if (target < 1 || target > lastTotalPages) return;
+        goToFaqPage(target);
+    }
+
+    function syncSideNavButtons(totalMatched, totalPages) {
+        lastTotalPages = totalPages;
+        const stageWrap = document.getElementById('faqStageWrap');
+        const prevBtn = document.getElementById('faqSidePrevBtn');
+        const nextBtn = document.getElementById('faqSideNextBtn');
+        const hasMultiplePages = totalMatched > ITEMS_PER_PAGE;
+
+        if (stageWrap) {
+            stageWrap.classList.toggle('no-side-nav', !hasMultiplePages);
+        }
+        if (prevBtn) {
+            prevBtn.disabled = (!hasMultiplePages || currentPage <= 1);
+        }
+        if (nextBtn) {
+            nextBtn.disabled = (!hasMultiplePages || currentPage >= totalPages);
+        }
+    }
+
+    function goToFaqPage(page) {
+        currentPage = page;
+        filterFaq(false);
+        const headingEl = document.getElementById('faqHeading');
+        if (headingEl) {
+            headingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function renderFaqPagination(totalMatched, totalPages, startIdx, endIdx) {
+        const pagEl = document.getElementById('faqPagination');
+        if (!pagEl) return;
+
+        if (totalMatched <= ITEMS_PER_PAGE) {
+            pagEl.classList.add('d-none');
+            pagEl.innerHTML = '';
+            return;
+        }
+
+        pagEl.classList.remove('d-none');
+        const showingFrom = startIdx + 1;
+        const showingTo = Math.min(endIdx, totalMatched);
+
+        let pageButtonsHtml = `
+            <button type="button" class="faq-page-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="goToFaqPage(${currentPage - 1})">
+                <i class="bi bi-chevron-left"></i>
+                <span>Sebelumnya</span>
+            </button>
+        `;
+
+        for (let p = 1; p <= totalPages; p++) {
+            pageButtonsHtml += `
+                <button type="button" class="faq-page-btn ${p === currentPage ? 'active' : ''}" onclick="goToFaqPage(${p})">
+                    ${p}
+                </button>
+            `;
+        }
+
+        pageButtonsHtml += `
+            <button type="button" class="faq-page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="goToFaqPage(${currentPage + 1})">
+                <span>Selanjutnya</span>
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        `;
+
+        pagEl.innerHTML = `
+            <div class="fs-12 text-muted">
+                Menampilkan <strong class="text-dark">${showingFrom}&ndash;${showingTo}</strong> dari <strong class="text-dark">${totalMatched}</strong> pertanyaan
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                ${pageButtonsHtml}
+            </div>
+        `;
+    }
+
+    function filterFaq(resetPage = true) {
+        if (resetPage) {
+            currentPage = 1;
+        }
+
+        const items = Array.from(document.querySelectorAll('#faqList .faq-item'));
+
+        items.sort((a, b) => {
+            if (activeCat === 'top') {
+                const viewDiff = Number(b.dataset.views || 0) - Number(a.dataset.views || 0);
+                if (viewDiff !== 0) return viewDiff;
+            }
+            return Number(a.dataset.rank || 0) - Number(b.dataset.rank || 0);
         });
+
+        const matchedItems = [];
+        items.forEach(item => {
+            if (faqListEl) faqListEl.appendChild(item);
+            const itemCats = (item.dataset.cat || '').split(' ');
+            const matchCat = activeCat === 'top' || itemCats.includes(activeCat);
+            if (matchCat) {
+                matchedItems.push(item);
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+
+        const totalMatched = matchedItems.length;
+        const totalPages = Math.max(1, Math.ceil(totalMatched / ITEMS_PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIdx = startIdx + ITEMS_PER_PAGE;
+
+        matchedItems.forEach((item, idx) => {
+            const onCurrentPage = idx >= startIdx && idx < endIdx;
+            item.classList.toggle('d-none', !onCurrentPage);
+            if (onCurrentPage) {
+                const numEl = item.querySelector('.faq-num');
+                if (numEl) numEl.textContent = String(idx + 1).padStart(2, '0');
+            } else {
+                const collapseEl = item.querySelector('.collapse.show');
+                if (collapseEl && typeof bootstrap !== 'undefined') {
+                    bootstrap.Collapse.getInstance(collapseEl)?.hide();
+                }
+            }
+        });
+
+        renderFaqPagination(totalMatched, totalPages, startIdx, endIdx);
+        syncSideNavButtons(totalMatched, totalPages);
 
         const emptyEl = document.getElementById('faqEmpty');
         if (emptyEl) {
-            emptyEl.classList.toggle('d-none', visible !== 0);
+            emptyEl.classList.toggle('d-none', totalMatched !== 0);
         }
 
         const countEl = document.getElementById('faqCount');
         if (countEl) {
-            countEl.innerText = (activeCat === 'top' ? 'Top FAQ' : 'Hasil kategori') + ' · ' + visible + ' pertanyaan';
+            countEl.innerText = (activeCat === 'top' ? 'FAQ Populer' : 'Hasil kategori') + ' · ' + totalMatched + ' pertanyaan';
         }
     }
+
+    filterFaq(true);
 
     // =========================================================================
     // SISTEM IDLE TIMEOUT & POP-UP HITUNG MUNDUR (GUEST - DARI TSETTINGS)
@@ -810,6 +1056,15 @@
 </script>
 
 @include('partials.faq-google-search', ['part' => 'script'])
+
+<!-- Tombol Navigasi Melayang: Hubungi Admin Akademik -->
+<a href="{{ route('layanan.kontak') }}"
+   class="fab-contact-admin"
+   aria-label="Hubungi Admin Akademik (Telepon)"
+   title="Hubungi Admin Akademik">
+    <i class="bi bi-telephone-fill fs-5" aria-hidden="true"></i>
+    <span class="fab-contact-label">Hubungi Admin</span>
+</a>
 
 </body>
 </html>

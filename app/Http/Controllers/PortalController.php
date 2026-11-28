@@ -218,6 +218,23 @@ class PortalController extends Controller
     }
 
     /**
+     * Endpoint pencarian FAQ publik (Mahasiswa & Guest):
+     * Hanya mencari pada versi FAQ berstatus 'Terbit' melalui FaqSimilarityService::searchPublishedFaqs().
+     */
+    public function searchPublishedFaq(Request $request, \App\Services\FaqSimilarityService $similarityService)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $limit = min(25, max(1, (int) $request->query('limit', 10)));
+
+        $response = $similarityService->searchPublishedFaqs($q, [
+            'limit'     => $limit,
+            'threshold' => 32.0,
+        ]);
+
+        return response()->json($response);
+    }
+
+    /**
      * Halaman Full Page Riwayat Versi Jawaban untuk 1 pertanyaan FAQ Mahasiswa.
      * Diurutkan dari versi paling terbaru di posisi paling atas.
      */
